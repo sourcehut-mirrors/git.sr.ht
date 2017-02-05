@@ -1,4 +1,4 @@
-from flask import Blueprint, request, render_template
+from flask import Blueprint, Response, request, render_template
 import requests
 from git.config import cfg
 
@@ -15,3 +15,9 @@ def cgit_passthrough(user, repo, cgit_path):
             cgit_html=r.text,
             owner_name=user,
             repo_name=repo)
+
+@cgit.route("/<user>/<repo>/patch")
+@cgit.route("/<user>/<repo>/patch/")
+def cgit_plain(user, repo):
+    r = requests.get("{}/{}".format(upstream, request.full_path))
+    return Response(r.text, mimetype="text/plain")
