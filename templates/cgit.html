@@ -1,4 +1,13 @@
-{% extends "git.html" %}
-{% block content %}
+{% extends "layout.html" %}
+{% block body %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <h2>
+        <a href="/{{ owner_name }}">{{ owner_name }}</a>/{{ repo_name }}
+      </h2>
+    </div>
+  </div>
+</div>
 {{ cgit_html | safe }}
 {% endblock %}

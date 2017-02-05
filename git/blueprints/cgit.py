@@ -11,4 +11,7 @@ upstream = cfg("cgit", "remote")
 @cgit.route("/<user>/<repo>/<path:cgit_path>")
 def cgit_passthrough(user, repo, cgit_path):
     r = requests.get("{}/{}".format(upstream, request.full_path))
-    return render_template("cgit.html", cgit_html=r.text)
+    return render_template("cgit.html",
+            cgit_html=r.text,
+            owner_name=user,
+            repo_name=repo)
