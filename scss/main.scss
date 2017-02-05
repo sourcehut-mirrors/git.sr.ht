@@ -136,3 +136,29 @@ section {
 }
 
 @import "cgit";
+
+div#cgit {
+    padding: 0;
+    font-size: inherit;
+
+    table.tabs {
+        margin-top: 0;
+        border-bottom: 3px solid #ddd;
+
+        td a {
+            padding: 3px 0.75em;
+            font-size: inherit;
+
+            &.active {
+                background-color: #ddd;
+            }
+        }
+
+        input[type="text"] {
+            border-width: 1px;
+            border-style: solid;
+            width: 8rem;
+            padding: 0 0;
+        }
+    }
+}
