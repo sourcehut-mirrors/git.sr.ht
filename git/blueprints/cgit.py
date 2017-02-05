@@ -1,8 +1,8 @@
 from flask import Blueprint, Response, request, render_template
 import requests
-from git.config import cfg
+from srht.config import cfg
 
-cgit = Blueprint('cgit', __name__, template_folder="../../templates")
+cgit = Blueprint('cgit', __name__)
 
 upstream = cfg("cgit", "remote")
 

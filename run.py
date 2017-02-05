@@ -1,5 +1,5 @@
 from git.app import app
-from git.config import cfg, cfgi
+from srht.config import cfg, cfgi
 
 import os
 
