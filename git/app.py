@@ -5,7 +5,8 @@ import sys
 import os
 import locale
 
-from srht.config import cfg, cfgi
+from srht.config import cfg, cfgi, load_config
+load_config("git")
 from srht.database import DbSession
 db = DbSession(cfg("sr.ht", "connection-string"))
 db.init()
