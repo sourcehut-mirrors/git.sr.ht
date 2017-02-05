@@ -1,8 +1,3 @@
-# Builds static assets
-# Depends on:
-# - scss
-# - coffeescript
-# - inotify-tools
 # Run `make` to compile static assets
 # Run `make watch` to recompile whenever a change is made
 
@@ -11,13 +6,15 @@
 SCRIPTS+=$(patsubst js/%.js,static/%.js,$(wildcard js/*.js))
 _STATIC:=$(patsubst _static/%,static/%,$(wildcard _static/*))
 
+SRHT_PATH?=/usr/lib/python3.6/site-packages/srht
+
 static/%: _static/%
 	@mkdir -p static/
 	cp $< $@
 
-static/main.css: scss/*.scss
+static/main.css: scss/*.scss ${SRHT_PATH}/scss/*.scss
 	@mkdir -p static/
-	scss scss/main.scss $@
+	sassc -I${SRHT_PATH}/scss scss/main.scss $@
 
 static/%.js: js/%.js
 	@mkdir -p static/
