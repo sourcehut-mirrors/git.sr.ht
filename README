@@ -1,0 +1,55 @@
+                                   git.sr.ht
+
+Handles account management for sr.ht sites.
+
+DEPENDENCIES
+
+- Python 3
+- sass
+- PostgreSQL
+
+Python packages:
+
+- flask
+- flask-login
+- sqlalchemy
+- sqlalchemy-utils
+
+DEVELOPMENT
+
+1. Prepare a PostgreSQL connection string and SMTP credentials
+2. Copy config.ini.example to config.ini and edit to your liking
+3. make (or `make watch` to watch for changes)
+4. python3 app.py
+5. View http://localhost:5001 in your browser
+
+INSTALLATION
+
+Note: by default `make install` installs a systemd unit to /etc/systemd/system.
+
+1. Prepare a PostgreSQL connection string and SMTP credentials
+2. sudo make install
+3. Edit /etc/sr.ht/git.ini to your liking
+4. Configure an nginx reverse proxy to point to localhost:8000
+5. systemctl enable git.sr.ht
+6. systemctl start git.sr.ht
+
+UPGRADE PROCEDURE
+
+Before attempting any upgrades, you have to configure your install for database
+migrations. Edit /etc/sr.ht/git.alembic.ini to your liking and use the
+following procedure to mark the database as current:
+
+1. sudo systemctl stop git.sr.ht
+2. alembic stamp head
+3. sudo systemctl start git.sr.ht
+
+This only needs to be done once.
+
+To upgrade to a new version of git.sr.ht, perform the following procedure from
+the new source tree:
+
+1. sudo systemctl stop git.sr.ht
+2. sudo make install
+3. alembic upgrade
+4. sudo systemctl start git.sr.ht
