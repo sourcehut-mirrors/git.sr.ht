@@ -35,6 +35,11 @@ div#cgit {
     }
   }
 
+  div.path {
+    background-color: #ddd;
+    padding-top: 0;
+  }
+
   // Recolor links
   a, table.list td a.ls-dir {
     color: $link-color;
