@@ -1,6 +1,12 @@
 import sqlalchemy as sa
 import sqlalchemy_utils as sau
 from srht.database import Base
+from enum import Enum
+
+class RepoVisibility(Enum):
+    public = 'public'
+    private = 'private'
+    unlisted = 'unlisted'
 
 class Repository(Base):
     __tablename__ = 'repository'
@@ -10,3 +16,7 @@ class Repository(Base):
     name = sa.Column(sa.Unicode(256), nullable=False)
     owner_id = sa.Column(sa.Integer, sa.ForeignKey('user.id'), nullable=False)
     owner = sa.orm.relationship('User', backref=sa.orm.backref('repos'))
+    visibility = sa.Column(
+            sau.ChoiceType(RepoVisibility, impl=sa.String()),
+            nullable=False,
+            default=RepoVisibility.public)

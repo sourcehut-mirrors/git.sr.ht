@@ -27,18 +27,22 @@ try:
 except:
     pass
 
-from git.blueprints.cgit import cgit
-from git.blueprints.auth import auth
+def oauth_url(return_to):
+    return "{}/oauth/authorize?client_id={}&scopes=profile,keys&state={}".format(
+        cfg("network", "meta"),
+        cfg("meta.sr.ht", "oauth-client-id"),
+        urllib.parse.quote_plus(return_to))
 
-app.register_blueprint(cgit)
+from git.blueprints.auth import auth
+from git.blueprints.cgit import cgit
+from git.blueprints.manage import manage
+
 app.register_blueprint(auth)
+app.register_blueprint(cgit)
+app.register_blueprint(manage)
 
 @app.context_processor
 def inject():
     return {
-        "oauth_url": "{}/oauth/authorize?client_id={}&scopes=profile,keys&state={}".format(
-            cfg("network", "meta"),
-            cfg("meta.sr.ht", "oauth-client-id"),
-            urllib.parse.quote(request.full_path)
-        )
+        "oauth_url": oauth_url(request.full_path)
     }

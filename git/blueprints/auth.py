@@ -1,4 +1,4 @@
-from flask import Blueprint, Response, request, render_template, redirect
+from flask import Blueprint, request, render_template, redirect
 from flask_login import login_user, logout_user
 from srht.config import cfg
 from srht.flask import DATE_FORMAT
