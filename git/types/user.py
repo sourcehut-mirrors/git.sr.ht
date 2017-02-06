@@ -1,12 +1,15 @@
 import sqlalchemy as sa
 import sqlalchemy_utils as sau
-from git.db import Base
+from srht.database import Base
 
 class User(Base):
     __tablename__ = 'user'
     id = sa.Column(sa.Integer, primary_key=True)
+    username = sa.Column(sa.Unicode(256))
     created = sa.Column(sa.DateTime, nullable=False)
     updated = sa.Column(sa.DateTime, nullable=False)
+    oauth_token = sa.Column(sa.String(256), nullable=False)
+    oauth_token_expires = sa.Column(sa.DateTime, nullable=False)
     email = sa.Column(sa.String(256), nullable=False)
     paid = sa.Column(sa.Boolean, nullable=False)
 

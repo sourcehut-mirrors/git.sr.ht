@@ -1,16 +1,26 @@
 from flask import render_template, request 
-
+from flask_login import LoginManager, current_user
+import urllib.parse
 import locale
 
 from srht.config import cfg, cfgi, load_config
 load_config("git")
 from srht.database import DbSession
 db = DbSession(cfg("sr.ht", "connection-string"))
+from git.types import User
 db.init()
 
 from srht.flask import SrhtFlask
 app = SrhtFlask("git", __name__)
 app.secret_key = cfg("server", "secret-key")
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+@login_manager.user_loader
+def load_user(username):
+    return User.query.filter(User.username == username).first()
+
+login_manager.anonymous_user = lambda: None
 
 try:
     locale.setlocale(locale.LC_ALL, 'en_US')
@@ -18,5 +28,17 @@ except:
     pass
 
 from git.blueprints.cgit import cgit
+from git.blueprints.auth import auth
 
 app.register_blueprint(cgit)
+app.register_blueprint(auth)
+
+@app.context_processor
+def inject():
+    return {
+        "oauth_url": "{}/oauth/authorize?client_id={}&scopes=profile,keys&state={}".format(
+            cfg("network", "meta"),
+            cfg("meta.sr.ht", "oauth-client-id"),
+            urllib.parse.quote(request.full_path)
+        )
+    }
