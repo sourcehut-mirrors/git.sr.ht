@@ -8,7 +8,5 @@ class Repository(Base):
     created = sa.Column(sa.DateTime, nullable=False)
     updated = sa.Column(sa.DateTime, nullable=False)
     name = sa.Column(sa.Unicode(256), nullable=False)
-    owner_id = sa.Column(sa.Integer, sa.ForeignKey('user.id'))
+    owner_id = sa.Column(sa.Integer, sa.ForeignKey('user.id'), nullable=False)
     owner = sa.orm.relationship('User', backref=sa.orm.backref('repos'))
-    group_id = sa.Column(sa.Integer, sa.ForeignKey('group.id'))
-    group = sa.orm.relationship('Group', backref=sa.orm.backref('repos'))
