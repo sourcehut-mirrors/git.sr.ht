@@ -1,6 +1,8 @@
 {% extends "layout.html" %}
+{% block login_nav %}
+<a href="/manage">Manage repos</a>
+&mdash;
+{% endblock %}
 {% block body %} 
-<div class="container">
-  {% block content %}{% endblock %}
-</div>
+{% block content %}{% endblock %}
 {% endblock %}
