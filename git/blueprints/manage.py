@@ -15,9 +15,10 @@ repos_path = cfg("cgit", "repos")
 @manage.route("/manage")
 @loginrequired
 def index():
+    another = request.args.get("another")
     repos = Repository.query.filter(Repository.owner_id == current_user.id)\
             .order_by(Repository.updated.desc()).all()
-    return render_template("manage.html", repos=repos)
+    return render_template("manage.html", repos=repos, another=another)
 
 @manage.route("/manage/create", methods=["POST"])
 @loginrequired
@@ -34,6 +35,7 @@ def create():
             .order_by(Repository.updated.desc()).all()
     valid.expect(not repo_name or not repo_name in [r.name for r in repos],
             "This name is already in use.", field="repo-name")
+    another = valid.optional("another")
 
     if not valid.ok:
         return render_template("manage.html",
@@ -59,4 +61,7 @@ def create():
 
     db.session.commit()
 
-    return redirect("/~{}/{}".format(current_user.username, repo_name))
+    if another == "on":
+        return redirect("/manage?another")
+    else:
+        return redirect("/~{}/{}".format(current_user.username, repo_name))

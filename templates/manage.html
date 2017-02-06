@@ -3,36 +3,14 @@
 <div class="container">
   <div class="row">
     <section class="col-md-6">
-      {% if len(repos) != 0 %}
-      <h3>Manage repositories</h3>
-      <dl>
-        {% for repo in repos %}
-          <dt>
-            <a href="/~{{current_user.username}}/{{repo.name}}">
-              ~{{current_user.username}}/{{repo.name}}
-            </a>
-          </dt>
-          <dd>
-            {% if not repo.description %}
-            <em>This repository has no description</em>
-            {% else %}
-            {{ repo.description }}
-            {% endif %}
-            <br />
-            <a href="#">Edit details</a>
-            &mdash;
-            <a href="#">Manage collaborators</a>
-            &mdash;
-            <a href="#">Delete repository</a>
-          </dd>
-        {% endfor %}
-      </dl>
-      {% endif %}
-      <h3>Create new repository</h3>
+      <h3 id="create">Create new repository</h3>
       <form method="POST" action="/manage/create">
         <div class="form-group {{valid.cls("repo-name")}}">
           <label for="repo-name">Name</label>
           <input
+            {% if another %}
+            autofocus
+            {% endif %}
             type="text"
             name="repo-name"
             id="repo-name"
@@ -85,7 +63,42 @@
           </div>
         </fieldset>
         <button type="submit" class="btn btn-default">Create</button>
+        <label class="form-check-label" style="margin-left: 0.5rem">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            name="another"
+            style="position: relative; top: 2px;"
+            {% if another %}
+            checked
+            {% endif %}> Create another?
+        </label>
       </form>
+      {% if len(repos) != 0 %}
+      <h3>Manage repositories</h3>
+      <dl>
+        {% for repo in repos %}
+          <dt>
+            <a href="/~{{current_user.username}}/{{repo.name}}">
+              ~{{current_user.username}}/{{repo.name}}
+            </a>
+          </dt>
+          <dd>
+            {% if not repo.description %}
+            <em>This repository has no description</em>
+            {% else %}
+            {{ repo.description }}
+            {% endif %}
+            <br />
+            <a href="#">Edit details</a>
+            &mdash;
+            <a href="#">Manage collaborators</a>
+            &mdash;
+            <a href="#">Delete repository</a>
+          </dd>
+        {% endfor %}
+      </dl>
+      {% endif %}
     </section>
   </div>
 </div>

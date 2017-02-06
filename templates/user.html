@@ -46,6 +46,21 @@
         </p>
       {% endfor %}
       {% endif %}
+      {% if total_pages > 1 %}
+      {% if page != 1 %}
+      <a href="?page={{ page - 1 }}{{ '&search=' + search if search else '' }}" class="pull-left">[previous]</a>
+      {% else %}
+      <span class="pull-left" style="color: transparent">[previous]</span>
+      {% endif %}
+      {% if page != total_pages %}
+      <a href="?page={{ page + 1 }}{{ '&search=' + search if search else '' }}" class="pull-right">[next]</a>
+      {% else %}
+      <span class="pull-right" style="color: transparent">[previous]</span>
+      {% endif %}
+      <div class="text-centered">
+        [ {{ page }} / {{ total_pages }} ]
+      </div>
+      {% endif %}
     </section>
   </div>
 </div>
