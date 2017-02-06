@@ -1,6 +1,12 @@
 @import "base";
 @import "cgit";
 
+.filter-repos {
+  .btn {
+    height: 1.9rem;
+  }
+}
+
 div#cgit {
   padding: 0;
   font-size: inherit;

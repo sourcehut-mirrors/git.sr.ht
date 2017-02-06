@@ -29,10 +29,13 @@ def user_index(username):
     user = User.query.filter(User.username == username).first()
     if not user:
         abort(404)
+    search = request.args.get("search")
     repos = Repository.query\
             .filter(Repository.owner_id == user.id)\
-            .filter(Repository.visibility == RepoVisibility.public)\
-            .order_by(Repository.updated.desc()).all()
+            .filter(Repository.visibility == RepoVisibility.public)
+    if search:
+        repos = repos.filter(Repository.name.ilike("%" + search + "%"))
+    repos = repos.order_by(Repository.updated.desc()).all()
     r = requests.get(meta_uri + "/api/user/profile", headers={
         "Authorization": "token " + user.oauth_token
     }) # TODO: cache
@@ -40,4 +43,8 @@ def user_index(username):
         profile = r.json()
     else:
         profile = None
-    return render_template("user.html", user=user, repos=repos, profile=profile)
+    return render_template("user.html",
+            user=user,
+            repos=repos,
+            profile=profile,
+            search=search)
