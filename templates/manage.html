@@ -13,6 +13,12 @@
             </a>
           </dt>
           <dd>
+            {% if not repo.description %}
+            <em>This repository has no description</em>
+            {% else %}
+            {{ repo.description }}
+            {% endif %}
+            <br />
             <a href="#">Edit details</a>
             &mdash;
             <a href="#">Manage collaborators</a>
@@ -25,7 +31,7 @@
       <h3>Create new repository</h3>
       <form method="POST" action="/manage/create">
         <div class="form-group {{valid.cls("repo-name")}}">
-          <label for="client-name">Name</label>
+          <label for="repo-name">Name</label>
           <input
             type="text"
             name="repo-name"
@@ -33,6 +39,16 @@
             class="form-control"
             value="{{ repo_name or "" }}" />
           {{valid.summary("repo-name")}}
+        </div>
+        <div class="form-group {{valid.cls("repo-description")}}">
+          <label for="repo-description">Description</label>
+          <input
+            type="text"
+            name="repo-description"
+            id="repo-description"
+            class="form-control"
+            value="{{ repo_description or "" }}" />
+          {{valid.summary("repo-description")}}
         </div>
         <fieldset class="form-group">
           <legend>Visibility</legend>

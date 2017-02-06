@@ -1,0 +1,42 @@
+{% extends "git.html" %}
+{% block content %}
+<div class="container">
+  <div class="row">
+    <section class="col-md-4">
+      <h2>~{{ user.username }}</h2>
+      {% if profile.get("location") %}
+      <p>{{profile["location"]}}</p>
+      {% endif %}
+      {% if profile.get("url") %}
+      <p>
+        <a href="{{profile["url"]}}" target="_blank">
+          {{profile["url"]}}
+        </a>
+      </p>
+      {% endif %}
+      {% if profile.get("bio") %}
+      <p>{{profile["bio"]}}</p>
+      {% endif %}
+    </section>
+    <section class="col-md-8">
+      {% if len(repos) == 0 %}
+      <p>This user has no repositories.</p>
+      {% else %}
+      {% for repo in repos %}
+        <h4>
+          <a href="/~{{current_user.username}}/{{repo.name}}">
+            ~{{current_user.username}}/{{repo.name}}
+          </a>
+        </h4>
+        {% if not repo.description %}
+        <em>This repository has no description</em>
+        {% else %}
+        {{ repo.description }}
+        {% endif %}
+        <p><em>Last updated {{ repo.updated | date }}</em></p>
+      {% endfor %}
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}

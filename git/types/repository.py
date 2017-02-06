@@ -14,6 +14,7 @@ class Repository(Base):
     created = sa.Column(sa.DateTime, nullable=False)
     updated = sa.Column(sa.DateTime, nullable=False)
     name = sa.Column(sa.Unicode(256), nullable=False)
+    description = sa.Column(sa.Unicode(1024))
     owner_id = sa.Column(sa.Integer, sa.ForeignKey('user.id'), nullable=False)
     owner = sa.orm.relationship('User', backref=sa.orm.backref('repos'))
     visibility = sa.Column(

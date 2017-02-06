@@ -34,11 +34,11 @@ def oauth_url(return_to):
         urllib.parse.quote_plus(return_to))
 
 from git.blueprints.auth import auth
-from git.blueprints.cgit import cgit
+from git.blueprints.public import public
 from git.blueprints.manage import manage
 
 app.register_blueprint(auth)
-app.register_blueprint(cgit)
+app.register_blueprint(public)
 app.register_blueprint(manage)
 
 @app.context_processor
