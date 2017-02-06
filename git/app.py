@@ -1,8 +1,5 @@
 from flask import render_template, request 
 
-import random
-import sys
-import os
 import locale
 
 from srht.config import cfg, cfgi, load_config
