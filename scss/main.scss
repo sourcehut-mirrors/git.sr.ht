@@ -34,4 +34,15 @@ div#cgit {
       padding: 0 0;
     }
   }
+
+  // Recolor links
+  a, table.list td a.ls-dir {
+    color: $link-color;
+    text-decoration: $link-decoration;
+
+    &:hover {
+      color: $link-hover-color;
+      text-decoration: $link-hover-decoration;
+    }
+  }
 }
