@@ -30,12 +30,20 @@ def user_index(username):
     if not user:
         abort(404)
     search = request.args.get("search")
+    page = request.args.get("page")
     repos = Repository.query\
             .filter(Repository.owner_id == user.id)\
             .filter(Repository.visibility == RepoVisibility.public)
     if search:
         repos = repos.filter(Repository.name.ilike("%" + search + "%"))
-    repos = repos.order_by(Repository.updated.desc()).all()
+    repos = repos.order_by(Repository.updated.desc())
+    if page:
+        try:
+            page = int(page) - 1
+            repos = repos.offset(page * 10)
+        except:
+            page = None
+    repos = repos.limit(10).all()
     r = requests.get(meta_uri + "/api/user/profile", headers={
         "Authorization": "token " + user.oauth_token
     }) # TODO: cache
@@ -47,4 +55,5 @@ def user_index(username):
             user=user,
             repos=repos,
             profile=profile,
-            search=search)
+            search=search,
+            page=page)
