@@ -1,4 +1,4 @@
-from git.app import app
+from gitsrht.app import app
 from srht.config import cfg, cfgi
 
 import os

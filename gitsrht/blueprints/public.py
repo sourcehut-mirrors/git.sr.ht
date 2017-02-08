@@ -1,7 +1,7 @@
 from flask import Blueprint, Response, request, render_template, abort
 import requests
 from srht.config import cfg
-from git.types import User, Repository, RepoVisibility
+from gitsrht.types import User, Repository, RepoVisibility
 
 public = Blueprint('cgit', __name__)
 

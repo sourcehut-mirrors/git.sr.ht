@@ -1,7 +1,7 @@
 from flask import redirect, request, abort
 from flask_login import current_user
 from functools import wraps
-from git.app import oauth_url
+from gitsrht.app import oauth_url
 
 import urllib
 

@@ -4,7 +4,7 @@ from sqlalchemy import or_
 from srht.config import cfg
 from srht.flask import DATE_FORMAT
 from srht.database import db
-from git.types import User
+from gitsrht.types import User
 from datetime import datetime
 import urllib.parse
 import requests

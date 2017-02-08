@@ -7,7 +7,7 @@ from srht.config import cfg, cfgi, load_config
 load_config("git")
 from srht.database import DbSession
 db = DbSession(cfg("sr.ht", "connection-string"))
-from git.types import User
+from gitsrht.types import User
 db.init()
 
 from srht.flask import SrhtFlask
@@ -33,9 +33,9 @@ def oauth_url(return_to):
         cfg("meta.sr.ht", "oauth-client-id"),
         urllib.parse.quote_plus(return_to))
 
-from git.blueprints.auth import auth
-from git.blueprints.public import public
-from git.blueprints.manage import manage
+from gitsrht.blueprints.auth import auth
+from gitsrht.blueprints.public import public
+from gitsrht.blueprints.manage import manage
 
 app.register_blueprint(auth)
 app.register_blueprint(public)

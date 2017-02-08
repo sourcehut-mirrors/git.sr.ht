@@ -3,8 +3,8 @@ from flask_login import current_user
 from srht.config import cfg
 from srht.database import db
 from srht.validation import Validation
-from git.types import Repository, RepoVisibility
-from git.decorators import loginrequired
+from gitsrht.types import Repository, RepoVisibility
+from gitsrht.decorators import loginrequired
 import shutil
 import subprocess
 import os

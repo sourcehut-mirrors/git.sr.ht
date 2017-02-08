@@ -3,7 +3,7 @@ from srht.config import cfg, cfgi, load_config
 load_config("git")
 from srht.database import DbSession
 db = DbSession(cfg("sr.ht", "connection-string"))
-from git.types import User, Repository
+from gitsrht.types import User, Repository
 db.init()
 from configparser import ConfigParser
 from datetime import datetime
