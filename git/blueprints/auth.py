@@ -1,5 +1,6 @@
 from flask import Blueprint, request, render_template, redirect
 from flask_login import login_user, logout_user
+from sqlalchemy import or_
 from srht.config import cfg
 from srht.flask import DATE_FORMAT
 from srht.database import db
@@ -53,11 +54,12 @@ def oauth_callback():
         return render_template("oauth-error.html",
             details="Error occured retrieving account info. Try again.")
     
-    user = User.query.filter(User.oauth_token == token).first()
+    json = r.json()
+    user = User.query.filter(or_(User.oauth_token == token,
+        User.username == json["username"])).first()
     if not user:
         user = User()
         db.session.add(user)
-    json = r.json()
     user.username = json.get("username")
     user.email = json.get("email")
     user.paid = json.get("paid")

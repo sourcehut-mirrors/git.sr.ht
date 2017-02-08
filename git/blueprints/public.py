@@ -1,4 +1,4 @@
-from flask import Blueprint, Response, request, render_template
+from flask import Blueprint, Response, request, render_template, abort
 import requests
 from srht.config import cfg
 from git.types import User, Repository, RepoVisibility

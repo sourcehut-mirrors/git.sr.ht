@@ -54,6 +54,7 @@ def create():
 
     path = os.path.join(repos_path, "~" + current_user.username)
 
+    subprocess.run(["mkdir", "-p", path])
     subprocess.run(["git", "init", "--bare", repo_name], cwd=path)
     subprocess.run(["ln", "-s", repo_name, repo_name + ".git"], cwd=path)
 
