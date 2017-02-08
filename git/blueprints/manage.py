@@ -5,6 +5,7 @@ from srht.database import db
 from srht.validation import Validation
 from git.types import Repository, RepoVisibility
 from git.decorators import loginrequired
+import shutil
 import subprocess
 import os
 import re
@@ -61,6 +62,11 @@ def create():
     # TODO: other shit, probably, like setting up hooks
 
     db.session.commit()
+
+    subprocess.run(["git", "config", "srht.repo-id", str(repo.id)],
+            cwd=os.path.join(path, repo_name))
+    hook_src = os.path.join(os.path.dirname(__file__), "..", "..", "hooks", "update")
+    shutil.copy(hook_src, os.path.join(path, repo_name, "hooks", "update"))
 
     if another == "on":
         return redirect("/manage?another")
