@@ -1,4 +1,4 @@
-from flask import Blueprint, Response, request, render_template, abort
+from flask import Blueprint, Response, request, render_template, abort, stream_with_context
 from flask_login import current_user
 import requests
 from srht.config import cfg
@@ -19,10 +19,24 @@ def index():
         repos = None
     return render_template("index.html", repos=repos)
 
+def check_repo(user, repo):
+    u = User.query.filter(User.username == user).first()
+    if not u:
+        abort(404)
+    _repo = Repository.query.filter(Repository.owner_id == u.id)\
+            .filter(Repository.name == repo).first()
+    if not _repo:
+        abort(404)
+    if _repo.visibility == RepoVisibility.private:
+        if not current_user or current_user.id != _repo.owner_id:
+            abort(404)
+    return _repo
+
 @public.route("/~<user>/<repo>", defaults={ "cgit_path": "" })
 @public.route("/~<user>/<repo>/", defaults={ "cgit_path": "" })
 @public.route("/~<user>/<repo>/<path:cgit_path>")
 def cgit_passthrough(user, repo, cgit_path):
+    check_repo(user, repo)
     r = requests.get("{}/{}".format(upstream, request.full_path))
     if r.status_code != 200:
         abort(r.status_code)
@@ -51,6 +65,12 @@ def cgit_passthrough(user, repo, cgit_path):
             cgit_html=text,
             owner_name="~" + user,
             repo_name=repo)
+
+@public.route("/~<user>/<repo>/snapshot/<tarball>.tar.xz")
+def tarball(user, repo, tarball):
+    check_repo(user, repo)
+    r = requests.get("{}/{}".format(upstream, request.full_path), stream=True)
+    return Response(stream_with_context(r.iter_content()), content_type=r.headers['content-type'])
 
 @public.route("/~<user>/<repo>/patch")
 @public.route("/~<user>/<repo>/patch/")
