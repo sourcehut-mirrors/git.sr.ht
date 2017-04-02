@@ -51,22 +51,18 @@ def create():
     repo.description = description
     repo.owner_id = current_user.id
     repo.visibility = RepoVisibility[visibility]
+    repo.path = os.path.join(repos_path, "~" + current_user.username)
     db.session.add(repo)
 
-    path = os.path.join(repos_path, "~" + current_user.username)
-
-    subprocess.run(["mkdir", "-p", path])
-    subprocess.run(["git", "init", "--bare", repo_name], cwd=path)
-    subprocess.run(["ln", "-s", repo_name, repo_name + ".git"], cwd=path)
-
-    # TODO: other shit, probably, like setting up hooks
+    subprocess.run(["mkdir", "-p", repo.path])
+    subprocess.run(["git", "init", "--bare", repo_name], cwd=repo.path)
+    subprocess.run(["ln", "-s", repo_name, repo_name + ".git"], cwd=repo.path)
 
     db.session.commit()
 
-    subprocess.run(["git", "config", "srht.repo-id", str(repo.id)],
-            cwd=os.path.join(path, repo_name))
+    subprocess.run(["git", "config", "srht.repo-id", str(repo.id)], cwd=repo.path)
     hook_src = os.path.join(os.path.dirname(__file__), "..", "..", "hooks", "update")
-    shutil.copy(hook_src, os.path.join(path, repo_name, "hooks", "update"))
+    shutil.copy(hook_src, os.path.join(repo.path, "hooks", "update"))
 
     if another == "on":
         return redirect("/manage?another")

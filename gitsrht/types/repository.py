@@ -17,6 +17,7 @@ class Repository(Base):
     description = sa.Column(sa.Unicode(1024))
     owner_id = sa.Column(sa.Integer, sa.ForeignKey('user.id'), nullable=False)
     owner = sa.orm.relationship('User', backref=sa.orm.backref('repos'))
+    path = sa.Column(sa.Unicode(1024))
     visibility = sa.Column(
             sau.ChoiceType(RepoVisibility, impl=sa.String()),
             nullable=False,

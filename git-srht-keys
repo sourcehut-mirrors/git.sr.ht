@@ -104,7 +104,7 @@ def shell():
 
     from srht.database import DbSession
     db = DbSession(cfg("sr.ht", "connection-string"))
-    from gitsrht.types import User
+    from gitsrht.types import User, Repository
     db.init()
 
     user = User.query.filter(User.id == user_id).first()
@@ -126,6 +126,17 @@ def shell():
         sys.exit(128)
     cmd[-1] = path
     _cmd = " ".join(shlex.quote(arg) for arg in cmd)
+
+    repo = Repository.query.filter(Repository.path == path).first()
+    if not repo:
+        sys.stderr.write("Unknown repository")
+        sys.exit(128)
+    
+    if user.id != repo.owner_id:
+        # TODO: ACLs
+        sys.stderr.write("Access denied")
+        sys.exit(128)
+
     log("Executing {}", _cmd)
     if _log:
         _log.close()
