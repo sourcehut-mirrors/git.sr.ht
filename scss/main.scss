@@ -44,6 +44,18 @@ div#cgit {
   div.path {
     background-color: #ddd;
     padding-top: 0;
+    
+    a {
+      padding: 0 0.25rem;
+
+      &:first-child {
+        padding-left: 0;
+      }
+
+      &:last-child {
+        padding-right: 0;
+      }
+    }
   }
 
   // Recolor links
@@ -54,6 +66,12 @@ div#cgit {
     &:hover {
       color: $link-hover-color;
       text-decoration: $link-hover-decoration;
+    }
+  }
+
+  .highlight {
+    .s, .s1, .s2, .si, .se {
+      background: transparent;
     }
   }
 

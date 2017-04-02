@@ -1,4 +1,5 @@
 from flask import Blueprint, Response, request, render_template, abort
+from flask_login import current_user
 import requests
 from srht.config import cfg
 from gitsrht.types import User, Repository, RepoVisibility
@@ -7,6 +8,16 @@ public = Blueprint('cgit', __name__)
 
 upstream = cfg("cgit", "remote")
 meta_uri = cfg("network", "meta")
+
+@public.route("/")
+def index():
+    if current_user:
+        repos = Repository.query.filter(Repository.owner_id == current_user.id)\
+                .order_by(Repository.updated.desc())\
+                .limit(5).all()
+    else:
+        repos = None
+    return render_template("index.html", repos=repos)
 
 @public.route("/~<user>/<repo>", defaults={ "cgit_path": "" })
 @public.route("/~<user>/<repo>/", defaults={ "cgit_path": "" })

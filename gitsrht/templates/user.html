@@ -21,6 +21,9 @@
       <p>{{profile["bio"]}}</p>
       {% endif %}
       {% endif %}
+      {% if current_user %}
+        <a href="{{cfg("network", "meta")}}/profile">Edit your profile »</a>
+      {% endif %}
     </section>
     <section class="col-md-8">
       {% if len(repos) == 0 %}
