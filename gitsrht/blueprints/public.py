@@ -28,17 +28,18 @@ def cgit_passthrough(user, repo, cgit_path):
         abort(r.status_code)
     base = cfg("network", "git").replace("http://", "").replace("https://", "")
     clone_urls = [
-        "ssh://git@" + base + ":~{}/{}",
-        "https://" + base + "/~{}/{}",
-        "git://" + base + "/~{}/{}"
+        ("ssh://git@{}/~{}/{}", "git@{}/~{}/{}"),
+        ("https://{}/~{}/{}",),
+        ("git://{}/~{}/{}",)
     ]
     clone_text = "<tr><td colspan='3'>" +\
         "<a rel='vcs-git' href='__CLONE_URL__' title='~{}/{} Git repository'>__CLONE_URL__</a>".format(user, repo) +\
         "</td></tr>"
     text = r.text.replace(
         clone_text,
-        " ".join(["<tr><td colspan='3'><a href='{0}'>{0}</a></td></tr>".format(
-            url.format(user, repo)) for url in clone_urls])
+        " ".join(["<tr><td colspan='3'><a href='{}'>{}</a></td></tr>".format(
+            url[0].format(base, user, repo), url[-1].format(base, user, repo))
+            for url in clone_urls])
     )
     return render_template("cgit.html",
             cgit_html=text,
