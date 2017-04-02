@@ -32,6 +32,8 @@ def cgit_passthrough(user, repo, cgit_path):
         ("https://{}/~{}/{}",),
         ("git://{}/~{}/{}",)
     ]
+    if "Repository seems to be empty" in r.text:
+        clone_urls = clone_urls[:2]
     clone_text = "<tr><td colspan='3'>" +\
         "<a rel='vcs-git' href='__CLONE_URL__' title='~{}/{} Git repository'>__CLONE_URL__</a>".format(user, repo) +\
         "</td></tr>"
