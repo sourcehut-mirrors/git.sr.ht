@@ -25,8 +25,6 @@ def log(s, *args):
     s = "{} {}".format(datetime.now().isoformat(), s)
     if _log:
         _log.write(s + "\n")
-    else:
-        sys.stderr.write(s + "\n")
 
 def auth_keys_error():
     log("This command should be run by sshd's AuthorizedKeysCommand")
@@ -129,19 +127,16 @@ def shell():
 
     repo = Repository.query.filter(Repository.path == path).first()
     if not repo:
-        sys.stderr.write("Unknown repository")
         sys.exit(128)
     
     # TODO: ACLs
     if cmd[0] == "git-receive-pack":
         # needs write access
         if user.id != repo.owner_id:
-            sys.stderr.write("Access denied")
             sys.exit(128)
     else:
         # needs read access
         if repo.visibility == RepoVisibility.private and user.id != repo.owner_id:
-            sys.stderr.write("Access denied")
             sys.exit(128)
 
     log("Executing {}", _cmd)
