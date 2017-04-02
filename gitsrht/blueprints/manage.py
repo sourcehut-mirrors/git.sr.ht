@@ -60,7 +60,7 @@ def create():
     db.session.commit()
 
     subprocess.run(["git", "config", "srht.repo-id", str(repo.id)], cwd=repo.path)
-    hook_src = os.path.join(os.path.dirname(__file__), "..", "..", "hooks", "update")
+    hook_src = os.path.join(os.path.dirname(__file__), "..", "hooks", "update")
     shutil.copy(hook_src, os.path.join(repo.path, "hooks", "update"))
 
     if another == "on":

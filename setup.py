@@ -27,6 +27,7 @@ setup(
       'gitsrht': [
           'templates/*.html',
           'static/*',
+          'hooks/*'
       ]
   },
   scripts = ['git-srht-keys']
