@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# AuthorizedKeysCommand=/usr/bin/git-srht-keys "%u" "%h" "%k"
+# AuthorizedKeysCommand=/usr/bin/git-srht-keys auth "%u" "%h" "%k"
 # AuthorizedKeysUser=root
 import sys
 import os
@@ -13,7 +13,7 @@ load_config("git")
 
 _log = None
 try:
-    _log = open("/var/log/git-srht-keys", "a")
+    _log = open("/var/log/git-srht-push", "a")
 except:
     pass
 
@@ -112,7 +112,6 @@ def shell():
         log("Unknown user ID {}", user_id)
     log("User: {}", user.username)
 
-    log("Executing {}", _cmd)
     cmd = shlex.split(_cmd)
     valid_commands = ["git-receive-pack", "git-upload-pack", "git-upload-archive"]
     if len(cmd) < 1 or not cmd[0] in valid_commands:
@@ -121,6 +120,15 @@ def shell():
             "but I do not provide an interactive shell. Bye!")
         sys.exit(128)
     os.chdir(repos)
+    path = os.path.abspath(cmd[-1])
+    if not path.startswith(repos):
+        sys.stderr.write("Access denied")
+        sys.exit(128)
+    cmd[-1] = path
+    _cmd = " ".join(shlex.quote(arg) for arg in cmd)
+    log("Executing {}", _cmd)
+    if _log:
+        _log.close()
     os.execv("/usr/bin/git-shell", ["/usr/bin/git-shell", "-c", _cmd])
 
 with _log or sys.stdout:
