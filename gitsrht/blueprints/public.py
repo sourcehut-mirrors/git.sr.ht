@@ -35,12 +35,16 @@ def cgit_passthrough(user, repo, cgit_path):
     clone_text = "<tr><td colspan='3'>" +\
         "<a rel='vcs-git' href='__CLONE_URL__' title='~{}/{} Git repository'>__CLONE_URL__</a>".format(user, repo) +\
         "</td></tr>"
+    if not clone_text in r.text:
+        clone_text = clone_text.replace(" colspan='3'", "")
     text = r.text.replace(
         clone_text,
         " ".join(["<tr><td colspan='3'><a href='{}'>{}</a></td></tr>".format(
             url[0].format(base, user, repo), url[-1].format(base, user, repo))
             for url in clone_urls])
     )
+    if "Repository seems to be empty" in r.text:
+        text = text.replace("<th class='left'>Clone</th>", "<th class='left'>Push</th>")
     return render_template("cgit.html",
             cgit_html=text,
             owner_name="~" + user,
