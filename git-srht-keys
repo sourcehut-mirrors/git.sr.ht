@@ -132,10 +132,17 @@ def shell():
         sys.stderr.write("Unknown repository")
         sys.exit(128)
     
-    if user.id != repo.owner_id:
-        # TODO: ACLs
-        sys.stderr.write("Access denied")
-        sys.exit(128)
+    # TODO: ACLs
+    if cmd[0] == "git-receive-pack":
+        # needs write access
+        if user.id != repo.owner_id:
+            sys.stderr.write("Access denied")
+            sys.exit(128)
+    else:
+        # needs read access
+        if repo.visibility == RepoVisibility.private and user.id != repo.owner_id:
+            sys.stderr.write("Access denied")
+            sys.exit(128)
 
     log("Executing {}", _cmd)
     if _log:
