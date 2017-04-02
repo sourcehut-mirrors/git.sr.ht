@@ -67,6 +67,7 @@ def cgit_passthrough(user, repo, cgit_path):
             repo_name=repo)
 
 @public.route("/~<user>/<repo>/snapshot/<tarball>.tar.xz")
+@public.route("/~<user>/<repo>/plain/<tarball>.tar.xz")
 def tarball(user, repo, tarball):
     check_repo(user, repo)
     r = requests.get("{}/{}".format(upstream, request.full_path), stream=True)
