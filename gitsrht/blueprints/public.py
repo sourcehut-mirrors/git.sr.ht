@@ -24,8 +24,24 @@ def index():
 @public.route("/~<user>/<repo>/<path:cgit_path>")
 def cgit_passthrough(user, repo, cgit_path):
     r = requests.get("{}/{}".format(upstream, request.full_path))
+    if r.status_code != 200:
+        abort(r.status_code)
+    base = cfg("network", "git").replace("http://", "").replace("https://", "")
+    clone_urls = [
+        "git@" + base + ":~{}/{}",
+        "https://" + base + "/~{}/{}",
+        "git://" + base + "/~{}/{}"
+    ]
+    clone_text = "<tr><td colspan='3'>" +\
+        "<a rel='vcs-git' href='__CLONE_URL__' title='~{}/{} Git repository'>__CLONE_URL__</a>".format(user, repo) +\
+        "</td></tr>"
+    text = r.text.replace(
+        clone_text,
+        " ".join(["<tr><td colspan='3'><a href='{0}'>{0}</a></td></tr>".format(
+            url.format(user, repo)) for url in clone_urls])
+    )
     return render_template("cgit.html",
-            cgit_html=r.text,
+            cgit_html=text,
             owner_name="~" + user,
             repo_name=repo)
 
