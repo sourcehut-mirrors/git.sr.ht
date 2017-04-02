@@ -18,7 +18,7 @@ setup(
   author = 'Drew DeVault',
   author_email = 'sir@cmpwn.com',
   url = 'https://git.sr.ht/~sircmpwn/git.sr.ht',
-  requires = ['srht'],
+  requires = ['srht', 'flask-login'],
   license = 'GPL-2.0',
   package_data={
       'gitsrht': [
