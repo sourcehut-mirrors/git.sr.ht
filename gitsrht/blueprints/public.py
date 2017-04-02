@@ -28,7 +28,7 @@ def cgit_passthrough(user, repo, cgit_path):
         abort(r.status_code)
     base = cfg("network", "git").replace("http://", "").replace("https://", "")
     clone_urls = [
-        "git@" + base + ":~{}/{}",
+        "ssh://git@" + base + ":~{}/{}",
         "https://" + base + "/~{}/{}",
         "git://" + base + "/~{}/{}"
     ]

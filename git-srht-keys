@@ -104,7 +104,7 @@ def shell():
 
     from srht.database import DbSession
     db = DbSession(cfg("sr.ht", "connection-string"))
-    from gitsrht.types import User, Repository
+    from gitsrht.types import User, Repository, RepoVisibility
     db.init()
 
     user = User.query.filter(User.id == user_id).first()
