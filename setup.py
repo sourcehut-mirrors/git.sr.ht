@@ -2,8 +2,12 @@
 from distutils.core import setup
 import subprocess
 import glob
+import os
 
 subprocess.call(["make"])
+
+ver = os.environ.get("PKGVER") or subprocess.run(['git', 'describe', '--tags'],
+      stdout=subprocess.PIPE).stdout.decode().strip()
 
 setup(
   name = 'gitsrht',
@@ -12,13 +16,12 @@ setup(
       'gitsrht.types',
       'gitsrht.blueprints',
   ],
-  version = subprocess.run(['git', 'describe', '--tags'],
-      stdout=subprocess.PIPE).stdout.decode().strip(),
+  version = ver,
   description = 'git.sr.ht website',
   author = 'Drew DeVault',
   author_email = 'sir@cmpwn.com',
   url = 'https://git.sr.ht/~sircmpwn/git.sr.ht',
-  requires = ['srht', 'flask-login'],
+  install_requires = ['srht', 'flask-login'],
   license = 'GPL-2.0',
   package_data={
       'gitsrht': [
