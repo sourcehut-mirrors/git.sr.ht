@@ -30,7 +30,7 @@ def log(s, *args):
 
 def auth_keys_error():
     log("This command should be run by sshd's AuthorizedKeysCommand")
-    log('AuthorizedKeysCommand={} "%u" "%h" "%k"\nAuthorizedKeysUser=root',
+    log('AuthorizedKeysCommand={} auth "%u" "%h" "%k"\nAuthorizedKeysUser=root',
         os.path.abspath(sys.argv[0]))
     sys.exit(1)
 
