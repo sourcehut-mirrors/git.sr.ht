@@ -21,7 +21,7 @@
       <p>{{profile["bio"]}}</p>
       {% endif %}
       {% endif %}
-      {% if current_user %}
+      {% if current_user and current_user.id == user.id %}
         <a href="{{cfg("network", "meta")}}/profile">Edit your profile »</a>
       {% endif %}
     </section>
@@ -42,6 +42,11 @@
           <a href="/~{{current_user.username}}/{{repo.name}}">
             ~{{current_user.username}}/{{repo.name}}
           </a>
+          {% if repo.visibility.value != 'public' %}
+          <small class="text-muted">
+            <em>{{ repo.visibility.value }}</em>
+          </small>
+          {% endif %}
         </h4>
         {% if repo.description %}
         <p>{{ repo.description }}</p>
@@ -52,18 +57,20 @@
       {% endfor %}
       {% endif %}
       {% if total_pages > 1 %}
-      {% if page != 1 %}
-      <a href="?page={{ page - 1 }}{{ '&search=' + search if search else '' }}" class="pull-left">[previous]</a>
-      {% else %}
-      <span class="pull-left" style="color: transparent">[previous]</span>
-      {% endif %}
-      {% if page != total_pages %}
-      <a href="?page={{ page + 1 }}{{ '&search=' + search if search else '' }}" class="pull-right">[next]</a>
-      {% else %}
-      <span class="pull-right" style="color: transparent">[previous]</span>
-      {% endif %}
-      <div class="text-centered">
-        [ {{ page }} / {{ total_pages }} ]
+      <div class="row">
+        <div class="col-md-4">
+        {% if page != 1 %}
+          <a href="?page={{ page - 1 }}{{ '&search=' + search if search else '' }}">[previous]</a>
+        {% endif %}
+        </div>
+        <div class="col-md-4 text-centered">
+          [ {{ page }} / {{ total_pages }} ]
+        </div>
+        <div class="col-md-4 text-right">
+        {% if page != total_pages %}
+          <a href="?page={{ page + 1 }}{{ '&search=' + search if search else '' }}">[next]</a>
+        {% endif %}
+        </div>
       </div>
       {% endif %}
     </section>

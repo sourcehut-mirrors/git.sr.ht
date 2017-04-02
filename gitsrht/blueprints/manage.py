@@ -51,12 +51,11 @@ def create():
     repo.description = description
     repo.owner_id = current_user.id
     repo.visibility = RepoVisibility[visibility]
-    repo.path = os.path.join(repos_path, "~" + current_user.username)
+    repo.path = os.path.join(repos_path, "~" + current_user.username, repo.name)
     db.session.add(repo)
 
     subprocess.run(["mkdir", "-p", repo.path])
-    subprocess.run(["git", "init", "--bare", repo_name], cwd=repo.path)
-    subprocess.run(["ln", "-s", repo_name, repo_name + ".git"], cwd=repo.path)
+    subprocess.run(["git", "init", "--bare"], cwd=repo.path)
 
     db.session.commit()
 
