@@ -37,7 +37,10 @@ def user_index(username):
     if search:
         repos = repos.filter(Repository.name.ilike("%" + search + "%"))
     repos = repos.order_by(Repository.updated.desc())
+    total_repos = repos.count()
     total_pages = repos.count() // 5 + 1
+    if total_repos % 5 == 0:
+        total_pages -= 1
     if page:
         try:
             page = int(page) - 1
