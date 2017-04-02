@@ -43,8 +43,10 @@ def user_index(username):
     search = request.args.get("search")
     page = request.args.get("page")
     repos = Repository.query\
-            .filter(Repository.owner_id == user.id)\
-            .filter(Repository.visibility == RepoVisibility.public)
+            .filter(Repository.owner_id == user.id)
+    if current_user.id != user.id:
+        # TODO: ACLs
+        repos = repos.filter(Repository.visibility == RepoVisibility.public)
     if search:
         repos = repos.filter(Repository.name.ilike("%" + search + "%"))
     repos = repos.order_by(Repository.updated.desc())
