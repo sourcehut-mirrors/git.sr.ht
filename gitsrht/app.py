@@ -45,5 +45,6 @@ app.register_blueprint(manage)
 def inject():
     return {
         "oauth_url": oauth_url(request.full_path),
-        "current_user": User.query.filter(User.id == current_user).first() if current_user else None
+        "current_user": User.query.filter(User.id == current_user.id).first() \
+                if current_user else None
     }

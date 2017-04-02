@@ -66,18 +66,14 @@ def cgit_passthrough(user, repo, cgit_path):
             owner_name="~" + user,
             repo_name=repo)
 
-@public.route("/~<user>/<repo>/snapshot/<tarball>.tar.xz")
-@public.route("/~<user>/<repo>/plain/<tarball>.tar.xz")
-def tarball(user, repo, tarball):
+@public.route("/~<user>/<repo>/patch", defaults={"path": None})
+@public.route("/~<user>/<repo>/patch/<path:path>")
+@public.route("/~<user>/<repo>/plain/<path:path>")
+@public.route("/~<user>/<repo>/snapshot/<path:path>")
+def cgit_plain(user, repo, path):
     check_repo(user, repo)
     r = requests.get("{}/{}".format(upstream, request.full_path), stream=True)
     return Response(stream_with_context(r.iter_content()), content_type=r.headers['content-type'])
-
-@public.route("/~<user>/<repo>/patch")
-@public.route("/~<user>/<repo>/patch/")
-def cgit_plain(user, repo):
-    r = requests.get("{}/{}".format(upstream, request.full_path))
-    return Response(r.text, mimetype="text/plain")
 
 @public.route("/~<username>")
 def user_index(username):
