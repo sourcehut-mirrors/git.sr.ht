@@ -16,6 +16,10 @@ class User(Base):
     def __repr__(self):
         return '<User {} {}>'.format(self.id, self.username)
 
+    @property
+    def canonical_name(self):
+        return "~" + self.username
+
     def is_authenticated(self):
         return True
     def is_active(self):

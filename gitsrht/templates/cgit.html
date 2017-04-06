@@ -4,7 +4,12 @@
   <div class="row">
     <div class="col-md-12">
       <h2>
-        <a href="/{{ owner_name }}">{{ owner_name }}</a>/{{ repo_name }}
+        <a href="/{{ owner.canonical_name }}">{{ owner.canonical_name }}</a>/{{ repo.name }}
+        <small class="repo-nav">
+        {% if has_access(repo, UserAccess.manage) %}
+          <a href="/{{ owner.canonical_name }}/{{ repo.name }}/settings/info">Settings</a>
+        {% endif %}
+        </small>
       </h2>
     </div>
   </div>

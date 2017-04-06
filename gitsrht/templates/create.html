@@ -4,7 +4,7 @@
   <div class="row">
     <section class="col-md-6">
       <h3 id="create">Create new repository</h3>
-      <form method="POST" action="/manage/create">
+      <form method="POST" action="/create">
         <div class="form-group {{valid.cls("repo-name")}}">
           <label for="repo-name">Name</label>
           <input
@@ -80,31 +80,6 @@
             {% endif %}> Create another?
         </label>
       </form>
-      {% if len(repos) != 0 %}
-      <h3>Manage repositories</h3>
-      <dl>
-        {% for repo in repos %}
-          <dt>
-            <a href="/~{{current_user.username}}/{{repo.name}}">
-              ~{{current_user.username}}/{{repo.name}}
-            </a>
-          </dt>
-          <dd>
-            {% if not repo.description %}
-            <em>This repository has no description</em>
-            {% else %}
-            {{ repo.description }}
-            {% endif %}
-            <br />
-            <a href="#">Edit details</a>
-            &mdash;
-            <a href="#">Manage collaborators</a>
-            &mdash;
-            <a href="#">Delete repository</a>
-          </dd>
-        {% endfor %}
-      </dl>
-      {% endif %}
     </section>
   </div>
 </div>

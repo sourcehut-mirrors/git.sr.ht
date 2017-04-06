@@ -1,0 +1,22 @@
+{% macro link(path, title) %}
+<a
+  class="nav-link {% if request.path.endswith(path) %}active{% endif %}"
+  href="/{{ owner.canonical_name }}/{{ repo.name }}/{{ path }}"
+>{{ title }}</a>
+{% endmacro %}
+
+<li class="nav-item">
+  <a
+    class="nav-link"
+    href="/{{ owner.canonical_name }}/{{ repo.name }}"
+  >« back</a>
+</li>
+<li class="nav-item">
+  {{ link("/info", "info") }}
+</li>
+<li class="nav-item">
+  {{ link("/access", "access") }}
+</li>
+<li class="nav-item">
+  {{ link("/delete", "delete") }}
+</li>

@@ -3,6 +3,7 @@ from flask_login import current_user
 import requests
 from srht.config import cfg
 from gitsrht.types import User, Repository, RepoVisibility
+from gitsrht.access import UserAccess, has_access, get_repo
 
 public = Blueprint('cgit', __name__)
 
@@ -30,48 +31,52 @@ def check_repo(user, repo):
     if _repo.visibility == RepoVisibility.private:
         if not current_user or current_user.id != _repo.owner_id:
             abort(404)
-    return _repo
+    return u, _repo
 
-@public.route("/~<user>/<repo>", defaults={ "cgit_path": "" })
-@public.route("/~<user>/<repo>/", defaults={ "cgit_path": "" })
-@public.route("/~<user>/<repo>/<path:cgit_path>")
-def cgit_passthrough(user, repo, cgit_path):
-    check_repo(user, repo)
+@public.route("/<owner_name>/<repo_name>", defaults={ "cgit_path": "" })
+@public.route("/<owner_name>/<repo_name>/", defaults={ "cgit_path": "" })
+@public.route("/<owner_name>/<repo_name>/<path:cgit_path>")
+def cgit_passthrough(owner_name, repo_name, cgit_path):
+    owner, repo = get_repo(owner_name, repo_name)
+    if not has_access(repo, UserAccess.read):
+        abort(404)
     r = requests.get("{}/{}".format(upstream, request.full_path))
     if r.status_code != 200:
         abort(r.status_code)
     base = cfg("network", "git").replace("http://", "").replace("https://", "")
     clone_urls = [
-        ("ssh://git@{}/~{}/{}", "git@{}/~{}/{}"),
-        ("https://{}/~{}/{}",),
-        ("git://{}/~{}/{}",)
+        ("ssh://git@{}/{}/{}", "git@{}/{}/{}"),
+        ("https://{}/{}/{}",),
+        ("git://{}/{}/{}",)
     ]
     if "Repository seems to be empty" in r.text:
         clone_urls = clone_urls[:2]
     clone_text = "<tr><td colspan='3'>" +\
-        "<a rel='vcs-git' href='__CLONE_URL__' title='~{}/{} Git repository'>__CLONE_URL__</a>".format(user, repo) +\
-        "</td></tr>"
+        "<a rel='vcs-git' href='__CLONE_URL__' title='{}/{} Git repository'>__CLONE_URL__</a>".format(
+                owner_name, repo_name) + "</td></tr>"
     if not clone_text in r.text:
         clone_text = clone_text.replace(" colspan='3'", "")
     text = r.text.replace(
         clone_text,
         " ".join(["<tr><td colspan='3'><a href='{}'>{}</a></td></tr>".format(
-            url[0].format(base, user, repo), url[-1].format(base, user, repo))
+            url[0].format(base, owner_name, repo_name),
+            url[-1].format(base, owner_name, repo_name))
             for url in clone_urls])
     )
     if "Repository seems to be empty" in r.text:
         text = text.replace("<th class='left'>Clone</th>", "<th class='left'>Push</th>")
     return render_template("cgit.html",
-            cgit_html=text,
-            owner_name="~" + user,
-            repo_name=repo)
+            cgit_html=text, owner=owner, repo=repo,
+            has_access=has_access, UserAccess=UserAccess)
 
-@public.route("/~<user>/<repo>/patch", defaults={"path": None})
-@public.route("/~<user>/<repo>/patch/<path:path>")
-@public.route("/~<user>/<repo>/plain/<path:path>")
-@public.route("/~<user>/<repo>/snapshot/<path:path>")
-def cgit_plain(user, repo, path):
-    check_repo(user, repo)
+@public.route("/<owner_name>/<repo_name>/patch", defaults={"path": None})
+@public.route("/<owner_name>/<repo_name>/patch/<path:path>")
+@public.route("/<owner_name>/<repo_name>/plain/<path:path>")
+@public.route("/<owner_name>/<repo_name>/snapshot/<path:path>")
+def cgit_plain(owner_name, repo_name, path):
+    owner, repo = get_repo(owner_name, repo_name)
+    if not has_access(repo, UserAccess.read):
+        abort(404)
     r = requests.get("{}/{}".format(upstream, request.full_path), stream=True)
     return Response(stream_with_context(r.iter_content()), content_type=r.headers['content-type'])
 
