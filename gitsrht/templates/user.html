@@ -21,6 +21,11 @@
       <p>{{profile["bio"]}}</p>
       {% endif %}
       {% endif %}
+      {% if notice %}
+      <div class="alert alert-success">
+        {{ notice }}
+      </div>
+      {% endif %}
       {% if current_user and current_user.id == user.id %}
         <a href="{{cfg("network", "meta")}}/profile">Edit your profile »</a>
       {% endif %}

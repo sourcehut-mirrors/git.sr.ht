@@ -37,3 +37,14 @@ def get_access(repo):
 
 def has_access(repo, access):
     return access in get_access(repo)
+
+def check_access(owner_name, repo_name, access):
+    owner, repo = get_repo(owner_name, repo_name)
+    if not owner or not repo:
+        abort(404)
+    a = get_access(repo)
+    if not UserAccess.write in a:
+        abort(404)
+    if not access in a:
+        abort(403)
+    return owner, repo

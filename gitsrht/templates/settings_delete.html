@@ -1,0 +1,21 @@
+{% extends "settings.html" %}
+{% block content %}
+<div class="row">
+  <div class="col-md-12">
+    <p>
+      This will permanently delete your repository,
+      <strong>{{ owner.canonical_name }}/{{ repo.name }}</strong>.
+      This cannot be undone.
+    </p>
+    <form method="POST">
+      <button type="submit" class="btn btn-danger">
+        Proceed and delete 
+      </button>
+      <a
+        href="/{{ owner.canonical_name }}/{{ repo.name }}"
+        class="btn btn-default"
+      >Nevermind</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

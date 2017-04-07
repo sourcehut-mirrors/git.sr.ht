@@ -1,4 +1,4 @@
-from flask import render_template, request 
+from flask import render_template, request, session
 from flask_login import LoginManager, current_user
 import urllib.parse
 import locale
@@ -43,8 +43,12 @@ app.register_blueprint(manage)
 
 @app.context_processor
 def inject():
+    notice = session.get("notice")
+    if notice:
+        del session["notice"]
     return {
         "oauth_url": oauth_url(request.full_path),
         "current_user": User.query.filter(User.id == current_user.id).first() \
-                if current_user else None
+                if current_user else None,
+        "notice": notice
     }
