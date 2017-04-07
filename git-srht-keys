@@ -103,6 +103,7 @@ def shell():
     from srht.database import DbSession
     db = DbSession(cfg("sr.ht", "connection-string"))
     from gitsrht.types import User, Repository, RepoVisibility
+    from gitsrht.access import has_access, UserAccess
     db.init()
 
     user = User.query.filter(User.id == user_id).first()
@@ -129,14 +130,11 @@ def shell():
     if not repo:
         sys.exit(128)
     
-    # TODO: ACLs
     if cmd[0] == "git-receive-pack":
-        # needs write access
-        if user.id != repo.owner_id:
+        if not has_access(repo, UserAccess.write, user):
             sys.exit(128)
     else:
-        # needs read access
-        if repo.visibility == RepoVisibility.private and user.id != repo.owner_id:
+        if not has_access(repo, UserAccess.read, user):
             sys.exit(128)
 
     log("Executing {}", _cmd)

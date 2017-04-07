@@ -21,7 +21,9 @@ def get_repo(owner_name, repo_name):
         # TODO: organizations
         return None, None
 
-def get_access(repo):
+def get_access(repo, user=None):
+    if not user:
+        user = current_user
     # TODO: ACLs
     if not repo:
         return UserAccess.none
@@ -35,8 +37,10 @@ def get_access(repo):
         return UserAccess.none
     return UserAccess.read
 
-def has_access(repo, access):
-    return access in get_access(repo)
+def has_access(repo, access, user=None):
+    if not user:
+        user = current_user
+    return access in get_access(repo, user)
 
 def check_access(owner_name, repo_name, access):
     owner, repo = get_repo(owner_name, repo_name)
