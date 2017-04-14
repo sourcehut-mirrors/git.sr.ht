@@ -13,6 +13,7 @@ import re
 
 manage = Blueprint('manage', __name__)
 repos_path = cfg("cgit", "repos")
+post_update = cfg("git.sr.ht", "post-update-script")
 
 @manage.route("/create")
 @loginrequired
@@ -59,8 +60,7 @@ def create():
     db.session.commit()
 
     subprocess.run(["git", "config", "srht.repo-id", str(repo.id)], cwd=repo.path)
-    hook_src = os.path.join(os.path.dirname(__file__), "..", "hooks", "update")
-    shutil.copy(hook_src, os.path.join(repo.path, "hooks", "update"))
+    subprocess.run(["ln", "-s", post_update, os.path.join(repo.path, "hooks", "update")])
 
     if another == "on":
         return redirect("/create?another")

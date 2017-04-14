@@ -30,5 +30,5 @@ setup(
           'hooks/*'
       ]
   },
-  scripts = ['git-srht-keys']
+  scripts = ['git-srht-keys', 'git-srht-update-hook']
 )
