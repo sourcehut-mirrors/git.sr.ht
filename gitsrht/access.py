@@ -27,7 +27,7 @@ def get_access(repo, user=None):
     # TODO: ACLs
     if not repo:
         return UserAccess.none
-    if not current_user:
+    if not user:
         if repo.visibility == RepoVisibility.public or \
                 repo.visibility == RepoVisibility.unlisted:
             return UserAccess.read
