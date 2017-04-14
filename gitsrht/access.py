@@ -31,7 +31,7 @@ def get_access(repo, user=None):
         if repo.visibility == RepoVisibility.public or \
                 repo.visibility == RepoVisibility.unlisted:
             return UserAccess.read
-    if repo.owner_id == current_user.id:
+    if repo.owner_id == user.id:
         return UserAccess.read | UserAccess.write | UserAccess.manage
     if repo.visibility == RepoVisibility.private:
         return UserAccess.none
