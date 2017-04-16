@@ -28,6 +28,9 @@ def do_webhook(url, payload, headers=None):
     except:
         pass
 
+def first_line(text):
+    return text[:text.index("\n") + 1]
+
 def do_post_update(repo, git_repo, ref):
     commit = git_repo.get(ref)
     if not commit or not isinstance(commit, Commit):
@@ -57,7 +60,7 @@ def do_post_update(repo, git_repo, ref):
                     "manifest": manifest,
                     # TODO: orgs
                     "tags": ["~" + repo.owner.username, repo.name],
-                    "note": "[{}]({}) {} <{}>".format(
+                    "note": "[{}]({}) &mdash; {} &mdash; {} <{}>".format(
                         # TODO: cgit replacement
                         str(commit.id)[:7],
                         "{}/{}/{}/commit?id={}".format(
@@ -65,7 +68,8 @@ def do_post_update(repo, git_repo, ref):
                             "~" + repo.owner.username,
                             repo.name,
                             str(commit.id)),
+                        first_line(commit.message),
                         commit.author.name,
-                        commit.author.email
+                        commit.author.email,
                     )
                 }, { "Authorization": "token " + token })
