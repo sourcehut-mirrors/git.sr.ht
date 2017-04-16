@@ -15,6 +15,8 @@ setup(
       'gitsrht',
       'gitsrht.types',
       'gitsrht.blueprints',
+      'gitsrht.alembic',
+      'gitsrht.alembic.versions'
   ],
   version = ver,
   description = 'git.sr.ht website',
