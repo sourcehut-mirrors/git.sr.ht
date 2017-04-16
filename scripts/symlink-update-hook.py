@@ -9,9 +9,17 @@ import os
 
 post_update = cfg("git.sr.ht", "post-update-script")
 
+def migrate(path, link):
+    if not os.path.exists(path) \
+            or not os.path.islink(path) \
+            or os.readlink(path) != link:
+        if os.path.exists(path):
+            os.remove(path)
+        os.symlink(link, path)
+        return True
+    return False
+
 for repo in Repository.query.all():
-    hook = os.path.join(repo.path, "hooks", "update")
-    if not os.path.islink(hook) or os.readlink(hook) != post_update:
-        print("Migrating {}".format(repo.name))
-        os.remove(hook)
-        os.symlink(post_update, hook)
+    if migrate(os.path.join(repo.path, "hooks", "update"), post_update) \
+        or migrate(os.path.join(repo.path, "hooks", "post-update"), post_update):
+        print("Migrated {}".format(repo.name))

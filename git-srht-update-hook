@@ -5,41 +5,36 @@ from srht.database import DbSession
 db = DbSession(cfg("sr.ht", "connection-string"))
 from gitsrht.types import User, Repository
 db.init()
+from gitsrht.worker import do_post_update
 from configparser import ConfigParser
 from datetime import datetime
+from pygit2 import Repository as GitRepository
 import shlex
 import subprocess
 import sys
 
-config = ConfigParser()
-with open("config") as f:
-    config.readfp(f)
+op = sys.argv[0]
 
-repo_id = config.get("srht", "repo-id")
-if not repo_id:
-    sys.exit(0)
-repo_id = int(repo_id)
+if op == "hooks/post-update":
+    refs = sys.argv[1:]
 
-repo = Repository.query.filter(Repository.id == repo_id).first()
-if not repo:
-    sys.exit(0)
+    config = ConfigParser()
+    with open("config") as f:
+        config.readfp(f)
 
-# Might do this later:
-#result = subprocess.run([
-#        "git", "ls-tree", "--full-tree", "-r", "-l", shlex.quote(sys.argv[3]), "|",
-#        "sort", "-k", "4", "-n", "-r", "|", "head", "-1"
-#    ], shell=True)
-#
-#if result.returncode != 0:
-#    sys.exit(0)
-#parts = result.stdout.decode().split(' ')
-#size = int(parts[3])
-#max_size = cfg("git.sr.ht", "max-file-size", default=52428800)
-#if size > max_size:
-#    print("{} is over the maximum file size ({} MiB).", parts[4], max_size // 1048576)
-#    sys.exit(1)
+    repo_id = config.get("srht", "repo-id")
+    if not repo_id:
+        sys.exit(0)
+    repo_id = int(repo_id)
 
-repo.updated = datetime.utcnow()
-db.session.commit()
+    repo = Repository.query.filter(Repository.id == repo_id).first()
+    if not repo:
+        sys.exit(0)
 
-# TODO: fire webhooks
+    repo.updated = datetime.utcnow()
+    db.session.commit()
+
+    git_repo = GitRepository(repo.path)
+    for ref in refs:
+        target = git_repo.lookup_reference(ref).target
+        do_post_update(repo, git_repo, target)

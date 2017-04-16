@@ -27,10 +27,14 @@ try:
 except:
     pass
 
+meta_sr_ht = cfg("network", "meta")
+meta_client_id = cfg("meta.sr.ht", "oauth-client-id")
+builds_sr_ht = cfg("builds.sr.ht", "oauth-client-id")
+
 def oauth_url(return_to):
-    return "{}/oauth/authorize?client_id={}&scopes=profile,keys&state={}".format(
-        cfg("network", "meta"),
-        cfg("meta.sr.ht", "oauth-client-id"),
+    return "{}/oauth/authorize?client_id={}&scopes=profile,keys{}&state={}".format(
+        meta_sr_ht, meta_client_id,
+        "," + builds_sr_ht + "/jobs:write" if builds_sr_ht else "",
         urllib.parse.quote_plus(return_to))
 
 from gitsrht.blueprints.auth import auth

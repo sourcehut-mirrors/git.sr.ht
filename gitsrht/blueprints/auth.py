@@ -3,6 +3,7 @@ from flask_login import login_user, logout_user
 from sqlalchemy import or_
 from srht.config import cfg
 from srht.flask import DATE_FORMAT
+from srht.oauth import OAuthScope
 from srht.database import db
 from gitsrht.types import User
 from datetime import datetime
@@ -24,7 +25,8 @@ def oauth_callback():
     exchange = request.args.get("exchange")
     scopes = request.args.get("scopes")
     state = request.args.get("state")
-    if scopes != "profile:read,keys:read":
+    _scopes = [OAuthScope(s) for s in scopes.split(",")]
+    if not OAuthScope("profile:read") in _scopes or not OAuthScope("keys:read") in _scopes:
         return render_template("oauth-error.html",
             details="git.sr.ht requires profile and key access at a mininum to function correctly. " +
                 "To use git.sr.ht, try again and do not untick these permissions.")
@@ -65,6 +67,7 @@ def oauth_callback():
     user.paid = json.get("paid")
     user.oauth_token = token
     user.oauth_token_expires = expires
+    user.oauth_token_scopes = scopes
     db.session.commit()
 
     login_user(user)

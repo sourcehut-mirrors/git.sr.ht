@@ -10,6 +10,7 @@ class User(Base):
     updated = sa.Column(sa.DateTime, nullable=False)
     oauth_token = sa.Column(sa.String(256), nullable=False)
     oauth_token_expires = sa.Column(sa.DateTime, nullable=False)
+    oauth_token_scopes = sa.Column(sa.String, nullable=False, default="")
     email = sa.Column(sa.String(256), nullable=False)
     paid = sa.Column(sa.Boolean, nullable=False)
 
