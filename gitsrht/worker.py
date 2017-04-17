@@ -59,7 +59,7 @@ def do_post_update(repo, git_repo, ref):
                 do_webhook.delay(builds_sr_ht + "/api/jobs", {
                     "manifest": manifest,
                     # TODO: orgs
-                    "tags": ["~" + repo.owner.username, repo.name],
+                    "tags": [repo.name],
                     "note": "[{}]({}) &mdash; {} &mdash; {} <{}>".format(
                         # TODO: cgit replacement
                         str(commit.id)[:7],
