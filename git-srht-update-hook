@@ -5,7 +5,6 @@ from srht.database import DbSession
 db = DbSession(cfg("sr.ht", "connection-string"))
 from gitsrht.types import User, Repository
 db.init()
-from gitsrht.worker import do_post_update
 from configparser import ConfigParser
 from datetime import datetime
 from pygit2 import Repository as GitRepository
@@ -14,6 +13,7 @@ import subprocess
 import sys
 
 op = sys.argv[0]
+builds_sr_ht = cfg("network", "builds.sr.ht", default=None)
 
 if op == "hooks/post-update":
     refs = sys.argv[1:]
@@ -37,4 +37,6 @@ if op == "hooks/post-update":
     git_repo = GitRepository(repo.path)
     for ref in refs:
         target = git_repo.lookup_reference(ref).target
-        do_post_update(repo, git_repo, target)
+        if builds_sr_ht:
+            from gitsrht.worker import do_post_update
+            do_post_update(repo, git_repo, target)
