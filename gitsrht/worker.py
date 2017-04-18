@@ -60,7 +60,7 @@ def do_post_update(repo, git_repo, ref):
                     "manifest": manifest,
                     # TODO: orgs
                     "tags": [repo.name],
-                    "note": "[{}]({}) &mdash; {} &mdash; {} <{}>".format(
+                    "note": "[{}]({}) &mdash; {} &mdash; [{}](mailto:{})".format(
                         # TODO: cgit replacement
                         str(commit.id)[:7],
                         "{}/{}/{}/commit?id={}".format(
