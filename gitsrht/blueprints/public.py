@@ -4,6 +4,7 @@ import requests
 from srht.config import cfg
 from gitsrht.types import User, Repository, RepoVisibility
 from gitsrht.access import UserAccess, has_access, get_repo
+from sqlalchemy import or_
 
 public = Blueprint('cgit', __name__)
 
@@ -93,7 +94,9 @@ def user_index(username):
         # TODO: ACLs
         repos = repos.filter(Repository.visibility == RepoVisibility.public)
     if search:
-        repos = repos.filter(Repository.name.ilike("%" + search + "%"))
+        repos = repos.filter(or_(
+                Repository.name.ilike("%" + search + "%"),
+                Repository.description.ilike("%" + search + "%")))
     repos = repos.order_by(Repository.updated.desc())
     total_repos = repos.count()
     total_pages = repos.count() // 5 + 1

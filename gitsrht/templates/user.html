@@ -32,7 +32,19 @@
     </section>
     <section class="col-md-8">
       {% if len(repos) == 0 %}
+      {% if search %}
+      <form>
+        <input
+          name="search"
+          type="text"
+          placeholder="Search"
+          class="form-control"
+          value="{{ search if search else "" }}" />
+      </form>
+      <p>Nothing found.</p>
+      {% else %}
       <p>This user has no repositories.</p>
+      {% endif %}
       {% else %}
       <form>
         <input
