@@ -13,7 +13,7 @@ import subprocess
 import sys
 
 op = sys.argv[0]
-builds_sr_ht = cfg("network", "builds.sr.ht", default=None)
+builds_sr_ht = cfg("network", "builds", default=None)
 
 if op == "hooks/post-update":
     refs = sys.argv[1:]
