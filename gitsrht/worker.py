@@ -8,6 +8,7 @@ if not hasattr(db, "session"):
     db.init()
 
 import requests
+import html
 from celery import Celery
 from pygit2 import Commit
 from srht.oauth import OAuthScope
@@ -60,15 +61,15 @@ def do_post_update(repo, git_repo, ref):
                     "manifest": manifest,
                     # TODO: orgs
                     "tags": [repo.name],
-                    "note": "[{}]({}) &mdash; {} &mdash; [{}](mailto:{})".format(
+                    "note": "{}\n\n[{}]({}) &mdash; [{}](mailto:{})".format(
                         # TODO: cgit replacement
+                        html.escape(first_line(commit.message)),
                         str(commit.id)[:7],
                         "{}/{}/{}/commit?id={}".format(
                             git_sr_ht,
                             "~" + repo.owner.username,
                             repo.name,
                             str(commit.id)),
-                        first_line(commit.message),
                         commit.author.name,
                         commit.author.email,
                     )
