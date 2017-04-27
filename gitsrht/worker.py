@@ -50,7 +50,7 @@ def do_post_update(repo, git_repo, ref):
         if manifest:
             manifest = git_repo.get(manifest.id)
             manifest = manifest.data.decode()
-            manifest = Manifest(yaml.load(manifest))
+            manifest = Manifest(yaml.safe_load(manifest))
             manifest.sources = [
                 source if os.path.basename(source) != repo.name else source + "#" + str(ref)
                 for source in manifest.sources
