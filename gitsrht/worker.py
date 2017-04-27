@@ -7,12 +7,14 @@ if not hasattr(db, "session"):
     import gitsrht.types
     db.init()
 
-import requests
-import html
 from celery import Celery
 from pygit2 import Commit
 from srht.oauth import OAuthScope
-#from buildsrht.manifest import Manifest
+from buildsrht.manifest import Manifest
+import requests
+import html
+import yaml
+import os
 
 worker = Celery('git', broker=cfg("git.sr.ht", "redis"))
 builds_sr_ht = cfg("network", "builds")
@@ -48,8 +50,11 @@ def do_post_update(repo, git_repo, ref):
         if manifest:
             manifest = git_repo.get(manifest.id)
             manifest = manifest.data.decode()
-            # TODO: parse manifest and print errors here, and update the repo URL to match the ref
-            #manifest = Manifest(manifest)
+            manifest = Manifest(yaml.load(manifest))
+            manifest.sources = [
+                source if os.path.basename(source) != repo.name else source + "#" + str(ref)
+                for source in manifest.sources
+            ]
             token = repo.owner.oauth_token
             scopes = repo.owner.oauth_token_scopes
             scopes = [OAuthScope(s) for s in scopes.split(",")]
@@ -58,7 +63,7 @@ def do_post_update(repo, git_repo, ref):
                 print("Warning: log out and back in on the website to enable builds integration")
             else:
                 do_webhook.delay(builds_sr_ht + "/api/jobs", {
-                    "manifest": manifest,
+                    "manifest": yaml.dump(manifest.to_dict(), default_flow_style=False),
                     # TODO: orgs
                     "tags": [repo.name],
                     "note": "{}\n\n[{}]({}) &mdash; [{}](mailto:{})".format(
