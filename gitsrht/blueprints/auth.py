@@ -70,7 +70,7 @@ def oauth_callback():
     user.oauth_token_scopes = scopes
     db.session.commit()
 
-    login_user(user)
+    login_user(user, remember=True)
     if not state or not state.startswith("/"):
         return redirect("/")
     else:
