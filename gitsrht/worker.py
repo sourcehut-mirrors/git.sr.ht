@@ -8,7 +8,7 @@ if not hasattr(db, "session"):
     db.init()
 
 from celery import Celery
-from pygit2 import Commit
+from pygit2 import Commit, Tag
 from srht.oauth import OAuthScope
 from buildsrht.manifest import Manifest
 import requests
@@ -36,7 +36,11 @@ def first_line(text):
 
 def do_post_update(repo, git_repo, ref):
     commit = git_repo.get(ref)
-    if not commit or not isinstance(commit, Commit):
+    if not commit:
+        return
+    if isinstance(commit, Tag):
+        commit = git_repo.get(commit.target)
+    if not isinstance(commit, Commit):
         return
 
     # builds.sr.ht
