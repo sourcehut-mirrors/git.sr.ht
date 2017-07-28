@@ -22,14 +22,23 @@ builds_client_id = cfg("builds.sr.ht", "oauth-client-id")
 git_sr_ht = cfg("server", "protocol") + "://" + cfg("server", "domain")
 
 @worker.task
-def do_webhook(url, payload, headers=None):
-    r = requests.post(url, json=payload, headers=headers)
+def _do_webhook(url, payload, headers=None, **kwargs):
+    if "timeout" not in kwargs:
+        kwargs["timeout"] = 15
+    r = requests.post(url, json=payload, headers=headers, **kwargs)
     # TODO: Store the response somewhere I guess
     print(r.status_code)
     try:
         print(r.json())
     except:
         pass
+
+def do_webhook(url, payload, headers=None):
+    try:
+        return _do_webhook(url, payload, headers, timeout=3)
+    except requests.exceptions.Timeout:
+        _do_webhook.delay(url, payload, headers)
+        return None
 
 def first_line(text):
     return text[:text.index("\n") + 1]
@@ -66,7 +75,7 @@ def do_post_update(repo, git_repo, ref):
                     if s.client_id == builds_client_id and s.access == 'write'):
                 print("Warning: log out and back in on the website to enable builds integration")
             else:
-                do_webhook.delay(builds_sr_ht + "/api/jobs", {
+                resp = do_webhook(builds_sr_ht + "/api/jobs", {
                     "manifest": yaml.dump(manifest.to_dict(), default_flow_style=False),
                     # TODO: orgs
                     "tags": [repo.name],
@@ -83,3 +92,6 @@ def do_post_update(repo, git_repo, ref):
                         commit.author.email,
                     )
                 }, { "Authorization": "token " + token })
+                if resp:
+                    build_id = resp.json().get("id")
+                    print("Build started: https://builds.sr.ht/job/{}".format(build_id))
