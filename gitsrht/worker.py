@@ -25,13 +25,8 @@ git_sr_ht = cfg("server", "protocol") + "://" + cfg("server", "domain")
 def _do_webhook(url, payload, headers=None, **kwargs):
     if "timeout" not in kwargs:
         kwargs["timeout"] = 15
-    r = requests.post(url, json=payload, headers=headers, **kwargs)
+    return requests.post(url, json=payload, headers=headers, **kwargs)
     # TODO: Store the response somewhere I guess
-    print(r.status_code)
-    try:
-        print(r.json())
-    except:
-        pass
 
 def do_webhook(url, payload, headers=None):
     try:
