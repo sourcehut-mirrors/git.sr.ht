@@ -61,6 +61,7 @@ def create():
 
     subprocess.run(["git", "config", "srht.repo-id", str(repo.id)], cwd=repo.path)
     subprocess.run(["ln", "-s", post_update, os.path.join(repo.path, "hooks", "update")])
+    subprocess.run(["ln", "-s", post_update, os.path.join(repo.path, "hooks", "post-update")])
 
     if another == "on":
         return redirect("/create?another")
