@@ -37,7 +37,11 @@ def run_migrations_offline():
 
     """
     url = config.get_main_option("sqlalchemy.url")
-    context.configure(url=url, target_metadata=target_metadata)
+    context.configure(
+            url=url,
+            target_metadata=target_metadata,
+            include_schemas=True
+        )
 
     with context.begin_transaction():
         context.run_migrations()
@@ -57,8 +61,9 @@ def run_migrations_online():
     connection = engine.connect()
     context.configure(
                 connection=connection,
-                target_metadata=target_metadata
-                )
+                target_metadata=target_metadata,
+                include_schemas=True
+            )
 
     try:
         with context.begin_transaction():

@@ -15,6 +15,7 @@ app = SrhtFlask("git", __name__)
 app.secret_key = cfg("server", "secret-key")
 login_manager = LoginManager()
 login_manager.init_app(app)
+import gitsrht.oauth
 
 @login_manager.user_loader
 def load_user(username):
@@ -37,10 +38,12 @@ def oauth_url(return_to):
         "," + builds_sr_ht + "/jobs:write" if builds_sr_ht else "",
         urllib.parse.quote_plus(return_to))
 
+from gitsrht.blueprints.api import api
 from gitsrht.blueprints.auth import auth
 from gitsrht.blueprints.public import public
 from gitsrht.blueprints.manage import manage
 
+app.register_blueprint(api)
 app.register_blueprint(auth)
 app.register_blueprint(public)
 app.register_blueprint(manage)
