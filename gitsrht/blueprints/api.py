@@ -1,5 +1,5 @@
-from flask import Blueprint, request
-from gitsrht.types import Repository, RepoVisibility
+from flask import Blueprint, request, abort
+from gitsrht.types import Repository, RepoVisibility, User
 from gitsrht.access import UserAccess, has_access, get_repo
 from srht.oauth import oauth
 
@@ -19,6 +19,29 @@ repo_json = lambda r: {
 def repos_GET(oauth_token):
     start = request.args.get('start') or -1
     repos = Repository.query.filter(Repository.owner_id == oauth_token.user_id)
+    if start != -1:
+        repos = repos.filter(Repository.id <= start)
+    repos = repos.order_by(Repository.id.desc()).limit(11).all()
+    if len(repos) != 11:
+        next_id = -1
+    else:
+        next_id = repos[-1].id
+        repos = repos[:10]
+    return {
+        "next": next_id,
+        "results": [repo_json(r) for r in repos]
+    }
+
+@api.route("/api/repos/~<owner>")
+def repos_username_GET(owner):
+    user = User.query.filter(User.username == owner).first()
+    if not user:
+        abort(404)
+    start = request.args.get('start') or -1
+    repos = (Repository.query
+        .filter(Repository.owner_id == user.id)
+        .filter(Repository.visibility == RepoVisibility.public)
+    )
     if start != -1:
         repos = repos.filter(Repository.id <= start)
     repos = repos.order_by(Repository.id.desc()).limit(11).all()
