@@ -1,9 +1,9 @@
 from flask import Blueprint, request, abort
-from gitsrht.types import Repository, RepoVisibility, User
+from gitsrht.types import Repository, RepoVisibility, User, Webhook
 from gitsrht.access import UserAccess, has_access, get_repo
 from gitsrht.blueprints.public import check_repo
 from gitsrht.repos import create_repo
-from srht.validation import Validation
+from srht.validation import Validation, valid_url
 from srht.oauth import oauth
 from srht.database import db
 
@@ -16,6 +16,16 @@ repo_json = lambda r: {
     "created": r.created,
     "updated": r.updated,
     "visibility": r.visibility.value
+}
+
+wh_json = lambda wh: {
+    "id": wh.id,
+    "created": wh.created,
+    "description": wh.description,
+    "url": wh.url,
+    "validate_ssl": wh.validate_ssl,
+    "repo": "~{}/{}".format(wh.repository.owner.username,
+        wh.repository.name) if wh.repository else None
 }
 
 @api.route("/api/repos")
@@ -87,3 +97,52 @@ def repos_by_name_PUT(oauth_token, owner, name):
     prop(valid, repo, "description", cls=str)
     db.session.commit()
     return repo_json(repo)
+
+@api.route("/api/webhooks")
+@oauth("webhooks")
+def webhooks_GET(oauth_token):
+    start = request.args.get('start') or -1
+    webhooks = (Webhook.query
+        .filter(Webhook.user_id == oauth_token.user_id)
+        .filter(Webhook.repo_id == None)
+    )
+    if start != -1:
+        webhooks = webhooks.filter(Webhook.id <= start)
+    webhooks = webhooks.order_by(Webhook.id.desc()).limit(11).all()
+    if len(webhooks) != 11:
+        next_id = -1
+    else:
+        next_id = webhooks[-1].id
+        webhooks = webhooks[:10]
+    return {
+        "next": next_id,
+        "results": [wh_json(wh) for wh in webhooks]
+    }
+
+@api.route("/api/webhooks", methods=["POST"])
+@oauth("webhooks:write")
+def webhooks_POST(oauth_token):
+    valid = Validation(request)
+    desc = valid.optional("description", cls=str)
+    url = valid.require("url")
+    valid.expect(not url or valid_url(url), "This URL is invalid", field="url")
+    validate_ssl = valid.optional("validate_ssl", cls=bool, default=True)
+    repo = valid.optional("repo", cls=str)
+    if repo:
+        [owner, name] = repo.split("/")
+        if owner.starswith("~"):
+            owner = owner[1:]
+        # TODO: don't abort here
+        _, repo = check_repo(owner, name, authorized=oauth_token.user)
+    if not valid.ok:
+        return valid.response
+    wh = Webhook()
+    wh.description = desc
+    wh.url = url
+    wh.validate_ssl = validate_ssl
+    wh.user_id = oauth_token.user_id
+    wh.repo_id = repo.id if repo else None
+    wh.oauth_token_id = oauth_token.id
+    db.session.add(wh)
+    db.session.commit()
+    return wh_json(wh)
