@@ -21,7 +21,7 @@ def index():
         repos = None
     return render_template("index.html", repos=repos)
 
-def check_repo(user, repo):
+def check_repo(user, repo, authorized=current_user):
     u = User.query.filter(User.username == user).first()
     if not u:
         abort(404)
@@ -30,7 +30,7 @@ def check_repo(user, repo):
     if not _repo:
         abort(404)
     if _repo.visibility == RepoVisibility.private:
-        if not current_user or current_user.id != _repo.owner_id:
+        if not authorized or authorized.id != _repo.owner_id:
             abort(404)
     return u, _repo
 
