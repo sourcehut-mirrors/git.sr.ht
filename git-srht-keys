@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# AuthorizedKeysCommand=/usr/bin/git-srht-keys auth "%u" "%h" "%k"
+# AuthorizedKeysCommand=/usr/bin/git-srht-keys auth "%u" "%h" "%t" "%k"
 # AuthorizedKeysUser=root
 import sys
 import os
@@ -36,7 +36,7 @@ def log(s, *args):
 
 def auth_keys_error():
     log("This command should be run by sshd's AuthorizedKeysCommand")
-    log('AuthorizedKeysCommand={} auth "%u" "%h" "%k"\nAuthorizedKeysUser=root',
+    log('AuthorizedKeysCommand={} auth "%u" "%h" "%t" "%k"\nAuthorizedKeysUser=root',
         os.path.abspath(sys.argv[0]))
     sys.exit(1)
 
@@ -51,16 +51,17 @@ git_uid, git_gid = getpwnam(git_user[0]).pw_uid, getgrnam(git_user[-1]).gr_gid
 repos = cfg("cgit", "repos")
 
 def auth_keys():
-    if len(sys.argv) != 5:
+    if len(sys.argv) != 6:
         auth_keys_error()
 
     user = sys.argv[2]
     uid = getpwnam(user).pw_uid
     homedir = sys.argv[3]
-    b64key = sys.argv[4]
+    key_type = sys.argv[4]
+    b64key = sys.argv[5]
     authorized_keys_file = "{}/.ssh/authorized_keys".format(homedir)
 
-    log("user={} home={} b64key={}", user, homedir, b64key)
+    log("user={} home={} b64key={} key_type={}", user, homedir, b64key, key_type)
 
     if user != git_user[0]:
         log("Falling back to existing authorized keys file")
@@ -91,7 +92,7 @@ def auth_keys():
     log("Authorized user for login")
     keys = "command=\"{} shell '{}' '{}'\",".format(sys.argv[0], u.id, b64key) + \
         "no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty " + \
-        "ssh-rsa {} {}".format(b64key, username)
+        "{} {} {}".format(key_type, b64key, username)
     print(keys)
     log(keys)
     sys.exit(0)
@@ -159,7 +160,7 @@ def shell():
             sys.exit(128)
         repo.visibility = RepoVisibility.autocreated
         db.session.commit()
-    
+
     if cmd[0] == "git-receive-pack":
         if not has_access(repo, UserAccess.write, user):
             sys.exit(128)
