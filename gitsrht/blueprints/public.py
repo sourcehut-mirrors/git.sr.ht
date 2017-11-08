@@ -83,6 +83,7 @@ def cgit_plain(owner_name, repo_name, path):
 
 @public.route("/~<username>")
 def user_index(username):
+    username = username.rstrip("/")
     user = User.query.filter(User.username == username).first()
     if not user:
         abort(404)
