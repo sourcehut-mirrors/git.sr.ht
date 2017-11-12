@@ -1,5 +1,5 @@
-from flask import Blueprint, request, abort
-from gitsrht.types import Repository, RepoVisibility, User, Webhook
+from flask import Blueprint, request, redirect, abort, url_for
+from gitsrht.types import Repository, RepoVisibility, User, Webhook, Redirect
 from gitsrht.access import UserAccess, has_access, get_repo
 from gitsrht.blueprints.public import check_repo
 from gitsrht.repos import create_repo
@@ -81,6 +81,9 @@ def repos_username_GET(owner):
 @api.route("/api/repos/~<owner>/<name>")
 def repos_by_name_GET(owner, name):
     user, repo = check_repo(owner, name)
+    if isinstance(repo, Redirect):
+        return redirect(url_for(".repos_by_name_GET",
+            owner=owner, name=repo.new_repo.name))
     return repo_json(repo)
 
 def prop(valid, resource, prop, **kwargs):
@@ -92,6 +95,8 @@ def prop(valid, resource, prop, **kwargs):
 @oauth("repos:write")
 def repos_by_name_PUT(oauth_token, owner, name):
     user, repo = check_repo(owner, name, authorized=oauth_token.user)
+    if isinstance(repo, Redirect):
+        abort(404)
     valid = Validation(request)
     prop(valid, repo, "visibility", cls=RepoVisibility)
     prop(valid, repo, "description", cls=str)

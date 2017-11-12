@@ -1,8 +1,9 @@
-from flask import Blueprint, Response, request, render_template, abort, stream_with_context
+from flask import Blueprint, Response, request, redirect, url_for
+from flask import render_template, abort, stream_with_context
 from flask_login import current_user
 import requests
 from srht.config import cfg
-from gitsrht.types import User, Repository, RepoVisibility
+from gitsrht.types import User, Repository, RepoVisibility, Redirect
 from gitsrht.access import UserAccess, has_access, get_repo
 from sqlalchemy import or_
 
@@ -39,6 +40,10 @@ def check_repo(user, repo, authorized=current_user):
 @public.route("/<owner_name>/<repo_name>/<path:cgit_path>")
 def cgit_passthrough(owner_name, repo_name, cgit_path):
     owner, repo = get_repo(owner_name, repo_name)
+    if isinstance(repo, Redirect):
+        return redirect(url_for(".cgit_passthrough",
+            owner_name=owner_name, repo_name=repo.new_repo.name,
+            cgit_path=cgit_path))
     if not has_access(repo, UserAccess.read):
         abort(404)
     r = requests.get("{}/{}".format(upstream, request.full_path))
@@ -70,12 +75,18 @@ def cgit_passthrough(owner_name, repo_name, cgit_path):
             cgit_html=text, owner=owner, repo=repo,
             has_access=has_access, UserAccess=UserAccess)
 
-@public.route("/<owner_name>/<repo_name>/patch", defaults={"path": None})
-@public.route("/<owner_name>/<repo_name>/patch/<path:path>")
-@public.route("/<owner_name>/<repo_name>/plain/<path:path>")
-@public.route("/<owner_name>/<repo_name>/snapshot/<path:path>")
-def cgit_plain(owner_name, repo_name, path):
+@public.route("/<owner_name>/<repo_name>/<op>", defaults={"path": None})
+@public.route("/<owner_name>/<repo_name>/<op>/<path:path>")
+@public.route("/<owner_name>/<repo_name>/<op>/<path:path>")
+@public.route("/<owner_name>/<repo_name>/<op>/<path:path>")
+def cgit_plain(owner_name, repo_name, op, path):
+    if not op in ["patch", "plain", "snapshot"]:
+        abort(404)
     owner, repo = get_repo(owner_name, repo_name)
+    if isinstance(repo, Redirect):
+        return redirect(url_for(".cgit_plain",
+            owner_name=owner_name, repo_name=repo.new_repo.name,
+            op=op, path=path))
     if not has_access(repo, UserAccess.read):
         abort(404)
     r = requests.get("{}/{}".format(upstream, request.full_path), stream=True)

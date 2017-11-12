@@ -11,6 +11,12 @@ from grp import getgrnam
 from srht.config import cfg, cfgi, load_config
 load_config("git")
 
+root = (
+    cfg("server", "protocol") +
+    "://" +
+    cfg("server", "domain")
+)
+
 _log = None
 try:
     _log = open("/var/log/git-srht-push", "a")
@@ -102,7 +108,7 @@ def shell():
 
     from srht.database import DbSession
     db = DbSession(cfg("sr.ht", "connection-string"))
-    from gitsrht.types import User, Repository, RepoVisibility
+    from gitsrht.types import User, Repository, RepoVisibility, Redirect
     from gitsrht.access import has_access, UserAccess
     db.init()
 
@@ -128,6 +134,15 @@ def shell():
 
     repo = Repository.query.filter(Repository.path == path).first()
     if not repo:
+        repo = Redirect.query.filter(Redirect.path == path).first()
+        if repo:
+            repo = repo.new_repo
+            sys.stderr.write("\n\033[93m\tNOTICE\033[0m\n")
+            sys.stderr.write("\tThis repository has moved:\n")
+            # TODO: orgs
+            sys.stderr.write("\t{}/~{}/{}\n".format(
+                root, repo.owner.username, repo.name))
+            sys.stderr.write("\tPlease update your remote.\n\n")
         sys.exit(128)
     
     if cmd[0] == "git-receive-pack":

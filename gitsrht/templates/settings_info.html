@@ -4,8 +4,12 @@
   <div class="col-md-6">
     <form method="POST">
       <div class="form-group">
-        <label for="name">
-          Repository name <span class="text-muted">(you can't edit this)</span>
+        <label for="name" style="display: block">
+          Repository name
+          <a
+            href="/{{ owner.canonical_name }}/{{ repo.name }}/settings/rename"
+            class="pull-right"
+          >Rename?</a>
         </label>
         <input
           type="text"

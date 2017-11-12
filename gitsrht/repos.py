@@ -1,26 +1,31 @@
 import subprocess
 from srht.database import db
 from srht.config import cfg
-from gitsrht.types import Repository, RepoVisibility
+from gitsrht.types import Repository, RepoVisibility, Redirect
 import re
 import os
 
 repos_path = cfg("cgit", "repos")
 post_update = cfg("git.sr.ht", "post-update-script")
 
+def validate_name(valid, owner, repo_name):
+    if not valid.ok:
+        return
+    valid.expect(re.match(r'^[a-z._-][a-z0-9._-]*$', repo_name),
+            "Name must match [a-z._-][a-z0-9._-]*", field="name")
+    existing = (Repository.query
+            .filter(Repository.owner_id == owner.id)
+            .filter(Repository.name.ilike("%" + repo_name + "%"))
+            .first())
+    valid.expect(not existing, "This name is already in use.", field="name")
+
 def create_repo(valid, owner):
     repo_name = valid.require("name", friendly_name="Name")
-    valid.expect(not repo_name or re.match(r'^[a-z._-][a-z0-9._-]*$', repo_name),
-            "Name must match [a-z._-][a-z0-9._-]*", field="name")
     description = valid.optional("description")
     visibility = valid.optional("visibility",
             default="public",
             cls=RepoVisibility)
-    repos = Repository.query.filter(Repository.owner_id == owner.id)\
-            .order_by(Repository.updated.desc()).all()
-    valid.expect(not repo_name or not repo_name in [r.name for r in repos],
-            "This name is already in use.", field="name")
-
+    validate_name(valid, owner, repo_name)
     if not valid.ok:
         return None
 
@@ -40,4 +45,31 @@ def create_repo(valid, owner):
     subprocess.run(["git", "config", "srht.repo-id", str(repo.id)], cwd=repo.path)
     subprocess.run(["ln", "-s", post_update, os.path.join(repo.path, "hooks", "update")])
     subprocess.run(["ln", "-s", post_update, os.path.join(repo.path, "hooks", "post-update")])
+    return repo
+
+def rename_repo(owner, repo, valid):
+    repo_name = valid.require("name")
+    valid.expect(repo.name != repo_name,
+            "This is the same name as before.", field="name")
+    if not valid.ok:
+        return None
+    validate_name(valid, owner, repo_name)
+    if not valid.ok:
+        return None
+
+    _redirect = Redirect()
+    _redirect.name = repo.name
+    _redirect.path = repo.path
+    _redirect.owner_id = repo.owner_id
+    _redirect.new_repo_id = repo.id
+    db.session.add(_redirect)
+
+    new_path = os.path.join(repos_path, "~" + owner.username, repo_name)
+
+    subprocess.run(["mv", repo.path, new_path])
+
+    repo.path = new_path
+    repo.name = repo_name
+    db.session.commit()
+
     return repo

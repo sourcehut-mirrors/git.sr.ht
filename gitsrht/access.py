@@ -1,6 +1,7 @@
+from flask import abort
 from enum import IntFlag
 from flask_login import current_user
-from gitsrht.types import User, Repository, RepoVisibility
+from gitsrht.types import User, Repository, RepoVisibility, Redirect
 
 class UserAccess(IntFlag):
     none = 0
@@ -16,6 +17,11 @@ def get_repo(owner_name, repo_name):
                 .filter(Repository.name == repo_name).first()
         else:
             repo = None
+        if user and not repo:
+            repo = (Redirect.query
+                    .filter(Redirect.owner_id == user.id)
+                    .filter(Redirect.name == repo_name)
+                ).first()
         return user, repo
     else:
         # TODO: organizations
@@ -27,6 +33,9 @@ def get_access(repo, user=None):
     # TODO: ACLs
     if not repo:
         return UserAccess.none
+    if isinstance(repo, Redirect):
+        # Just pretend they have full access for long enough to do the redirect
+        return UserAccess.read | UserAccess.write | UserAccess.manage
     if not user:
         if repo.visibility == RepoVisibility.public or \
                 repo.visibility == RepoVisibility.unlisted:
