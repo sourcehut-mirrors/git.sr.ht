@@ -72,7 +72,8 @@ def settings_rename_POST(owner_name, repo_name):
     valid = Validation(request)
     repo = rename_repo(owner, repo, valid)
     if not repo:
-        return valid.response
+        return render_template("settings_rename.html", owner=owner, repo=repo,
+                **valid.kwargs)
     return redirect("/{}/{}".format(owner_name, repo.name))
 
 @manage.route("/<owner_name>/<repo_name>/settings/access")
