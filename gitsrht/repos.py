@@ -36,7 +36,6 @@ def create_repo(valid, owner):
     if not repo:
         repo = Repository()
         repo.name = repo_name
-        repo.description = description
         repo.owner_id = owner.id
         repo.path = os.path.join(repos_path, "~" + owner.username, repo.name)
         db.session.add(repo)
@@ -57,6 +56,7 @@ def create_repo(valid, owner):
                 os.path.join(repo.path, "hooks", "post-update")
             ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+    repo.description = description
     repo.visibility = visibility
     db.session.commit()
     return repo
