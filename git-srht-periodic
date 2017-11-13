@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+from srht.config import cfg, cfgi, load_config
+load_config("git")
+from srht.database import DbSession
+db = DbSession(cfg("sr.ht", "connection-string"))
+from gitsrht.types import Repository, RepoVisibility
+db.init()
+from datetime import datetime, timedelta
+
+def cleanup_autocreated():
+    due = datetime.utcnow() - timedelta(minutes=20)
+    repos = (Repository.query
+            .filter(Repository.visibility == RepoVisibility.autocreated)
+            .filter(Repository.created < due)).all()
+    db.session.delete(r) for r in repos
+    db.session.commit()
+
+cleanup_autocreated()

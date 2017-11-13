@@ -32,5 +32,9 @@ setup(
           'hooks/*'
       ]
   },
-  scripts = ['git-srht-keys', 'git-srht-update-hook']
+  scripts = [
+      'git-srht-keys',
+      'git-srht-update-hook',
+      'git-srht-periodic'
+  ]
 )

@@ -15,9 +15,11 @@ meta_uri = cfg("network", "meta")
 @public.route("/")
 def index():
     if current_user:
-        repos = Repository.query.filter(Repository.owner_id == current_user.id)\
-                .order_by(Repository.updated.desc())\
-                .limit(5).all()
+        repos = (Repository.query
+                .filter(Repository.owner_id == current_user.id)
+                .filter(Repository.visibility != RepoVisibility.autocreated)
+                .order_by(Repository.updated.desc())
+                .limit(5)).all()
     else:
         repos = None
     return render_template("index.html", repos=repos)

@@ -7,7 +7,7 @@ from srht.validation import Validation
 from gitsrht.types import Repository, RepoVisibility, Redirect
 from gitsrht.decorators import loginrequired
 from gitsrht.access import check_access, UserAccess
-from gitsrht.repos import create_repo, rename_repo
+from gitsrht.repos import create_repo, rename_repo, delete_repo
 import shutil
 
 manage = Blueprint('manage', __name__)
@@ -18,7 +18,8 @@ post_update = cfg("git.sr.ht", "post-update-script")
 @loginrequired
 def index():
     another = request.args.get("another")
-    return render_template("create.html", another=another)
+    name = request.args.get("name")
+    return render_template("create.html", another=another, repo_name=name)
 
 @manage.route("/create", methods=["POST"])
 @loginrequired
@@ -99,10 +100,9 @@ def settings_delete(owner_name, repo_name):
 def settings_delete_POST(owner_name, repo_name):
     owner, repo = check_access(owner_name, repo_name, UserAccess.manage)
     if isinstance(repo, Redirect):
-        repo = repo.new_repo
-    shutil.rmtree(repo.path)
-    db.session.delete(repo)
-    db.session.commit()
+        # Normally we'd redirect but we don't want to fuck up some other repo
+        abort(404)
+    delete_repo(repo)
     session["notice"] = "{}/{} was deleted.".format(
         owner.canonical_name, repo.name)
     return redirect("/" + owner.canonical_name)

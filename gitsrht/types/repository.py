@@ -4,6 +4,8 @@ from srht.database import Base
 from enum import Enum
 
 class RepoVisibility(Enum):
+    autocreated = 'autocreated'
+    """Used for repositories that were created automatically on push"""
     public = 'public'
     private = 'private'
     unlisted = 'unlisted'
