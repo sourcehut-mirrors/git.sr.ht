@@ -47,8 +47,6 @@ def get_access(repo, user=None):
     return UserAccess.read
 
 def has_access(repo, access, user=None):
-    if not user:
-        user = current_user
     return access in get_access(repo, user)
 
 def check_access(owner_name, repo_name, access):
