@@ -83,7 +83,8 @@ def cgit_passthrough(owner_name, repo_name, cgit_path):
 @public.route("/<owner_name>/<repo_name>/<op>/<path:path>")
 def cgit_plain(owner_name, repo_name, op, path):
     if not op in ["patch", "plain", "snapshot"]:
-        return cgit_passthrough(owner_name, repo_name, op + "/" + cgit_path)
+        return cgit_passthrough(owner_name, repo_name,
+                op + ("/" + path if path else ""))
     owner, repo = get_repo(owner_name, repo_name)
     if isinstance(repo, Redirect):
         return redirect(url_for(".cgit_plain",
