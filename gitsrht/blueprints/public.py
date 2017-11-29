@@ -37,10 +37,9 @@ def check_repo(user, repo, authorized=current_user):
             abort(404)
     return u, _repo
 
-@public.route("/<owner_name>/<repo_name>", defaults={ "cgit_path": "" })
-@public.route("/<owner_name>/<repo_name>/", defaults={ "cgit_path": "" })
+@public.route("/<owner_name>/<repo_name>")
 @public.route("/<owner_name>/<repo_name>/<path:cgit_path>")
-def cgit_passthrough(owner_name, repo_name, cgit_path):
+def cgit_passthrough(owner_name, repo_name, cgit_path=""):
     owner, repo = get_repo(owner_name, repo_name)
     if isinstance(repo, Redirect):
         return redirect(url_for(".cgit_passthrough",
@@ -77,11 +76,9 @@ def cgit_passthrough(owner_name, repo_name, cgit_path):
             cgit_html=text, owner=owner, repo=repo,
             has_access=has_access, UserAccess=UserAccess)
 
-@public.route("/<owner_name>/<repo_name>/<op>", defaults={"path": None})
+@public.route("/<owner_name>/<repo_name>/<op>")
 @public.route("/<owner_name>/<repo_name>/<op>/<path:path>")
-@public.route("/<owner_name>/<repo_name>/<op>/<path:path>")
-@public.route("/<owner_name>/<repo_name>/<op>/<path:path>")
-def cgit_plain(owner_name, repo_name, op, path):
+def cgit_plain(owner_name, repo_name, op, path=None):
     if not op in ["patch", "plain", "snapshot"]:
         return cgit_passthrough(owner_name, repo_name,
                 op + ("/" + path if path else ""))
