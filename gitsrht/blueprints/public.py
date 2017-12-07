@@ -38,6 +38,7 @@ def check_repo(user, repo, authorized=current_user):
     return u, _repo
 
 @public.route("/<owner_name>/<repo_name>")
+@public.route("/<owner_name>/<repo_name>/")
 @public.route("/<owner_name>/<repo_name>/<path:cgit_path>")
 def cgit_passthrough(owner_name, repo_name, cgit_path=""):
     owner, repo = get_repo(owner_name, repo_name)
@@ -93,8 +94,8 @@ def cgit_plain(owner_name, repo_name, op, path=None):
     return Response(stream_with_context(r.iter_content()), content_type=r.headers['content-type'])
 
 @public.route("/~<username>")
+@public.route("/~<username>/")
 def user_index(username):
-    username = username.rstrip("/")
     user = User.query.filter(User.username == username).first()
     if not user:
         abort(404)
