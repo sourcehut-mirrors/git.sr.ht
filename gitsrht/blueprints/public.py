@@ -54,8 +54,7 @@ def cgit_passthrough(owner_name, repo_name, cgit_path=""):
     base = cfg("network", "git").replace("http://", "").replace("https://", "")
     clone_urls = [
         ("ssh://git@{}:{}/{}", "git@{}:{}/{}"),
-        ("https://{}/{}/{}",),
-        ("git://{}/{}/{}",)
+        ("https://{}/{}/{}",)
     ]
     if "Repository seems to be empty" in r.text:
         clone_urls = clone_urls[:2]
