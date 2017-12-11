@@ -41,8 +41,17 @@ builds=http://builds.sr.ht.local
 remote=http://cgit.local
 repos=/var/lib/git/
 
+#
+# The authorized keys hook uses this to dispatch to various handlers
+# The format is a program to exec into as the key, and the user to match as the
+# value. When someone tries to log in as this user, this program is executed
+# and is expected to omit an AuthorizedKeys file.
+[dispatch]
+/usr/bin/git-srht-keys=git:git
+# Uncomment to enable the man.sr.ht dispatcher:
+#/usr/bin/man-srht-keys=man:man
+
 [git.sr.ht]
-git-user=git:git
 post-update-script=/usr/bin/git-srht-update-hook
 
 [meta.sr.ht]

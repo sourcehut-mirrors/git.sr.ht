@@ -33,7 +33,9 @@ setup(
       ]
   },
   scripts = [
+      'git-srht-dispatch',
       'git-srht-keys',
+      'git-srht-shell',
       'git-srht-update-hook',
       'git-srht-periodic'
   ]

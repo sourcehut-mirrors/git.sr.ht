@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+# AuthorizedKeysCommand=/usr/bin/git-srht-dispatch auth "%u" "%h" "%t" "%k"
+# AuthorizedKeysUser=root
+import sys
+import os
+try:
+    f = open("/var/log/git-srht-dispatch", "a")
+    os.close(sys.stderr.fileno())
+    os.dup2(f.fileno(), sys.stderr.fileno())
+except Exception as ex:
+    sys.stderr.write("Unable to open log for writing\n")
+    sys.stderr.write(str(ex) + "\n")
+from collections import namedtuple
+from datetime import datetime
+from pwd import getpwnam
+from grp import getgrnam
+from srht.config import cfg, cfgkeys, load_config
+
+def log(s, *args):
+    sys.stderr.write("{} {}\n".format(datetime.now().isoformat(),
+        s.format(*args) if isinstance(s, str) else str(s)))
+log("Running git-srht-dispatch")
+
+load_config("git")
+
+def auth_keys_error():
+    log("This command should be run by sshd's AuthorizedKeysCommand")
+    log('AuthorizedKeysCommand={} auth "%u" "%h" "%t" "%k"\nAuthorizedKeysUser=root',
+        os.path.abspath(sys.argv[0]))
+    sys.exit(1)
+
+Dispatcher = namedtuple("Dispatcher", ["cmd", "uid", "gid"])
+dispatchers = list()
+
+for cmd in cfgkeys("dispatch"):
+    user = cfg("dispatch", cmd).split(":")
+    uid, gid = getpwnam(user[0]).pw_uid, getgrnam(user[-1]).gr_gid
+    dispatchers.append(Dispatcher(cmd=cmd, uid=uid, gid=gid))
+
+if len(sys.argv) != 5:
+    auth_keys_error()
+
+user = sys.argv[1]
+uid = getpwnam(user).pw_uid
+homedir = sys.argv[2]
+key_type = sys.argv[3]
+b64key = sys.argv[4]
+authorized_keys_file = "{}/.ssh/authorized_keys".format(homedir)
+
+log("authorizing user={} home={} b64key={} key_type={}",
+        user, homedir, b64key, key_type)
+
+for dispatch in dispatchers:
+    if dispatch.uid == uid:
+        log("dispatching to {} with uid={}, gid={}",
+                dispatch.cmd, dispatch.uid, dispatch.gid)
+        os.setgid(dispatch.gid)
+        os.setuid(dispatch.uid)
+        os.execl(cmd, *([cmd] + sys.argv[1:]))
+
+log("Falling back to existing authorized keys file")
+if not os.path.exists(authorized_keys_file):
+    sys.exit(0)
+with open(authorized_keys_file, "r") as f:
+    authorized_keys = f.read()
+print(authorized_keys)
+sys.exit(0)

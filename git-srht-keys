@@ -1,182 +1,33 @@
 #!/usr/bin/env python3
-# AuthorizedKeysCommand=/usr/bin/git-srht-keys auth "%u" "%h" "%t" "%k"
-# AuthorizedKeysUser=root
-import sys
 import os
-import shlex
+import sys
 import requests
-import time
-from datetime import datetime
-from pwd import getpwnam
-from grp import getgrnam
-from srht.validation import Validation
-from srht.config import cfg, cfgi, load_config
+from srht.config import cfg, load_config
 load_config("git")
+from srht.database import DbSession
+db = DbSession(cfg("sr.ht", "connection-string"))
+from gitsrht.types import User
+db.init()
 
-root = (
-    cfg("server", "protocol") +
-    "://" +
-    cfg("server", "domain")
-)
+sys.stderr.write(str(sys.argv) + "\n")
+key_type = sys.argv[3]
+b64key = sys.argv[4]
 
-_log = None
-try:
-    _log = open("/var/log/git-srht-push", "a")
-except:
-    pass
-
-def log(s, *args):
-    if isinstance(s, str):
-        s = s.format(*args)
-    else:
-        s = str(s)
-    s = "{} {}".format(datetime.now().isoformat(), s)
-    if _log:
-        _log.write(s + "\n")
-
-def auth_keys_error():
-    log("This command should be run by sshd's AuthorizedKeysCommand")
-    log('AuthorizedKeysCommand={} auth "%u" "%h" "%t" "%k"\nAuthorizedKeysUser=root',
-        os.path.abspath(sys.argv[0]))
-    sys.exit(1)
-
-def drop_root():
-    if os.getuid() != git_uid or os.getgid() != git_gid:
-        log("setuid to {}", git_user)
-        os.setgid(git_gid)
-        os.setuid(git_uid)
-
-git_user = cfg("git.sr.ht", "git-user").split(':')
-git_uid, git_gid = getpwnam(git_user[0]).pw_uid, getgrnam(git_user[-1]).gr_gid
-repos = cfg("cgit", "repos")
-
-def auth_keys():
-    if len(sys.argv) != 6:
-        auth_keys_error()
-
-    user = sys.argv[2]
-    uid = getpwnam(user).pw_uid
-    homedir = sys.argv[3]
-    key_type = sys.argv[4]
-    b64key = sys.argv[5]
-    authorized_keys_file = "{}/.ssh/authorized_keys".format(homedir)
-
-    log("user={} home={} b64key={} key_type={}", user, homedir, b64key, key_type)
-
-    if user != git_user[0]:
-        log("Falling back to existing authorized keys file")
-        if not os.path.exists(authorized_keys_file):
-            sys.exit(0)
-        with open(authorized_keys_file, "r") as f:
-            authorized_keys = f.read()
-        print(authorized_keys)
-        sys.exit(0)
-
-    drop_root()
-
-    from srht.database import DbSession
-    db = DbSession(cfg("sr.ht", "connection-string"))
-    from gitsrht.types import User
-    db.init()
-
-    r = requests.get("{}/api/ssh-key/{}".format(
-        cfg("network", "meta"), b64key))
-    if r.status_code != 200:
-        log("meta.sr.ht returned 404 for this key")
-        sys.exit(0)
-    j = r.json()
-    username = j["user"]["username"]
-    u = User.query.filter(User.username == username).first()
-    if not u:
-        log("Unknown user {}", username)
-    log("Authorized user for login")
-    keys = "command=\"{} shell '{}' '{}'\",".format(sys.argv[0], u.id, b64key) + \
-        "no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty " + \
-        "{} {} {}".format(key_type, b64key, username)
-    print(keys)
-    log(keys)
+r = requests.get("{}/api/ssh-key/{}".format(
+    cfg("network", "meta"), b64key))
+if r.status_code != 200:
+    sys.stderr.write("meta.sr.ht returned 404 for this key\n")
     sys.exit(0)
-
-def shell():
-    log("Starting up git.sr.ht shell")
-    drop_root()
-
-    _cmd = os.environ.get("SSH_ORIGINAL_COMMAND")
-    if not _cmd:
-        _cmd = ""
-    if len(sys.argv) < 3:
-        log("Error: expected 2 arguments from SSH")
-    user_id = sys.argv[2]
-    ssh_key = sys.argv[3]
-
-    from srht.database import DbSession
-    db = DbSession(cfg("sr.ht", "connection-string"))
-    from gitsrht.types import User, Repository, RepoVisibility, Redirect
-    from gitsrht.access import has_access, UserAccess
-    from gitsrht.repos import create_repo
-    db.init()
-
-    user = User.query.filter(User.id == user_id).first()
-    if not user:
-        log("Unknown user ID {}", user_id)
-    log("User: {}", user.username)
-
-    cmd = shlex.split(_cmd)
-    valid_commands = ["git-receive-pack", "git-upload-pack", "git-upload-archive"]
-    if len(cmd) < 1 or not cmd[0] in valid_commands:
-        log("Not permitting unacceptable command")
-        print("Hi {}! You've successfully authenticated, ".format(user.username) +
-            "but I do not provide an interactive shell. Bye!")
-        sys.exit(128)
-    os.chdir(repos)
-    path = os.path.abspath(cmd[-1])
-    if not path.startswith(repos):
-        sys.stderr.write("Access denied")
-        sys.exit(128)
-    cmd[-1] = path
-    _cmd = " ".join(shlex.quote(arg) for arg in cmd)
-
-    repo = Repository.query.filter(Repository.path == path).first()
-    if not repo:
-        repo = Redirect.query.filter(Redirect.path == path).first()
-        if repo:
-            repo = repo.new_repo
-            sys.stderr.write("\n\t\033[93mNOTICE\033[0m\n")
-            sys.stderr.write("\tThis repository has moved:\n")
-            # TODO: orgs
-            sys.stderr.write("\t{}/~{}/{}\n".format(
-                root, repo.owner.username, repo.name))
-            sys.stderr.write("\tPlease update your remote.\n\n")
-            sys.exit(128)
-
-        _path, repo_name = os.path.split(path)
-        owner = os.path.basename(_path)
-        if "~" + user.username != owner:
-            sys.exit(128)
-
-        valid = Validation({ "name": repo_name })
-        repo = create_repo(valid, user)
-        if not valid.ok:
-            sys.exit(128)
-        repo.visibility = RepoVisibility.autocreated
-        db.session.commit()
-
-    if cmd[0] == "git-receive-pack":
-        if not has_access(repo, UserAccess.write, user):
-            sys.exit(128)
-    else:
-        if not has_access(repo, UserAccess.read, user):
-            sys.exit(128)
-
-    log("Executing {}", _cmd)
-    if _log:
-        _log.close()
-    os.execv("/usr/bin/git-shell", ["/usr/bin/git-shell", "-c", _cmd])
-
-with _log or sys.stdout:
-    if len(sys.argv) < 2:
-        auth_keys_error()
-    if sys.argv[1] == "auth":
-        auth_keys()
-    if sys.argv[1] == "shell":
-        shell()
+j = r.json()
+username = j["user"]["username"]
+u = User.query.filter(User.username == username).first()
+if not u:
+    sys.stderr.write("Unknown user {}\n", username)
+    sys.exit(1)
+shell = os.path.join(os.path.dirname(sys.argv[0]), "git-srht-shell")
+keys = "command=\"{} '{}' '{}'\",".format(shell, u.id, b64key) + \
+    "no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty " + \
+    "{} {} {}".format(key_type, b64key, username) + "\n"
+print(keys)
+sys.stderr.write(keys)
+sys.exit(0)
