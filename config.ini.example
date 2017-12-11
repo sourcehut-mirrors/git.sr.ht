@@ -52,6 +52,7 @@ repos=/var/lib/git/
 #/usr/bin/man-srht-keys=man:man
 
 [git.sr.ht]
+redis=redis://localhost:6379/1
 post-update-script=/usr/bin/git-srht-update-hook
 
 [meta.sr.ht]
