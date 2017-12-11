@@ -13,6 +13,7 @@ import shlex
 from datetime import datetime
 from srht.config import cfg, load_config
 load_config("git")
+from srht.validation import Validation
 from srht.database import DbSession
 db = DbSession(cfg("sr.ht", "connection-string"))
 from gitsrht.types import User, Repository, RepoVisibility, Redirect
