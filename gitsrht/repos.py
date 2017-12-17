@@ -16,7 +16,7 @@ def validate_name(valid, owner, repo_name):
             "Name must match [a-z._-][a-z0-9._-]*", field="name")
     existing = (Repository.query
             .filter(Repository.owner_id == owner.id)
-            .filter(Repository.name.ilike("%" + repo_name + "%"))
+            .filter(Repository.name.ilike(repo_name))
             .first())
     if existing and existing.visibility == RepoVisibility.autocreated:
         return existing
