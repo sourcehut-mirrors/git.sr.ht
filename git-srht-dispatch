@@ -19,6 +19,7 @@ from srht.config import cfg, cfgkeys, load_config
 def log(s, *args):
     sys.stderr.write("{} {}\n".format(datetime.now().isoformat(),
         s.format(*args) if isinstance(s, str) else str(s)))
+    sys.stderr.flush()
 log("Running git-srht-dispatch")
 
 load_config("git")
@@ -36,6 +37,7 @@ for cmd in cfgkeys("dispatch"):
     user = cfg("dispatch", cmd).split(":")
     uid, gid = getpwnam(user[0]).pw_uid, getgrnam(user[-1]).gr_gid
     dispatchers.append(Dispatcher(cmd=cmd, uid=uid, gid=gid))
+    log("registered dispatcher for {}:{}: {}", uid, gid, cmd)
 
 if len(sys.argv) != 5:
     auth_keys_error()
@@ -47,8 +49,8 @@ key_type = sys.argv[3]
 b64key = sys.argv[4]
 authorized_keys_file = "{}/.ssh/authorized_keys".format(homedir)
 
-log("authorizing user={} home={} b64key={} key_type={}",
-        user, homedir, b64key, key_type)
+log("authorizing user={} ({}) home={} b64key={} key_type={}",
+        user, uid, homedir, b64key, key_type)
 
 for dispatch in dispatchers:
     if dispatch.uid == uid:
@@ -56,7 +58,7 @@ for dispatch in dispatchers:
                 dispatch.cmd, dispatch.uid, dispatch.gid)
         os.setgid(dispatch.gid)
         os.setuid(dispatch.uid)
-        os.execl(cmd, *([cmd] + sys.argv[1:]))
+        os.execl(dispatch.cmd, *([dispatch.cmd] + sys.argv[1:]))
 
 log("Falling back to existing authorized keys file")
 if not os.path.exists(authorized_keys_file):
