@@ -56,7 +56,6 @@ if not path.startswith(repos):
     sys.stderr.write("Access denied")
     sys.exit(128)
 cmd[-1] = path
-_cmd = " ".join(shlex.quote(arg) for arg in cmd)
 
 repo = Repository.query.filter(Repository.path == path).first()
 if not repo:
@@ -90,6 +89,6 @@ else:
     if not has_access(repo, UserAccess.read, user):
         sys.exit(128)
 
-log("Executing {}", _cmd)
+log("Executing {}", " ".join(cmd))
 sys.stderr.close()
-os.execv("/usr/bin/git-shell", ["/usr/bin/git-shell", "-c", _cmd])
+os.execvp(cmd[0], cmd)
