@@ -11,13 +11,9 @@
       <p>
         <a href="/create">Create new repository »</a>
       </p>
-      <div class="alert alert-danger">
-        Notice: this site is a work in progress.
-      </div>
     </div>
     <div class="col-md-6">
       {% if repos and len(repos) %}
-      <h3>Your repositories</h3>
       {% for repo in repos %}
         <h4>
           <a href="/~{{current_user.username}}/{{repo.name}}">
