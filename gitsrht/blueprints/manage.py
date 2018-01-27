@@ -5,6 +5,7 @@ from srht.config import cfg
 from srht.database import db
 from srht.validation import Validation
 from gitsrht.types import Repository, RepoVisibility, Redirect
+from gitsrht.types import Access, AccessMode, User
 from gitsrht.decorators import loginrequired
 from gitsrht.access import check_access, UserAccess
 from gitsrht.repos import create_repo, rename_repo, delete_repo
@@ -85,6 +86,57 @@ def settings_access(owner_name, repo_name):
         return redirect(url_for(".settings_manage",
             owner_name=owner_name, repo_name=repo.new_repo.name))
     return render_template("settings_access.html", owner=owner, repo=repo)
+
+@manage.route("/<owner_name>/<repo_name>/settings/access", methods=["POST"])
+@loginrequired
+def settings_access_POST(owner_name, repo_name):
+    owner, repo = check_access(owner_name, repo_name, UserAccess.manage)
+    if isinstance(repo, Redirect):
+        repo = repo.new_repo
+    valid = Validation(request)
+    user = valid.require("user", friendly_name="User")
+    mode = valid.optional("access", cls=AccessMode, default=AccessMode.ro)
+    if not valid.ok:
+        return render_template("settings_access.html",
+                owner=owner, repo=repo, **valid.kwargs)
+    # TODO: Group access
+    if user[0] == "~":
+        user = user[1:]
+    user = User.query.filter(User.username == user).first()
+    valid.expect(user,
+            "I don't know this user. Have they logged into git.sr.ht before?",
+            field="user")
+    if not valid.ok:
+        return render_template("settings_access.html",
+                owner=owner, repo=repo, **valid.kwargs)
+    grant = (Access.query
+        .filter(Access.repo_id == repo.id, Access.user_id == user.id)
+    ).first()
+    if not grant:
+        grant = Access()
+        grant.repo_id = repo.id
+        grant.user_id = user.id
+        db.session.add(grant)
+    grant.mode = mode
+    db.session.commit()
+    return redirect("/{}/{}/settings/access".format(
+        owner.canonical_name, repo.name))
+
+@manage.route("/<owner_name>/<repo_name>/settings/access/revoke/<grant_id>", methods=["POST"])
+@loginrequired
+def settings_access_revoke_POST(owner_name, repo_name, grant_id):
+    owner, repo = check_access(owner_name, repo_name, UserAccess.manage)
+    if isinstance(repo, Redirect):
+        repo = repo.new_repo
+    grant = (Access.query
+        .filter(Access.repo_id == repo.id, Access.id == grant_id)
+    ).first()
+    if not grant:
+        abort(404)
+    db.session.delete(grant)
+    db.session.commit()
+    return redirect("/{}/{}/settings/access".format(
+        owner.canonical_name, repo.name))
 
 @manage.route("/<owner_name>/<repo_name>/settings/delete")
 @loginrequired
