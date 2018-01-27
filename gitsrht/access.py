@@ -2,6 +2,7 @@ from flask import abort
 from enum import IntFlag
 from flask_login import current_user
 from gitsrht.types import User, Repository, RepoVisibility, Redirect
+from gitsrht.types import Access, AccessMode
 
 class UserAccess(IntFlag):
     none = 0
@@ -30,7 +31,6 @@ def get_repo(owner_name, repo_name):
 def get_access(repo, user=None):
     if not user:
         user = current_user
-    # TODO: ACLs
     if not repo:
         return UserAccess.none
     if isinstance(repo, Redirect):
@@ -42,6 +42,12 @@ def get_access(repo, user=None):
             return UserAccess.read
     if repo.owner_id == user.id:
         return UserAccess.read | UserAccess.write | UserAccess.manage
+    acl = Access.query.filter(Access.repo_id == repo.id).first()
+    if acl:
+        if acl.mode == AccessMode.ro:
+            return UserAccess.read
+        else:
+            return UserAccess.read | UserAccess.write
     if repo.visibility == RepoVisibility.private:
         return UserAccess.none
     return UserAccess.read
