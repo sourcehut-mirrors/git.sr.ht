@@ -38,11 +38,7 @@
     </table>
     <h4>Grant Access</h4>
     {% endif %}
-    <form method="POST"
-      action="/~{{owner.username}}/{{
-        repo.name
-      }}/settings/access/grant"
-    >
+    <form method="POST">
       <div class="form-group {{valid.cls("user")}}">
         <label for="user">User</label>
         <input
