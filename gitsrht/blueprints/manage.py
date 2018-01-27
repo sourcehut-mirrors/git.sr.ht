@@ -52,6 +52,10 @@ def settings_info_POST(owner_name, repo_name):
         repo = repo.new_repo
     valid = Validation(request)
     desc = valid.optional("description", default=repo.description)
+    visibility = valid.optional("visibility",
+            cls=RepoVisibility,
+            default=repo.visibility)
+    repo.visibility = visibility
     repo.description = desc
     db.session.commit()
     return redirect("/{}/{}/settings/info".format(owner_name, repo_name))

@@ -40,6 +40,7 @@ def get_access(repo, user=None):
         if repo.visibility == RepoVisibility.public or \
                 repo.visibility == RepoVisibility.unlisted:
             return UserAccess.read
+        return UserAccess.none
     if repo.owner_id == user.id:
         return UserAccess.read | UserAccess.write | UserAccess.manage
     acl = Access.query.filter(Access.repo_id == repo.id).first()
