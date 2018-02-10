@@ -1,8 +1,10 @@
 from flask import abort
+from datetime import datetime
 from enum import IntFlag
 from flask_login import current_user
 from gitsrht.types import User, Repository, RepoVisibility, Redirect
 from gitsrht.types import Access, AccessMode
+from srht.database import db
 
 class UserAccess(IntFlag):
     none = 0
@@ -45,6 +47,8 @@ def get_access(repo, user=None):
         return UserAccess.read | UserAccess.write | UserAccess.manage
     acl = Access.query.filter(Access.repo_id == repo.id).first()
     if acl:
+        acl.updated = datetime.utcnow()
+        db.session.commit()
         if acl.mode == AccessMode.ro:
             return UserAccess.read
         else:
