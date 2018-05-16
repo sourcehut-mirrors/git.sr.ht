@@ -77,6 +77,7 @@ def cgit_passthrough(owner_name, repo_name, cgit_path=""):
             has_access=has_access, UserAccess=UserAccess)
 
 @public.route("/<owner_name>/<repo_name>/<op>")
+@public.route("/<owner_name>/<repo_name>/<op>/")
 @public.route("/<owner_name>/<repo_name>/<op>/<path:path>")
 def cgit_plain(owner_name, repo_name, op, path=None):
     if not op in ["patch", "plain", "snapshot"]:
