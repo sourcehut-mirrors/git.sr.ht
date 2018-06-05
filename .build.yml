@@ -11,6 +11,7 @@ packages:
   - python-flask-login
   - builds.sr.ht
   - rsync
+  - pacman-contrib
 sources:
   - https://git.sr.ht/~sircmpwn/git.sr.ht
   - https://git.sr.ht/~sircmpwn/sr.ht-pkgbuilds
