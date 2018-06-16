@@ -54,24 +54,27 @@
           class="form-control"
           value="{{ search if search else "" }}" />
       </form>
-      {% for repo in repos %}
-        <h4>
-          <a href="/~{{user.username}}/{{repo.name}}">
-            ~{{user.username}}/{{repo.name}}
-          </a>
-          {% if repo.visibility.value != 'public' %}
-          <small class="text-muted">
-            <em>{{ repo.visibility.value }}</em>
-          </small>
+      <div class="event-list">
+        {% for repo in repos %}
+        <div class="event">
+          <h4>
+            <a href="/~{{user.username}}/{{repo.name}}">
+              ~{{user.username}}/{{repo.name}}
+            </a>
+            {% if repo.visibility.value != 'public' %}
+            <small class="pull-right">
+              {{ repo.visibility.value }}
+            </small>
+            {% endif %}
+          </h4>
+          {% if repo.description %}
+          <p>{{ repo.description }}</p>
           {% endif %}
-        </h4>
-        {% if repo.description %}
-        <p>{{ repo.description }}</p>
-        {% endif %}
-        <p>
-          <em class="text-muted">Last updated {{ repo.updated | date }}</em>
-        </p>
-      {% endfor %}
+          <p>
+          </p>
+        </div>
+        {% endfor %}
+      </div>
       {% endif %}
       {% if total_pages > 1 %}
       <div class="row">
