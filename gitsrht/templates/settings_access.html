@@ -39,11 +39,11 @@
     <h4>Grant Access</h4>
     {% endif %}
     <form method="POST">
-      <div class="form-group {{valid.cls("user")}}">
+      <div class="form-group">
         <label for="user">User</label>
         <input
           type="text"
-          class="form-control"
+          class="form-control {{valid.cls("user")}}"
           id="user"
           name="user"
           placeholder="~{{ current_user.username }}"
