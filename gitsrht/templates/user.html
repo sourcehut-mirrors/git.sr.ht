@@ -26,9 +26,6 @@
         {{ notice }}
       </div>
       {% endif %}
-      {% if current_user and current_user.id == user.id %}
-        <a href="{{cfg("network", "meta")}}/profile">Edit your profile »</a>
-      {% endif %}
     </section>
     <section class="col-md-8">
       {% if len(repos) == 0 %}
