@@ -70,7 +70,7 @@ def cgit_passthrough(owner_name, repo_name, cgit_path=""):
         "<a rel='vcs-git' href='__CLONE_URL__' title='{}/{} Git repository'>__CLONE_URL__</a>".format(
                 owner_name, repo_name) + "</td></tr>"
     if not their_clone_text in r.text:
-        clone_text = clone_text.replace(" colspan='3'", "")
+        their_clone_text = their_clone_text.replace(" colspan='3'", "")
     text = r.text.replace(their_clone_text, our_clone_text)
     if "Repository seems to be empty" in r.text:
         text = text.replace("<th class='left'>Clone</th>", "<th class='left'>Push</th>")
