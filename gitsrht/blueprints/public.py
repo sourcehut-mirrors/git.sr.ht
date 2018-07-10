@@ -52,24 +52,26 @@ def cgit_passthrough(owner_name, repo_name, cgit_path=""):
     if r.status_code != 200:
         abort(r.status_code)
     base = cfg("network", "git").replace("http://", "").replace("https://", "")
-    clone_urls = [
-        ("ssh://git@{}:{}/{}", "git@{}:{}/{}"),
-        ("https://{}/{}/{}",)
-    ]
-    if "Repository seems to be empty" in r.text:
-        clone_urls = clone_urls[:2]
-    clone_text = "<tr><td colspan='3'>" +\
+    clone_urls = ["https://{}/{}/{}", "git@{}:{}/{}"]
+    our_clone_text = """
+    <tr>
+        <td colspan='2'><a rel="vcs-git" href="{}">{}</a></td>
+        <td>(read-only)</td>
+    </tr>
+    <tr>
+        <td colspan="2" style="color: black">{}</td>
+        <td>(read/write)</td>
+    </tr>
+    """.format(
+        clone_urls[0].format(base, owner_name, repo_name),
+        clone_urls[0].format(base, owner_name, repo_name),
+        clone_urls[1].format(base, owner_name, repo_name))
+    their_clone_text = "<tr><td colspan='3'>" +\
         "<a rel='vcs-git' href='__CLONE_URL__' title='{}/{} Git repository'>__CLONE_URL__</a>".format(
                 owner_name, repo_name) + "</td></tr>"
-    if not clone_text in r.text:
+    if not their_clone_text in r.text:
         clone_text = clone_text.replace(" colspan='3'", "")
-    text = r.text.replace(
-        clone_text,
-        " ".join(["<tr><td colspan='3'><a href='{}'>{}</a></td></tr>".format(
-            url[0].format(base, owner_name, repo_name),
-            url[-1].format(base, owner_name, repo_name))
-            for url in clone_urls])
-    )
+    text = r.text.replace(their_clone_text, our_clone_text)
     if "Repository seems to be empty" in r.text:
         text = text.replace("<th class='left'>Clone</th>", "<th class='left'>Push</th>")
     return render_template("cgit.html",
