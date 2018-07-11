@@ -88,6 +88,9 @@ def rename_repo(owner, repo, valid):
     return repo
 
 def delete_repo(repo):
-    shutil.rmtree(repo.path)
+    try:
+        shutil.rmtree(repo.path)
+    except FileNotFoundError:
+        pass
     db.session.delete(repo)
     db.session.commit()

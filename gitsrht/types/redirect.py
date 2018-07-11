@@ -11,8 +11,9 @@ class Redirect(Base):
     owner_id = sa.Column(sa.Integer, sa.ForeignKey('user.id'), nullable=False)
     owner = sa.orm.relationship('User')
     path = sa.Column(sa.Unicode(1024))
+
     new_repo_id = sa.Column(
             sa.Integer,
-            sa.ForeignKey('repository.id'),
+            sa.ForeignKey('repository.id', ondelete="CASCADE"),
             nullable=False)
     new_repo = sa.orm.relationship('Repository')
