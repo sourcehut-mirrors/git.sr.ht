@@ -73,23 +73,7 @@
         {% endfor %}
       </div>
       {% endif %}
-      {% if total_pages > 1 %}
-      <div class="row">
-        <div class="col-md-4">
-        {% if page != 1 %}
-          <a href="?page={{ page - 1 }}{{ '&search=' + search if search else '' }}">[previous]</a>
-        {% endif %}
-        </div>
-        <div class="col-md-4 text-centered">
-          [ {{ page }} / {{ total_pages }} ]
-        </div>
-        <div class="col-md-4 text-right">
-        {% if page != total_pages %}
-          <a href="?page={{ page + 1 }}{{ '&search=' + search if search else '' }}">[next]</a>
-        {% endif %}
-        </div>
-      </div>
-      {% endif %}
+      {{ pagination() }}
     </section>
   </div>
 </div>

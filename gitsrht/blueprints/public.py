@@ -3,6 +3,7 @@ from flask import render_template, abort, stream_with_context
 from flask_login import current_user
 import requests
 from srht.config import cfg
+from srht.flask import paginate_query
 from gitsrht.types import User, Repository, RepoVisibility, Redirect
 from gitsrht.access import UserAccess, has_access, get_repo
 from sqlalchemy import or_
@@ -102,7 +103,6 @@ def user_index(username):
     if not user:
         abort(404)
     search = request.args.get("search")
-    page = request.args.get("page")
     repos = Repository.query\
             .filter(Repository.owner_id == user.id)
     if not current_user or current_user.id != user.id:
@@ -113,19 +113,8 @@ def user_index(username):
                 Repository.name.ilike("%" + search + "%"),
                 Repository.description.ilike("%" + search + "%")))
     repos = repos.order_by(Repository.updated.desc())
-    total_repos = repos.count()
-    total_pages = repos.count() // 10 + 1
-    if total_repos % 10 == 0:
-        total_pages -= 1
-    if page:
-        try:
-            page = int(page) - 1
-            repos = repos.offset(page * 10)
-        except:
-            page = None
-    else:
-        page = 0
-    repos = repos.limit(10).all()
+    repos, pagination = paginate_query(repos)
+
     r = requests.get(meta_uri + "/api/user/profile", headers={
         "Authorization": "token " + user.oauth_token
     }) # TODO: cache
@@ -133,10 +122,7 @@ def user_index(username):
         profile = r.json()
     else:
         profile = None
+
     return render_template("user.html",
-            user=user,
-            repos=repos,
-            profile=profile,
-            search=search,
-            page=page + 1,
-            total_pages=total_pages)
+            user=user, repos=repos, profile=profile,
+            search=search, **pagination)
