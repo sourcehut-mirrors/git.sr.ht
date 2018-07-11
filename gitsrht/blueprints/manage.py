@@ -3,10 +3,10 @@ from flask import redirect, session, url_for
 from flask_login import current_user
 from srht.config import cfg
 from srht.database import db
+from srht.flask import loginrequired
 from srht.validation import Validation
 from gitsrht.types import Repository, RepoVisibility, Redirect
 from gitsrht.types import Access, AccessMode, User
-from gitsrht.decorators import loginrequired
 from gitsrht.access import check_access, UserAccess
 from gitsrht.repos import create_repo, rename_repo, delete_repo
 import shutil
