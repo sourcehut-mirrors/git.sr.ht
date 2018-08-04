@@ -89,4 +89,4 @@ def do_post_update(repo, git_repo, ref):
                 }, { "Authorization": "token " + token })
                 if resp:
                     build_id = resp.json().get("id")
-                    print("Build started: https://builds.sr.ht/job/{}".format(build_id))
+                    print("Build started: https://builds.sr.ht/~{}/job/{}".format(repo.owner.username, build_id))
