@@ -26,7 +26,7 @@ if op == "hooks/post-update":
 
     config = ConfigParser()
     with open("config") as f:
-        config.readfp(f)
+        config.read_file(f)
 
     repo_id = config.get("srht", "repo-id")
     if not repo_id:
