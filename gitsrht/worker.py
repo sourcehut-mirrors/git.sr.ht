@@ -38,6 +38,65 @@ def do_webhook(url, payload, headers=None):
 def first_line(text):
     return text[:text.index("\n") + 1]
 
+def submit_builds(repo, git_repo, commit):
+    manifests = dict()
+    if ".build.yml" in commit.tree:
+        build_yml = commit.tree[".build.yml"]
+        if build_yml.type == 'blob':
+            manifests[None] = build_yml
+    elif ".builds"  in commit.tree:
+        build_dir = commit.tree[".builds"]
+        if build_dir.type == 'tree':
+            build_dir = git_repo.get(build_dir.id)
+            for blob in build_dir:
+                if blob.type != "blob":
+                    continue
+                manifests[blob.name] = blob
+    if not any(manifests):
+        return
+    for name, blob in iter(manifests.items()):
+        m = git_repo.get(blob.id).data.decode()
+        m = Manifest(yaml.safe_load(m))
+        if m.sources:
+            m.sources = [source if os.path.basename(source) != repo.name
+                    else source + "#" + str(ref) for source in m.sources]
+        manifests[name] = m
+    token = repo.owner.oauth_token
+    scopes = repo.owner.oauth_token_scopes
+    scopes = [OAuthScope(s) for s in scopes.split(",")]
+    if not any(s for s in scopes
+            if s.client_id == builds_client_id and s.access == 'write'):
+        print("Warning: log out and back in on the website to enable builds integration")
+        return
+    for name, manifest in iter(manifests.items()):
+        resp = do_webhook(builds_sr_ht + "/api/jobs", {
+            "manifest": yaml.dump(manifest.to_dict(), default_flow_style=False),
+            # TODO: orgs
+            "tags": [repo.name] + [name] if name else [],
+            "note": "{}\n\n[{}]({}) &mdash; [{}](mailto:{})".format(
+                # TODO: cgit replacement
+                html.escape(first_line(commit.message)),
+                str(commit.id)[:7],
+                "{}/{}/{}/commit?id={}".format(
+                    git_sr_ht,
+                    "~" + repo.owner.username,
+                    repo.name,
+                    str(commit.id)),
+                commit.author.name,
+                commit.author.email,
+            )
+        }, { "Authorization": "token " + token })
+        if not resp or resp.status_code != 200:
+            print("Failed to submit build job" + (" " + name) if name else "")
+            return
+        build_id = resp.json().get("id")
+        if name is not None:
+            print("Build started: https://builds.sr.ht/~{}/job/{} [{}]".format(
+                repo.owner.username, build_id, name))
+        else:
+            print("Build started: https://builds.sr.ht/~{}/job/{}".format(
+                repo.owner.username, build_id))
+
 def do_post_update(repo, git_repo, ref):
     commit = git_repo.get(ref)
     if not commit:
@@ -46,47 +105,5 @@ def do_post_update(repo, git_repo, ref):
         commit = git_repo.get(commit.target)
     if not isinstance(commit, Commit):
         return
-
-    # builds.sr.ht
     if builds_sr_ht:
-        manifest = None
-        if ".build.yml" in commit.tree:
-            manifest = commit.tree[".build.yml"]
-        if ".build.yaml" in commit.tree:
-            manifest = commit.tree[".build.yaml"]
-        # TODO: More complex build manifests
-        if manifest:
-            manifest = git_repo.get(manifest.id)
-            manifest = manifest.data.decode()
-            manifest = Manifest(yaml.safe_load(manifest))
-            manifest.sources = [
-                source if os.path.basename(source) != repo.name else source + "#" + str(ref)
-                for source in manifest.sources
-            ]
-            token = repo.owner.oauth_token
-            scopes = repo.owner.oauth_token_scopes
-            scopes = [OAuthScope(s) for s in scopes.split(",")]
-            if not any(s for s in scopes
-                    if s.client_id == builds_client_id and s.access == 'write'):
-                print("Warning: log out and back in on the website to enable builds integration")
-            else:
-                resp = do_webhook(builds_sr_ht + "/api/jobs", {
-                    "manifest": yaml.dump(manifest.to_dict(), default_flow_style=False),
-                    # TODO: orgs
-                    "tags": [repo.name],
-                    "note": "{}\n\n[{}]({}) &mdash; [{}](mailto:{})".format(
-                        # TODO: cgit replacement
-                        html.escape(first_line(commit.message)),
-                        str(commit.id)[:7],
-                        "{}/{}/{}/commit?id={}".format(
-                            git_sr_ht,
-                            "~" + repo.owner.username,
-                            repo.name,
-                            str(commit.id)),
-                        commit.author.name,
-                        commit.author.email,
-                    )
-                }, { "Authorization": "token " + token })
-                if resp:
-                    build_id = resp.json().get("id")
-                    print("Build started: https://builds.sr.ht/~{}/job/{}".format(repo.owner.username, build_id))
+        submit_builds(repo, git_repo, commit)
