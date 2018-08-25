@@ -43,7 +43,7 @@ def submit_builds(repo, git_repo, commit):
     if ".build.yml" in commit.tree:
         build_yml = commit.tree[".build.yml"]
         if build_yml.type == 'blob':
-            manifests[None] = build_yml
+            manifests[".build.yml"] = build_yml
     elif ".builds"  in commit.tree:
         build_dir = commit.tree[".builds"]
         if build_dir.type == 'tree':
@@ -90,7 +90,7 @@ def submit_builds(repo, git_repo, commit):
             print("Failed to submit build job" + (" " + name) if name else "")
             return
         build_id = resp.json().get("id")
-        if name is not None:
+        if name != ".build.yml":
             print("Build started: https://builds.sr.ht/~{}/job/{} [{}]".format(
                 repo.owner.username, build_id, name))
         else:
