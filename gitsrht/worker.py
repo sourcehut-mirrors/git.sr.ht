@@ -59,7 +59,7 @@ def submit_builds(repo, git_repo, commit):
         m = Manifest(yaml.safe_load(m))
         if m.sources:
             m.sources = [source if os.path.basename(source) != repo.name
-                    else source + "#" + str(ref) for source in m.sources]
+                    else source + "#" + str(commit.id) for source in m.sources]
         manifests[name] = m
     token = repo.owner.oauth_token
     scopes = repo.owner.oauth_token_scopes
