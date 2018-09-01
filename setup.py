@@ -29,6 +29,7 @@ setup(
       'gitsrht': [
           'templates/*.html',
           'static/*',
+          'static/icons/*',
           'hooks/*'
       ]
   },
