@@ -10,8 +10,7 @@
     class="nav-link"
     href="/{{ owner.canonical_name }}/{{ repo.name }}"
   >
-    <i class="fa fa-caret-left"></i>
-    back
+    {{icon("caret-left")}} back
   </a>
 </li>
 {% if request.path.endswith("/rename") %}

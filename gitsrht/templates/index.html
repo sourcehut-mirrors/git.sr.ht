@@ -11,8 +11,7 @@
         <a href="https://man.sr.ht/git.sr.ht">available here</a>.
       </p>
       <a href="/create" class="btn btn-primary btn-block">
-        Create new repository
-        <i class="fa fa-caret-right"></i>
+        Create new repository {{icon("caret-right")}}
       </a>
     </div>
     <div class="col-md-8">
@@ -38,8 +37,7 @@
         {% endfor %}
       </div>
       <a href="/~{{current_user.username}}" class="btn btn-default pull-right">
-        More on your profile
-        <i class="fa fa-caret-right"></i>
+        More on your profile {{icon("caret-right")}}
       </a>
       {% endif %}
     </div>
