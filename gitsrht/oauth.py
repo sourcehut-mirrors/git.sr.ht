@@ -6,10 +6,9 @@ from srht.database import db
 from gitsrht.types import OAuthToken, User
 from datetime import datetime
 
-client_id = cfg("meta.sr.ht", "oauth-client-id")
-client_secret = cfg("meta.sr.ht", "oauth-client-secret")
-revocation_url = "{}://{}/oauth/revoke".format(
-    cfg("server", "protocol"), cfg("server", "domain"))
+client_id = cfg("git.sr.ht", "oauth-client-id")
+client_secret = cfg("git.sr.ht", "oauth-client-secret")
+revocation_url = "{}/oauth/revoke".format(cfg("git.sr.ht", "origin"))
 
 class GitOAuthService(AbstractOAuthService):
     def get_client_id(self):

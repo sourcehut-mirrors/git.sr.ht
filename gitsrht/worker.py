@@ -1,9 +1,7 @@
-from srht.config import cfg, load_config, loaded
-if not loaded():
-    load_config("git")
+from srht.config import cfg
 from srht.database import DbSession, db
 if not hasattr(db, "session"):
-    db = DbSession(cfg("sr.ht", "connection-string"))
+    db = DbSession(cfg("git.sr.ht", "connection-string"))
     import gitsrht.types
     db.init()
 
@@ -17,9 +15,9 @@ import yaml
 import os
 
 worker = Celery('git', broker=cfg("git.sr.ht", "redis"))
-builds_sr_ht = cfg("network", "builds")
+builds_sr_ht = cfg("builds.sr.ht", "origin")
 builds_client_id = cfg("builds.sr.ht", "oauth-client-id")
-git_sr_ht = cfg("server", "protocol") + "://" + cfg("server", "domain")
+git_sr_ht = cfg("git.sr.ht", "origin")
 
 @worker.task
 def _do_webhook(url, payload, headers=None, **kwargs):

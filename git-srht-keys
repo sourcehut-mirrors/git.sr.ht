@@ -2,10 +2,9 @@
 import os
 import sys
 import requests
-from srht.config import cfg, load_config
-load_config("git")
+from srht.config import cfg
 from srht.database import DbSession
-db = DbSession(cfg("sr.ht", "connection-string"))
+db = DbSession(cfg("git.sr.ht", "connection-string"))
 from gitsrht.types import User
 db.init()
 
@@ -14,7 +13,7 @@ key_type = sys.argv[3]
 b64key = sys.argv[4]
 
 r = requests.get("{}/api/ssh-key/{}".format(
-    cfg("network", "meta"), b64key))
+    cfg("meta.sr.ht", "origin"), b64key))
 if r.status_code != 200:
     sys.stderr.write("meta.sr.ht returned 404 for this key\n")
     sys.exit(0)

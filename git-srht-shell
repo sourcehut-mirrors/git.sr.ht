@@ -11,11 +11,10 @@ except Exception as ex:
 import requests
 import shlex
 from datetime import datetime
-from srht.config import cfg, load_config
-load_config("git")
+from srht.config import cfg
 from srht.validation import Validation
 from srht.database import DbSession
-db = DbSession(cfg("sr.ht", "connection-string"))
+db = DbSession(cfg("git.sr.ht", "connection-string"))
 from gitsrht.types import User, Repository, RepoVisibility, Redirect
 from gitsrht.access import has_access, UserAccess
 from gitsrht.repos import create_repo
@@ -25,8 +24,8 @@ def log(s, *args):
     sys.stderr.write("{} {}\n".format(datetime.now().isoformat(),
         s.format(*args) if isinstance(s, str) else str(s)))
 
-root = "{}://{}".format(cfg("server", "protocol"), cfg("server", "domain"))
-repos = cfg("cgit", "repos")
+origin = cfg("git.sr.ht", "origin")
+repos = cfg("git.sr.ht", "repos")
 
 _cmd = os.environ.get("SSH_ORIGINAL_COMMAND")
 if not _cmd:
@@ -66,7 +65,7 @@ if not repo:
         sys.stderr.write("\tThis repository has moved:\n")
         # TODO: orgs
         sys.stderr.write("\t{}/~{}/{}\n".format(
-            root, repo.owner.username, repo.name))
+            origin, repo.owner.username, repo.name))
         sys.stderr.write("\tPlease update your remote.\n\n")
         sys.exit(128)
 

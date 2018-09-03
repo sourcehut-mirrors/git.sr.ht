@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-from srht.config import cfg, cfgi, load_config
-load_config("git")
+from srht.config import cfg, cfgi
 from srht.database import DbSession
-db = DbSession(cfg("sr.ht", "connection-string"))
+db = DbSession(cfg("git.sr.ht", "connection-string"))
 from gitsrht.types import User, Repository, RepoVisibility
 db.init()
 from configparser import ConfigParser
@@ -14,12 +13,8 @@ import sys
 import re
 
 op = sys.argv[0]
-builds_sr_ht = cfg("network", "builds", default=None)
-root = (
-    cfg("server", "protocol") +
-    "://" +
-    cfg("server", "domain")
-)
+builds_sr_ht = cfg("builds.sr.ht", "origin", default=None)
+origin = cfg("git.sr.ht", "origin")
 
 if op == "hooks/post-update":
     refs = sys.argv[1:]
@@ -41,7 +36,7 @@ if op == "hooks/post-update":
         print("\n\t\033[93mNOTICE\033[0m")
         print("\tWe saved your changes, but this repository does not exist.")
         print("\tClick here to create it:")
-        print("\t{}/create?name={}".format(root, repo.name))
+        print("\t{}/create?name={}".format(origin, repo.name))
         print("\tYour changes will be discarded in 20 minutes.\n")
 
     repo.updated = datetime.utcnow()

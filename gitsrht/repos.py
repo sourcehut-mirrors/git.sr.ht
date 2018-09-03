@@ -6,7 +6,7 @@ import shutil
 import re
 import os
 
-repos_path = cfg("cgit", "repos")
+repos_path = cfg("git.sr.ht", "repos")
 post_update = cfg("git.sr.ht", "post-update-script")
 
 def validate_name(valid, owner, repo_name):

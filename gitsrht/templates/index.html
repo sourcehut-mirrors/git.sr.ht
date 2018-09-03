@@ -44,13 +44,13 @@
     {% else %}
     <div class="col-md-6">
       <p>
-        Welcome to {{cfg("server", "domain")}}. This is a part of the
-        <a href="{{cfg("network", "meta")}}">
+        Welcome to {{domain}}. This is a part of the
+        <a href="{{cfg("meta.sr.ht", "origin")}}">
           {{cfg("sr.ht", "site-name")}} network
         </a>
         and provides git hosting services to members. If you already have an
         account, you can <a href="{{oauth_url}}">log in here</a>. New users can
-        <a href="{{cfg("network", "meta")}}">register here</a>.
+        <a href="{{cfg("meta.sr.ht", "origin")}}">register here</a>.
       </p>
       {% endif %}
     </div>

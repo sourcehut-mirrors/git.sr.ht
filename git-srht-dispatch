@@ -14,15 +14,13 @@ from collections import namedtuple
 from datetime import datetime
 from pwd import getpwnam
 from grp import getgrnam
-from srht.config import cfg, cfgkeys, load_config
+from srht.config import cfg, cfgkeys
 
 def log(s, *args):
     sys.stderr.write("{} {}\n".format(datetime.now().isoformat(),
         s.format(*args) if isinstance(s, str) else str(s)))
     sys.stderr.flush()
 log("Running git-srht-dispatch")
-
-load_config("git")
 
 def auth_keys_error():
     log("This command should be run by sshd's AuthorizedKeysCommand")
@@ -33,8 +31,8 @@ def auth_keys_error():
 Dispatcher = namedtuple("Dispatcher", ["cmd", "uid", "gid"])
 dispatchers = list()
 
-for cmd in cfgkeys("dispatch"):
-    user = cfg("dispatch", cmd).split(":")
+for cmd in cfgkeys("git.sr.ht::dispatch"):
+    user = cfg("git.sr.ht::dispatch", cmd).split(":")
     uid, gid = getpwnam(user[0]).pw_uid, getgrnam(user[-1]).gr_gid
     dispatchers.append(Dispatcher(cmd=cmd, uid=uid, gid=gid))
     log("registered dispatcher for {}:{}: {}", uid, gid, cmd)

@@ -12,7 +12,7 @@ from gitsrht.repos import create_repo, rename_repo, delete_repo
 import shutil
 
 manage = Blueprint('manage', __name__)
-repos_path = cfg("cgit", "repos")
+repos_path = cfg("git.sr.ht", "repos")
 post_update = cfg("git.sr.ht", "post-update-script")
 
 @manage.route("/create")

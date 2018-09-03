@@ -10,8 +10,8 @@ from sqlalchemy import or_
 
 public = Blueprint('cgit', __name__)
 
-upstream = cfg("cgit", "remote")
-meta_uri = cfg("network", "meta")
+upstream = cfg("git.sr.ht::cgit", "remote")
+meta_uri = cfg("meta.sr.ht", "origin")
 
 @public.route("/")
 def index():
@@ -52,7 +52,9 @@ def cgit_passthrough(owner_name, repo_name, cgit_path=""):
     r = requests.get("{}/{}".format(upstream, request.full_path))
     if r.status_code != 200:
         abort(r.status_code)
-    base = cfg("network", "git").replace("http://", "").replace("https://", "")
+    base = (cfg("git.sr.ht", "origin")
+        .replace("http://", "")
+        .replace("https://", ""))
     clone_urls = ["https://{}/{}/{}", "git@{}:{}/{}"]
     our_clone_text = """
     <tr>

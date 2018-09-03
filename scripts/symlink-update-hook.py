@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-from srht.config import cfg, cfgi, load_config
-load_config("git")
+from srht.config import cfg
 from srht.database import DbSession
-db = DbSession(cfg("sr.ht", "connection-string"))
+db = DbSession(cfg("git.sr.ht", "connection-string"))
 from gitsrht.types import Repository
 db.init()
 import os
