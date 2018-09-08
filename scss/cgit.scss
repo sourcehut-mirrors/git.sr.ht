@@ -643,6 +643,7 @@ div#cgit a.branch-deco {
 	border: solid 1px #007700;
 }
 
+div#cgit a.tag-deco,
 div#cgit a.tag-annotated-deco {
 	color: #000;
 	margin: 0px 0.5em;
@@ -668,6 +669,7 @@ div#cgit a.deco {
 }
 
 div#cgit div.commit-subject a.branch-deco,
+div#cgit div.commit-subject a.tag-deco,
 div#cgit div.commit-subject a.tag-annotated-deco,
 div#cgit div.commit-subject a.remote-deco,
 div#cgit div.commit-subject a.deco {
