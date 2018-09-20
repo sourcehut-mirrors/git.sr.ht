@@ -1,0 +1,32 @@
+{% extends "git.html" %}
+{% block body %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-12 header-tabbed">
+      <h2>
+        <a href="{{ url_for("public.user_index",
+          username=owner.username) }}"
+        >{{owner.canonical_name}}</a>/{{repo.name}}
+      </h2>
+      <ul class="nav nav-tabs">
+        <li class="nav-item">
+          <a class="nav-link active" href="#">summary</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#">refs</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#">log</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#">tree</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#">settings</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+{% block content %}{% endblock %}
+{% endblock %}
