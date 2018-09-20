@@ -1,16 +1,14 @@
-from flask import Blueprint, Response, request, redirect, url_for
-from flask import render_template, abort, stream_with_context
+from flask import Blueprint, request
+from flask import render_template, abort
 from flask_login import current_user
 import requests
 from srht.config import cfg
 from srht.flask import paginate_query
-from gitsrht.types import User, Repository, RepoVisibility, Redirect
-from gitsrht.access import UserAccess, has_access, get_repo
+from gitsrht.types import User, Repository, RepoVisibility
 from sqlalchemy import or_
 
-public = Blueprint('cgit', __name__)
+public = Blueprint('public', __name__)
 
-upstream = cfg("git.sr.ht::cgit", "remote")
 meta_uri = cfg("meta.sr.ht", "origin")
 
 @public.route("/")
@@ -24,79 +22,6 @@ def index():
     else:
         repos = None
     return render_template("index.html", repos=repos)
-
-def check_repo(user, repo, authorized=current_user):
-    u = User.query.filter(User.username == user).first()
-    if not u:
-        abort(404)
-    _repo = Repository.query.filter(Repository.owner_id == u.id)\
-            .filter(Repository.name == repo).first()
-    if not _repo:
-        abort(404)
-    if _repo.visibility == RepoVisibility.private:
-        if not authorized or authorized.id != _repo.owner_id:
-            abort(404)
-    return u, _repo
-
-@public.route("/<owner_name>/<repo_name>")
-@public.route("/<owner_name>/<repo_name>/")
-@public.route("/<owner_name>/<repo_name>/<path:cgit_path>")
-def cgit_passthrough(owner_name, repo_name, cgit_path=""):
-    owner, repo = get_repo(owner_name, repo_name)
-    if isinstance(repo, Redirect):
-        return redirect(url_for(".cgit_passthrough",
-            owner_name=owner_name, repo_name=repo.new_repo.name,
-            cgit_path=cgit_path))
-    if not has_access(repo, UserAccess.read):
-        abort(404)
-    r = requests.get("{}/{}".format(upstream, request.full_path))
-    if r.status_code != 200:
-        abort(r.status_code)
-    base = (cfg("git.sr.ht", "origin")
-        .replace("http://", "")
-        .replace("https://", ""))
-    clone_urls = ["https://{}/{}/{}", "git@{}:{}/{}"]
-    our_clone_text = """
-    <tr>
-        <td colspan='2'><a rel="vcs-git" href="{}">{}</a></td>
-        <td>(read-only)</td>
-    </tr>
-    <tr>
-        <td colspan="2" style="color: black">{}</td>
-        <td>(read/write)</td>
-    </tr>
-    """.format(
-        clone_urls[0].format(base, owner_name, repo_name),
-        clone_urls[0].format(base, owner_name, repo_name),
-        clone_urls[1].format(base, owner_name, repo_name))
-    their_clone_text = "<tr><td colspan='3'>" +\
-        "<a rel='vcs-git' href='__CLONE_URL__' title='{}/{} Git repository'>__CLONE_URL__</a>".format(
-                owner_name, repo_name) + "</td></tr>"
-    if not their_clone_text in r.text:
-        their_clone_text = their_clone_text.replace(" colspan='3'", "")
-    text = r.text.replace(their_clone_text, our_clone_text)
-    if "Repository seems to be empty" in r.text:
-        text = text.replace("<th class='left'>Clone</th>", "<th class='left'>Push</th>")
-    return render_template("cgit.html",
-            cgit_html=text, owner=owner, repo=repo,
-            has_access=has_access, UserAccess=UserAccess)
-
-@public.route("/<owner_name>/<repo_name>/<op>")
-@public.route("/<owner_name>/<repo_name>/<op>/")
-@public.route("/<owner_name>/<repo_name>/<op>/<path:path>")
-def cgit_plain(owner_name, repo_name, op, path=None):
-    if not op in ["patch", "plain", "snapshot"]:
-        return cgit_passthrough(owner_name, repo_name,
-                op + ("/" + path if path else ""))
-    owner, repo = get_repo(owner_name, repo_name)
-    if isinstance(repo, Redirect):
-        return redirect(url_for(".cgit_plain",
-            owner_name=owner_name, repo_name=repo.new_repo.name,
-            op=op, path=path))
-    if not has_access(repo, UserAccess.read):
-        abort(404)
-    r = requests.get("{}/{}".format(upstream, request.full_path), stream=True)
-    return Response(stream_with_context(r.iter_content()), content_type=r.headers['content-type'])
 
 @public.route("/~<username>")
 @public.route("/~<username>/")

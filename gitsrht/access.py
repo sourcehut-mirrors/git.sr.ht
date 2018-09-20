@@ -12,6 +12,19 @@ class UserAccess(IntFlag):
     write = 2
     manage = 4
 
+def check_repo(user, repo, authorized=current_user):
+    u = User.query.filter(User.username == user).first()
+    if not u:
+        abort(404)
+    _repo = Repository.query.filter(Repository.owner_id == u.id)\
+            .filter(Repository.name == repo).first()
+    if not _repo:
+        abort(404)
+    if _repo.visibility == RepoVisibility.private:
+        if not authorized or authorized.id != _repo.owner_id:
+            abort(404)
+    return u, _repo
+
 def get_repo(owner_name, repo_name):
     if owner_name[0] == "~":
         user = User.query.filter(User.username == owner_name[1:]).first()

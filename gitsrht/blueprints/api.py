@@ -1,7 +1,6 @@
 from flask import Blueprint, request, redirect, abort, url_for
 from gitsrht.types import Repository, RepoVisibility, User, Webhook, Redirect
-from gitsrht.access import UserAccess, has_access, get_repo
-from gitsrht.blueprints.public import check_repo
+from gitsrht.access import UserAccess, has_access, get_repo, check_repo
 from gitsrht.repos import create_repo
 from srht.validation import Validation, valid_url
 from srht.oauth import oauth
