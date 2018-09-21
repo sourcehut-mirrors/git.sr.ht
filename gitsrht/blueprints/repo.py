@@ -35,18 +35,6 @@ def summary(owner, repo):
     if not has_access(repo, UserAccess.read):
         abort(401)
     git_repo = CachedRepository(repo.path)
-    master = git_repo.branches.get("master")
-    if not master:
-        master = list(git_repo.branches.local)[0]
-        master = git_repo.branches.get(master)
-    # TODO: Test on empty repos
-    tip = git_repo.get(master.target)
-    commits = list()
-    for commit in git_repo.walk(tip.id, pygit2.GIT_SORT_TIME):
-        commits.append(commit)
-        if len(commits) >= 3:
-            break
-    readme = get_readme(git_repo, tip)
     base = (cfg("git.sr.ht", "origin")
         .replace("http://", "")
         .replace("https://", ""))
@@ -54,6 +42,20 @@ def summary(owner, repo):
         url.format(base, owner.canonical_name, repo.name)
         for url in ["https://{}/{}/{}", "git@{}:{}/{}"]
     ]
+    if git_repo.is_empty:
+        return render_template("empty-repo.html", owner=owner, repo=repo,
+                clone_urls=clone_urls)
+    master = git_repo.branches.get("master")
+    if not master:
+        master = list(git_repo.branches.local)[0]
+        master = git_repo.branches.get(master)
+    tip = git_repo.get(master.target)
+    commits = list()
+    for commit in git_repo.walk(tip.id, pygit2.GIT_SORT_TIME):
+        commits.append(commit)
+        if len(commits) >= 3:
+            break
+    readme = get_readme(git_repo, tip)
     tags = [(ref, git_repo.get(git_repo.references[ref].target))
         for ref in git_repo.listall_references()
         if ref.startswith("refs/tags/")]

@@ -1,0 +1,21 @@
+{% extends "repo.html" %}
+{% block content %}
+<div class="container">
+  <div class="row" style="margin-bottom: 1rem">
+    <div class="col-md-4">
+      <h3>clone</h3>
+      <dl>
+        <dt>read-only</dt>
+        <dd><a href="{{clone_urls[0]}}">{{clone_urls[0]}}</a></dd>
+        <dt>read/write</dt>
+        <dd>{{clone_urls[1]}}</dd>
+      </dl>
+    </div>
+    <div class="col-md-8">
+      <p>
+        Nothing here yet!
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
