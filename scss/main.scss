@@ -19,8 +19,7 @@
 .tree-list {
   display: grid;
   // mode name
-  grid-template-columns: auto minmax(1fr,auto) 1fr auto auto;
-  font: monospace;
+  grid-template-columns: auto 1fr 4fr auto auto;
 
   svg {
     color: #777;
