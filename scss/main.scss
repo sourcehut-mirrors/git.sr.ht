@@ -9,3 +9,56 @@
 .repo-nav {
   margin-left: 1rem;
 }
+
+.header-extension {
+  margin-top: -1rem;
+  margin-bottom: 1rem;
+  background: #ddd;
+}
+
+.tree-list {
+  display: grid;
+  // mode name
+  grid-template-columns: auto minmax(1fr,auto) 1fr auto;
+  font: monospace;
+
+  svg {
+    color: #777;
+  }
+
+  .size {
+    text-align: right;
+  }
+
+  .name.blob a {
+    color: $gray-900;
+  }
+
+  .commit, .commit a {
+    color: $gray-600;
+  }
+
+  & > div {
+    padding: 0.1rem 0.5rem;
+    background: transparent;
+
+    &.id {
+      text-align: right;
+    }
+
+    &.comments {
+      text-align: center;
+    }
+
+    @for $i from 1 through 4 {
+      &:nth-child(4n+#{$i}) {
+        grid-column-start: $i;
+      }
+
+      // Striped rows
+      &:nth-child(8n+#{$i}) {
+        background: rgba(0,0,0,.05);
+      }
+    }
+  }
+}

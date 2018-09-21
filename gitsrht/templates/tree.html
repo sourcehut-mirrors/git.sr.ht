@@ -1,0 +1,42 @@
+{% extends "repo.html" %}
+{% block content %}
+<div class="header-extension">
+  <div class="container">
+    <span style="padding-left: 1rem">
+      /{{path}}
+    </span>
+    <div class="pull-right">
+      <a href="#">{{commit.id.hex[:8]}}</a> &mdash;
+      <a href="#">{{commit.author.name}}</a>:
+      {{trim_commit(commit.message)}}
+      <span class="text-muted">
+        {{ commit_time(commit) | date }}
+      </span>
+    </div>
+  </div>
+</div>
+<div class="container">
+  <div class="row" style="margin-bottom: 1rem">
+    <div class="col-md-12">
+      <div class="tree-list">
+      {% for entry in tree %}
+      {# TODO: Decode the mode #}
+      <div class="mode">
+        {#{{"{0:o}".format(entry.filemode)}}#}
+        -rw-r--r--
+      </div>
+      <div class="name {{entry.type}}">
+        <a href="#">{{entry.name}}{% if entry.type == "tree" %}/{% endif %}</a>
+      </div>
+      <div class="commit">
+        <a href="#">{{trim_commit(commit.message)}}</a> &mdash;
+        {{ commit_time(commit) | date }}
+      </div>
+      <div class="size">
+        1234 bytes
+      </div>
+      {% endfor %}
+      </div>
+    </div>
+</div>
+{% endblock %}

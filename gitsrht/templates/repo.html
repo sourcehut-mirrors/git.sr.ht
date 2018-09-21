@@ -9,12 +9,21 @@
         >{{owner.canonical_name}}</a>/{{repo.name}}
       </h2>
       {% block tabs %}
+      {% macro link(path, title) %}
+      <a
+        class="nav-link {% if view == title %}active{% endif %}"
+        href="{{ path }}">{{ title }}</a>
+      {% endmacro %}
       <ul class="nav nav-tabs">
         <li class="nav-item">
-          <a class="nav-link active" href="#">summary</a>
+          {{ link(url_for("repo.summary",
+            owner=repo.owner.canonical_name,
+            repo=repo.name), "summary") }}
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="#">tree</a>
+          {{ link(url_for("repo.tree",
+            owner=repo.owner.canonical_name,
+            repo=repo.name), "tree") }}
         </li>
         <li class="nav-item">
           <a class="nav-link" href="#">log</a>

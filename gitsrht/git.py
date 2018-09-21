@@ -32,3 +32,10 @@ class _CachedRepository(Repository):
 
     def _get(self, ref):
         return super().get(ref)
+
+    def default_branch(self):
+        branch = self.branches.get("master")
+        if not branch:
+            branch = list(self.branches.local)[0]
+            branch = self.branches.get(branch)
+        return branch

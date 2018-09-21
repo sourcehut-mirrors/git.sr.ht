@@ -18,7 +18,8 @@ def get_readme(repo, tip):
     readme = tip.tree["README.md"]
     if readme.type != "blob":
         return None
-    html = redis.get(readme.id.hex)
+    key = f"git.sr.ht:git:markdown:{readme.id.hex}"
+    html = redis.get(key)
     if html:
         return Markup(html.decode())
     try:
@@ -26,12 +27,14 @@ def get_readme(repo, tip):
     except:
         pass
     html = markdown(md, ["h1", "h2", "h3", "h4", "h5"])
-    redis.setex(readme.id.hex, html, timedelta(days=30))
+    redis.setex(key, html, timedelta(days=30))
     return Markup(html)
 
 @repo.route("/<owner>/<repo>")
 def summary(owner, repo):
     owner, repo = get_repo(owner, repo)
+    if not repo:
+        abort(404)
     if not has_access(repo, UserAccess.read):
         abort(401)
     git_repo = CachedRepository(repo.path)
@@ -45,11 +48,8 @@ def summary(owner, repo):
     if git_repo.is_empty:
         return render_template("empty-repo.html", owner=owner, repo=repo,
                 clone_urls=clone_urls)
-    master = git_repo.branches.get("master")
-    if not master:
-        master = list(git_repo.branches.local)[0]
-        master = git_repo.branches.get(master)
-    tip = git_repo.get(master.target)
+    default_branch = git_repo.default_branch()
+    tip = git_repo.get(default_branch.target)
     commits = list()
     for commit in git_repo.walk(tip.id, pygit2.GIT_SORT_TIME):
         commits.append(commit)
@@ -61,7 +61,31 @@ def summary(owner, repo):
         if ref.startswith("refs/tags/")]
     tags = sorted(tags, key=lambda c: commit_time(c[1]), reverse=True)
     latest_tag = tags[0] if len(tags) else None
-    default_branch = master
-    return render_template("summary.html", owner=owner, repo=repo,
-            readme=readme, commits=commits, clone_urls=clone_urls,
-            latest_tag=latest_tag, default_branch=master)
+    return render_template("summary.html", view="summary",
+            owner=owner, repo=repo, readme=readme, commits=commits,
+            clone_urls=clone_urls, latest_tag=latest_tag,
+            default_branch=default_branch)
+
+@repo.route("/<owner>/<repo>/tree", defaults={"branch": None, "path": ""})
+@repo.route("/<owner>/<repo>/tree/<branch>", defaults={"path": ""})
+@repo.route("/<owner>/<repo>/tree/<branch>/<path>")
+def tree(owner, repo, branch, path):
+    owner, repo = get_repo(owner, repo)
+    if not repo:
+        abort(404)
+    if not has_access(repo, UserAccess.read):
+        abort(401)
+    git_repo = CachedRepository(repo.path)
+    if branch is None:
+        branch = git_repo.default_branch()
+    else:
+        branch = git_repo.branches.get(branch)
+    if not branch:
+        abort(404)
+    commit = git_repo.get(branch.target)
+    # TODO: annotate tree with latest commit for each file (and cache it)
+    tree = [entry for entry in commit.tree]
+    tree = sorted(tree, key=lambda e: e.name)
+    # TODO: follow path
+    return render_template("tree.html", view="tree",
+            owner=owner, repo=repo, commit=commit, tree=tree, path=path)
