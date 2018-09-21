@@ -4,67 +4,57 @@
   <div class="row" style="margin-bottom: 1rem">
     <div class="col-md-6">
       <div class="event-list" style="margin-bottom: 0.5rem">
+        {% for c in commits %}
         <div class="event">
           <div>
-            <a href="#">emersion</a>
-            <a href="#">&lt;contact@emersion.fr&gt;</a>
-            <span class="text-muted">committed</span>
-            <a href="#">ac28d701c</a>
-            <span class="text-muted">14 hours ago</span>
+            <a href="#">{{c.id.hex[:8]}}</a> &mdash;
+            <a href="#">{{c.author.name}}</a>
+            <span class="text-muted pull-right">
+              {{ commit_time(c) | date }}
+            </span>
           </div>
           <pre
             style="padding-left: 0; padding-right: 0; background: transparent"
-          >buffer: disconnect clients that commit an unknown buffer type</pre>
+          >{{ trim_commit(c.message) }}</pre>
         </div>
-        <div class="event">
-          <div>
-            <a href="#">emersion</a>
-            <a href="#">&lt;contact@emersion.fr&gt;</a>
-            <span class="text-muted">committed</span>
-            <a href="#">ac28d701c</a>
-            <span class="text-muted">14 hours ago</span>
-          </div>
-        </div>
-        <div class="event">
-          <div>
-            <a href="#">emersion</a>
-            <a href="#">&lt;contact@emersion.fr&gt;</a>
-            <span class="text-muted">committed</span>
-            <a href="#">ac28d701c</a>
-            <span class="text-muted">14 hours ago</span>
-          </div>
-        </div>
+        {% endfor %}
       </div>
     </div>
     <div class="col-md-2">
       <h3>refs</h3>
       <dl>
-        <dt>master</dt>
+        {% if default_branch %}
+        <dt>{{default_branch.name[len("refs/heads/"):]}}</dt>
         <dd>
           <a href="#">log {{icon("caret-right")}}</a>
           <a href="#">browse {{icon("caret-right")}}</a>
         </dd>
-        <dt>v1.0</dt>
+        {% endif %}
+        {% if latest_tag %}
+        <dt>{{ latest_tag[0][len("refs/tags/"):] }}</dt>
         <dd>
           <a href="#">log {{icon("caret-right")}}</a>
           <a href="#">.tar.gz {{icon("caret-right")}}</a>
         </dd>
+        {% endif %}
       </dl>
     </div>
     <div class="col-md-4">
       <h3>clone</h3>
       <dl>
         <dt>read-only</dt>
-        <dd><a href="#">https://git.sr.ht/~sircmpwn/wlroots</a></dd>
+        <dd><a href="{{clone_urls[0]}}">{{clone_urls[0]}}</a></dd>
         <dt>read/write</dt>
-        <dd>git@git.sr.ht/~sircmpwn/wlroots</dd>
+        <dd>{{clone_urls[1]}}</dd>
       </dl>
     </div>
   </div>
+  {% if readme %}
   <div class="row">
     <div class="col-md-10">
-      {{ rm | extended_md }}
+      {{ readme }}
     </div>
   </div>
+  {% endif %}
 </div>
 {% endblock %}

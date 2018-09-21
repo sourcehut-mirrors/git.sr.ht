@@ -10,6 +10,7 @@ from gitsrht.types import User
 db.init()
 
 import gitsrht.oauth
+from gitsrht.git import commit_time, trim_commit
 
 class GitApp(SrhtFlask):
     def __init__(self):
@@ -39,6 +40,8 @@ class GitApp(SrhtFlask):
             if notice:
                 del session["notice"]
             return {
+                "trim_commit": trim_commit,
+                "commit_time": commit_time,
                 "notice": notice
             }
 
