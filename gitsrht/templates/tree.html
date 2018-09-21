@@ -28,7 +28,11 @@
       </div>
       <div class="commit">
         {% if entry.commit %}
-        <a href="#">{{trim_commit(entry.commit.message)}}</a> &mdash;
+        <a href="#">{{trim_commit(entry.commit.message)}}</a>
+        {% endif %}
+      </div>
+      <div class="date">
+        {% if entry.commit %}
         {{ commit_time(entry.commit) | date }}
         {% endif %}
       </div>
