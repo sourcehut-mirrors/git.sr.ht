@@ -1,3 +1,4 @@
+import stat
 from flask import session
 from srht.flask import SrhtFlask
 from srht.config import cfg
@@ -40,8 +41,9 @@ class GitApp(SrhtFlask):
             if notice:
                 del session["notice"]
             return {
-                "trim_commit": trim_commit,
                 "commit_time": commit_time,
+                "trim_commit": trim_commit,
+                "stat": stat,
                 "notice": notice
             }
 

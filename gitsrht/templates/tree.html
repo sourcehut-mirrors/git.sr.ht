@@ -20,10 +20,8 @@
     <div class="col-md-12">
       <div class="tree-list">
       {% for entry in tree %}
-      {# TODO: Decode the mode #}
       <div class="mode">
-        {#{{"{0:o}".format(entry.filemode)}}#}
-        -rw-r--r--
+        {{stat.filemode(entry.filemode)}}
       </div>
       <div class="name {{entry.type}}">
         <a href="#">{{entry.name}}{% if entry.type == "tree" %}/{% endif %}</a>

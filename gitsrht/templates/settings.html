@@ -1,21 +1,21 @@
 {% extends "layout.html" %}
 {% block body %} 
-<div class="container">
+<div class="container-fluid">
   <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-12 header-tabbed">
       <h2>
         <a
           href="/{{ owner.canonical_name }}"
         >{{ owner.canonical_name }}</a>/{{ repo.name }}
       </h2>
+      <ul class="nav nav-tabs">
+        {% block tabs %}
+        {% include "tabs.html" %}
+        {% endblock %}
+      </ul>
     </div>
   </div>
 </div>
-<ul class="nav nav-tabs">
-  {% block tabs %}
-  {% include "tabs.html" %}
-  {% endblock %}
-</ul>
 <div class="container">
   {% block content %}{% endblock %}
 </div>

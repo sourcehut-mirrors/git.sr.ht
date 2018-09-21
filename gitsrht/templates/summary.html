@@ -1,5 +1,12 @@
 {% extends "repo.html" %}
 {% block content %}
+{% if repo.description %}
+<div class="header-extension">
+  <div class="container">
+    {{ repo.description }}
+  </div>
+</div>
+{% endif %}
 <div class="container">
   <div class="row" style="margin-bottom: 1rem">
     <div class="col-md-6">
@@ -26,15 +33,16 @@
         {% if default_branch %}
         <dt>{{default_branch.name[len("refs/heads/"):]}}</dt>
         <dd>
-          <a href="#">log {{icon("caret-right")}}</a>
           <a href="#">browse {{icon("caret-right")}}</a>
+          <a href="#">log {{icon("caret-right")}}</a>
         </dd>
         {% endif %}
         {% if latest_tag %}
         <dt>{{ latest_tag[0][len("refs/tags/"):] }}</dt>
         <dd>
-          <a href="#">log {{icon("caret-right")}}</a>
+          <a href="#">browse {{icon("caret-right")}}</a>
           <a href="#">.tar.gz {{icon("caret-right")}}</a>
+          <a href="#">announcement {{icon("caret-right")}}</a>
         </dd>
         {% endif %}
       </dl>
