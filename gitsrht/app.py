@@ -1,3 +1,4 @@
+import humanize
 import stat
 from flask import session
 from srht.flask import SrhtFlask
@@ -43,6 +44,7 @@ class GitApp(SrhtFlask):
             return {
                 "commit_time": commit_time,
                 "trim_commit": trim_commit,
+                "humanize": humanize,
                 "stat": stat,
                 "notice": notice
             }

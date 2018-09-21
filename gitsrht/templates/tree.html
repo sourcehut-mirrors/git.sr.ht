@@ -27,11 +27,16 @@
         <a href="#">{{entry.name}}{% if entry.type == "tree" %}/{% endif %}</a>
       </div>
       <div class="commit">
-        <a href="#">{{trim_commit(commit.message)}}</a> &mdash;
-        {{ commit_time(commit) | date }}
+        {% if entry.commit %}
+        <a href="#">{{trim_commit(entry.commit.message)}}</a> &mdash;
+        {{ commit_time(entry.commit) | date }}
+        {% endif %}
       </div>
       <div class="size">
-        1234 bytes
+        {% if entry.type == "blob" %}
+        {{humanize.naturalsize(entry.blob.size,
+          binary=True).replace("Byte", "byte")}}
+        {% endif %}
       </div>
       {% endfor %}
       </div>

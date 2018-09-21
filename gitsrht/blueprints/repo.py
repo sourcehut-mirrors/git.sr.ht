@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, abort
 from flask_login import current_user
 from gitsrht.access import get_repo, has_access, UserAccess
 from gitsrht.redis import redis
-from gitsrht.git import CachedRepository, commit_time
+from gitsrht.git import CachedRepository, commit_time, annotate_tree
 from gitsrht.types import User, Repository
 from srht.config import cfg
 from srht.markdown import markdown
@@ -83,8 +83,8 @@ def tree(owner, repo, branch, path):
     if not branch:
         abort(404)
     commit = git_repo.get(branch.target)
-    # TODO: annotate tree with latest commit for each file (and cache it)
-    tree = [entry for entry in commit.tree]
+
+    tree = annotate_tree(git_repo, commit)
     tree = sorted(tree, key=lambda e: e.name)
     # TODO: follow path
     return render_template("tree.html", view="tree",
