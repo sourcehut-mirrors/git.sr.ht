@@ -61,3 +61,46 @@
     }
   }
 }
+
+.code-view {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto;
+
+  .lines {
+    grid-column-start: 1;
+    grid-row-start: 1;
+    border-right: 1px solid #444;
+  }
+
+  .highlight {
+    grid-column-start: 2;
+    grid-row-start: 1;
+    padding-left: 1rem;
+    background: transparent;
+    overflow-x: hidden;
+
+    pre {
+      background: transparent;
+    }
+  }
+
+  .ruler {
+    background: transparent;
+    grid-column-start: 2;
+    grid-row-start: 1;
+    display: block;
+    padding-left: calc(1rem + 4px);
+    height: 100%;
+
+    pre {
+      background: transparent;
+    }
+
+    & > span {
+      height: 100%;
+      display: inline-block;
+      border-right: 1px solid $gray-200;
+    }
+  }
+}

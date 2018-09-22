@@ -95,9 +95,12 @@ def annotate_tree(repo, tree, commit):
     key = f"git.sr.ht:git:tree:{tree.id.hex}"
     cache = redis.get(key)
     if cache:
-        cache = json.loads(cache.decode())
-        return [AnnotatedTreeEntry.deserialize(
-            e, repo).fetch_blob() for e in cache.values()]
+        try:
+            cache = json.loads(cache.decode())
+            return [AnnotatedTreeEntry.deserialize(
+                e, repo).fetch_blob() for e in cache.values()]
+        except:
+            redis.delete(key)
 
     tree = { entry.id.hex: AnnotatedTreeEntry(
         repo, entry) for entry in tree }

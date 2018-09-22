@@ -1,4 +1,6 @@
 import pygit2
+import pygments
+from datetime import datetime, timedelta
 from jinja2 import Markup
 from flask import Blueprint, render_template, abort
 from flask_login import current_user
@@ -6,9 +8,11 @@ from gitsrht.access import get_repo, has_access, UserAccess
 from gitsrht.redis import redis
 from gitsrht.git import CachedRepository, commit_time, annotate_tree
 from gitsrht.types import User, Repository
+from pygments import highlight
+from pygments.lexers import guess_lexer_for_filename, TextLexer
+from pygments.formatters import HtmlFormatter
 from srht.config import cfg
 from srht.markdown import markdown
-from datetime import datetime, timedelta
 
 repo = Blueprint('repo', __name__)
 
@@ -27,6 +31,21 @@ def get_readme(repo, tip):
     except:
         pass
     html = markdown(md, ["h1", "h2", "h3", "h4", "h5"])
+    redis.setex(key, html, timedelta(days=30))
+    return Markup(html)
+
+def _highlight_file(name, data, blob_id):
+    key = f"git.sr.ht:git:highlight:{blob_id}"
+    html = redis.get(key)
+    if html:
+        return Markup(html.decode())
+    try:
+        lexer = guess_lexer_for_filename(name, data)
+    except pygments.util.ClassNotFound:
+        lexer = TextLexer()
+    formatter = HtmlFormatter()
+    style = formatter.get_style_defs('.highlight')
+    html = f"<style>{style}</style>" + highlight(data, lexer, formatter)
     redis.setex(key, html, timedelta(days=30))
     return Markup(html)
 
@@ -82,6 +101,7 @@ def tree(owner, repo, branch, path):
         branch = git_repo.branches.get(branch)
     if not branch:
         abort(404)
+    branch_name = branch.name[len("refs/heads/"):]
     commit = git_repo.get(branch.target)
 
     tree = commit.tree
@@ -93,13 +113,19 @@ def tree(owner, repo, branch, path):
             abort(404)
         entry = tree[part]
         if entry.type == "blob":
-            return "TODO: render blobs"
+            tree = annotate_tree(git_repo, tree, commit)
+            commit = next(e.commit for e in tree if e.name == entry.name)
+            blob = git_repo.get(entry.id)
+            data = blob.data.decode()
+            return render_template("blob.html", view="tree",
+                    owner=owner, repo=repo, branch=branch, path=path,
+                    branch_name=branch_name, entry=entry, blob=blob, data=data,
+                    commit=commit, highlight_file=_highlight_file)
         tree = git_repo.get(entry.id)
 
     tree = annotate_tree(git_repo, tree, commit)
     tree = sorted(tree, key=lambda e: e.name)
 
     return render_template("tree.html", view="tree",
-            owner=owner, repo=repo, branch=branch,
-            branch_name=branch.name[len("refs/heads/"):],
+            owner=owner, repo=repo, branch=branch, branch_name=branch_name,
             commit=commit, tree=tree, path=path)
