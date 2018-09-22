@@ -48,6 +48,7 @@ class AnnotatedTreeEntry:
     def __init__(self, repo, entry):
         self._entry = entry
         self._repo = repo
+        self.commit = None
         if entry:
             self.id = entry.id.hex
             self.name = entry.name

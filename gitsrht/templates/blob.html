@@ -32,6 +32,7 @@
         </a>
       </span>
     </span>
+    {% if commit %}
     <div class="pull-right">
       <a href="#">{{commit.id.hex[:8]}}</a> &mdash;
       <a href="#">{{commit.author.name}}</a>:
@@ -41,6 +42,7 @@
       </span>
     </div>
     <div class="clearfix"></div>
+    {% endif %}
   </div>
 </div>
 <div class="container-fluid">
