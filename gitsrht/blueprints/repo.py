@@ -227,3 +227,49 @@ def archive(owner, repo, ref):
     os.unlink(path)
     return send_file(f, mimetype="application/tar+gzip", as_attachment=True,
             attachment_filename=f"{repo.name}-{ref}.tar.gz")
+
+class _AnnotatedRef:
+    def __init__(self, repo, ref):
+        self.ref = ref
+        self.target = ref.target
+        if ref.name.startswith("refs/heads/"):
+            self.type = "branch"
+            self.name = ref.name[len("refs/heads/"):]
+            self.branch = repo.get(ref.target)
+        elif ref.name.startswith("refs/tags/"):
+            self.type = "tag"
+            self.name = ref.name[len("refs/tags/"):]
+            self.tag = repo.get(ref.target)
+        else:
+            self.type = None
+
+@repo.route("/<owner>/<repo>/log", defaults={"ref": None, "path": ""})
+@repo.route("/<owner>/<repo>/log/<ref>", defaults={"path": ""})
+@repo.route("/<owner>/<repo>/log/<ref>/<path:path>")
+def log(owner, repo, ref, path):
+    owner, repo = get_repo(owner, repo)
+    if not repo:
+        abort(404)
+    if not has_access(repo, UserAccess.read):
+        abort(401)
+    git_repo = CachedRepository(repo.path)
+    ref, commit = resolve_ref(git_repo, ref)
+
+    refs = {}
+    for ref in git_repo.references:
+        ref = _AnnotatedRef(git_repo, git_repo.references[ref])
+        if not ref.type:
+            continue
+        if ref.target.hex not in refs:
+            refs[ref.target.hex] = []
+        refs[ref.target.hex].append(ref)
+
+    commits = list()
+    for commit in git_repo.walk(commit.id, pygit2.GIT_SORT_TIME):
+        commits.append(commit)
+        if len(commits) >= 20:
+            break
+
+    return render_template("log.html", view="log",
+            owner=owner, repo=repo, ref=ref, path=path,
+            commits=commits, refs=refs)

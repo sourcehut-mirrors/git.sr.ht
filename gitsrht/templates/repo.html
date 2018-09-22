@@ -26,7 +26,9 @@
             repo=repo.name), "tree")}}
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="#">log</a>
+          {{link(url_for("repo.log",
+            owner=repo.owner.canonical_name,
+            repo=repo.name), "log")}}
         </li>
         <li class="nav-item">
           <a class="nav-link" href="#">refs</a>

@@ -1,4 +1,5 @@
 {% extends "repo.html" %}
+{% import "utils.html" as utils %}
 {% block content %}
 {% if repo.description %}
 <div class="header-extension">
@@ -12,18 +13,7 @@
     <div class="col-md-6">
       <div class="event-list" style="margin-bottom: 0.5rem">
         {% for c in commits %}
-        <div class="event">
-          <div>
-            <a href="#">{{c.id.hex[:8]}}</a> &mdash;
-            <a href="#">{{c.author.name}}</a>
-            <span class="text-muted pull-right">
-              {{ commit_time(c) | date }}
-            </span>
-          </div>
-          <pre
-            style="padding-left: 0; padding-right: 0; background: transparent"
-          >{{ trim_commit(c.message) }}</pre>
-        </div>
+        {{ utils.commit_event(c, commit_time, trim_commit) }}
         {% endfor %}
       </div>
     </div>
@@ -48,7 +38,6 @@
           <a href="{{url_for("repo.archive", owner=repo.owner.canonical_name,
               repo=repo.name, ref=latest_tag[0][len("refs/tags/"):])}}"
           >.tar.gz {{icon("caret-right")}}</a>
-          <a href="#">announcement {{icon("caret-right")}}</a>
         </dd>
         {% endif %}
       </dl>

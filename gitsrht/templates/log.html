@@ -1,0 +1,14 @@
+{% extends "repo.html" %}
+{% import "utils.html" as utils %}
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <div class="event-list">
+        {% for c in commits %}
+        {{ utils.commit_event(c, commit_time, None, True, refs) }}
+        {% endfor %}
+      </div>
+    </div>
+</div>
+{% endblock %}

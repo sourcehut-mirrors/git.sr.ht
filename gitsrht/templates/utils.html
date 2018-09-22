@@ -16,3 +16,31 @@
   >{{part}}</a>/{%
 endif %}{% endfor %}
 {% endmacro %}
+
+{% macro commit_event(c, commit_time, trim_commit, full_body=False, refs={}) %}
+<div class="event">
+  <div>
+    <a href="#">{{c.id.hex[:8]}}</a> &mdash;
+    <a href="#">{{c.author.name}}</a>
+    <span class="text-muted pull-right">
+      {{ commit_time(c) | date }}
+    </span>
+    {% if c.id.hex in refs %}
+    {% for ref in refs[c.id.hex] %}
+    <span class="ref {{ref.type}}">
+      {{ref.name}}
+    </span>
+    {% endfor %}
+    {% endif %}
+  </div>
+  {% if full_body %}
+  <pre
+    style="padding-left: 0; padding-right: 0; background: transparent"
+  >{{c.message}}</pre>
+  {% else %}
+  <pre
+    style="padding-left: 0; padding-right: 0; background: transparent"
+  >{{ trim_commit(c.message) }}</pre>
+  {% endif %}
+</div>
+{% endmacro %}
