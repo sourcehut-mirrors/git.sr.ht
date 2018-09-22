@@ -65,8 +65,10 @@
       </div>
       <div class="size">
         {% if entry.type == "blob" %}
-        {{humanize.naturalsize(entry.blob.size,
-          binary=True).replace("Byte", "byte")}}
+        <span title="{{ entry.blob.size }} bytes">
+          {{humanize.naturalsize(entry.blob.size,
+            binary=True).replace("Byte", "byte")}}
+        </span>
         {% endif %}
       </div>
       {% endfor %}
