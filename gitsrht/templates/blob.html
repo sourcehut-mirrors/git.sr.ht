@@ -1,18 +1,10 @@
 {% extends "repo.html" %}
+{% import "utils.html" as utils %}
 {% block content %}
 <div class="header-extension">
   <div class="container-fluid">
     <span style="padding-left: 1rem">
-      {% if path != [''] %}
-      <a href="{{url_for("repo.tree",
-        owner=repo.owner.canonical_name, repo=repo.name, branch=branch_name)}}"
-      >{{repo.name}}</a>{% endif %}/{% for part in path%}{%
-        if loop.last %}{{part}}{% else %}<a
-          href="{{url_for("repo.tree", owner=repo.owner.canonical_name,
-            repo=repo.name, branch=branch_name,
-            path=path_join(*path[:loop.index]))}}"
-        >{{part}}</a>/{%
-      endif %}{% endfor %}
+      {{ utils.breadcrumb(ref, repo, path, path_join) }}
       <span class="text-muted" style="margin-left: 1rem">
         <span title="{{"{0:0o}".format(entry.filemode)}}">
           {{stat.filemode(entry.filemode)}}
@@ -26,8 +18,7 @@
       </span>
       <span class="text-muted" style="margin-left: 1rem">
         <a href="{{url_for("repo.raw_blob", owner=repo.owner.canonical_name,
-            repo=repo.name, branch=branch_name,
-            path=path_join(*path))}}">
+            repo=repo.name, ref=ref, path=path_join(*path))}}">
           View raw
         </a>
       </span>

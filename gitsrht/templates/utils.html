@@ -1,0 +1,18 @@
+{% macro breadcrumb(ref, repo, path, path_join) %}
+{# TODO: Default branches other than master #}
+{% if ref != "master" %}
+<span style="margin-right: 1rem">
+  <span class="text-muted">ref:</span> {{ ref }}
+</span>
+{% endif %}
+{% if path != [''] %}
+<a href="{{url_for("repo.tree",
+  owner=repo.owner.canonical_name, repo=repo.name, ref=ref)}}"
+>{{repo.name}}</a>{% endif %}/{% for part in path%}{%
+  if loop.last %}{{part}}{% else %}<a
+    href="{{url_for("repo.tree", owner=repo.owner.canonical_name,
+      repo=repo.name, ref=ref,
+      path=path_join(*path[:loop.index]))}}"
+  >{{part}}</a>/{%
+endif %}{% endfor %}
+{% endmacro %}

@@ -86,6 +86,28 @@ def summary(owner, repo):
             clone_urls=clone_urls, latest_tag=latest_tag,
             default_branch=default_branch)
 
+def resolve_ref(git_repo, ref):
+    if ref is None:
+        branch = git_repo.default_branch()
+        ref = branch.name[len("refs/heads/"):]
+        commit = git_repo.get(branch.target)
+    else:
+        if f"refs/heads/{ref}" in git_repo.references:
+            branch = git_repo.references[f"refs/heads/{ref}"]
+            commit = git_repo.get(branch.target)
+        elif f"refs/tags/{ref}" in git_repo.references:
+            _ref = git_repo.references[f"refs/tags/{ref}"]
+            tag = git_repo.get(_ref.target)
+            commit = git_repo.get(tag.target)
+        else:
+            try:
+                ref = git_repo.get(ref)
+            except:
+                abort(404)
+    if not commit:
+        abort(404)
+    return ref, commit
+
 @repo.route("/<owner>/<repo>/tree", defaults={"ref": None, "path": ""})
 @repo.route("/<owner>/<repo>/tree/<ref>", defaults={"path": ""})
 @repo.route("/<owner>/<repo>/tree/<ref>/<path:path>")
@@ -96,24 +118,7 @@ def tree(owner, repo, ref, path):
     if not has_access(repo, UserAccess.read):
         abort(401)
     git_repo = CachedRepository(repo.path)
-    if ref is None:
-        branch = git_repo.default_branch()
-        ref = branch.name[len("refs/for/"):]
-        commit = git_repo.get(branch.target)
-    else:
-        if f"refs/heads/{ref}" in repo.references:
-            branch = git_repo.references[f"refs/heads/{ref}"]
-            commit = git_repo.get(branch.target)
-        elif f"refs/tags/{ref}" in repo.references:
-            tag = git_repo.references[f"refs/tags/{ref}"]
-            commit = git_repo.get(tag.target)
-        else:
-            try:
-                ref = git_repo.get(ref)
-            except:
-                abort(404)
-    if not commit:
-        abort(404)
+    ref, commit = resolve_ref(git_repo, ref)
 
     tree = commit.tree
     path = path.split("/")
@@ -145,22 +150,15 @@ def tree(owner, repo, ref, path):
     return render_template("tree.html", view="tree", owner=owner, repo=repo,
             ref=ref, commit=commit, tree=tree, path=path)
 
-@repo.route("/<owner>/<repo>/blob/<branch>/<path:path>")
-def raw_blob(owner, repo, branch, path):
+@repo.route("/<owner>/<repo>/blob/<ref>/<path:path>")
+def raw_blob(owner, repo, ref, path):
     owner, repo = get_repo(owner, repo)
     if not repo:
         abort(404)
     if not has_access(repo, UserAccess.read):
         abort(401)
     git_repo = CachedRepository(repo.path)
-    if branch is None:
-        branch = git_repo.default_branch()
-    else:
-        branch = git_repo.branches.get(branch)
-    if not branch:
-        abort(404)
-    branch_name = branch.name[len("refs/heads/"):]
-    commit = git_repo.get(branch.target)
+    ref, commit = resolve_ref(git_repo, ref)
 
     blob = None
     entry = None
