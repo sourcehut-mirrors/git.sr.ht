@@ -41,7 +41,9 @@
       {% endif %}
       {% for entry in tree %}
       <div class="mode">
-        {{stat.filemode(entry.filemode)}}
+        <span title="{{"{0:0o}".format(entry.filemode)}}">
+          {{stat.filemode(entry.filemode)}}
+        </span>
       </div>
       <div class="name {{entry.type}}">
         <a href="{{url_for("repo.tree",

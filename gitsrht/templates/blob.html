@@ -14,7 +14,9 @@
         >{{part}}</a>/{%
       endif %}{% endfor %}
       <span class="text-muted" style="margin-left: 1rem">
-        {{stat.filemode(entry.filemode)}}
+        <span title="{{"{0:0o}".format(entry.filemode)}}">
+          {{stat.filemode(entry.filemode)}}
+        </span>
       </span>
       <span class="text-muted" style="margin-left: 1rem">
         {{humanize.naturalsize(blob.size,
