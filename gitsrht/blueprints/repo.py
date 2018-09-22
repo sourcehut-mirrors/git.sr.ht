@@ -1,5 +1,7 @@
+import os
 import pygit2
 import pygments
+import subprocess
 from datetime import datetime, timedelta
 from jinja2 import Markup
 from flask import Blueprint, render_template, abort, send_file
@@ -182,3 +184,46 @@ def raw_blob(owner, repo, ref, path):
 
     return send_file(BytesIO(blob.data),
             as_attachment=blob.is_binary, attachment_filename=entry.name)
+
+@repo.route("/<owner>/<repo>/archive/<ref>")
+def archive(owner, repo, ref):
+    owner, repo = get_repo(owner, repo)
+    if not repo:
+        abort(404)
+    if not has_access(repo, UserAccess.read):
+        abort(401)
+    git_repo = CachedRepository(repo.path)
+    ref, commit = resolve_ref(git_repo, ref)
+
+    path = f"/tmp/{commit.id.hex}.tar.gz"
+    try:
+        args = [
+            "git",
+            "--git-dir", repo.path,
+            "archive",
+            "--format=tar.gz",
+            "--prefix", f"{repo.name}-{ref}"
+            "-o", path, ref
+        ]
+        print(args)
+        subp = subprocess.run(args, timeout=30,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except:
+        try:
+            os.unlink(path)
+        except:
+            pass
+        return "Error preparing archive", 500
+
+    if subp.returncode != 0:
+        print(subp.stdout, subp.stderr)
+        try:
+            os.unlink(path)
+        except:
+            pass
+        return "Error preparing archive", 500
+
+    f = open(path, "rb")
+    os.unlink(path)
+    return send_file(f, mimetype="application/tar+gzip", as_attachment=True,
+            attachment_filename=f"{repo.name}-{ref}.tar.gz")
