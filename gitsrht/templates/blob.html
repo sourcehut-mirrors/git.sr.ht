@@ -13,6 +13,20 @@
             path=path_join(*path[:loop.index]))}}"
         >{{part}}</a>/{%
       endif %}{% endfor %}
+      <span class="text-muted" style="margin-left: 1rem">
+        {{stat.filemode(entry.filemode)}}
+      </span>
+      <span class="text-muted" style="margin-left: 1rem">
+        {{humanize.naturalsize(blob.size,
+          binary=True).replace("Byte", "byte")}}
+      </span>
+      <span class="text-muted" style="margin-left: 1rem">
+        <a href="{{url_for("repo.raw_blob", owner=repo.owner.canonical_name,
+            repo=repo.name, branch=branch_name,
+            path=path_join(*path))}}">
+          View raw
+        </a>
+      </span>
     </span>
     <div class="pull-right">
       <a href="#">{{commit.id.hex[:8]}}</a> &mdash;
@@ -26,6 +40,7 @@
 </div>
 <div class="container-fluid">
   <div class="row" style="margin-bottom: 1rem">
+    {% if not blob.is_binary %}
     <div class="col-md-12 code-view">
       <pre class="ruler"><span>{% for i in range(80) %} {% endfor %}</span></pre>
       <pre class="lines">{% for line in data.split("\n") %}<a
@@ -35,5 +50,20 @@
 {% endif %}{% endfor %}</pre>
       {{ highlight_file(entry.name, data, blob.id.hex) }}
     </div>
+    {% else %}
+    <div class="col-md-12">
+      <p>
+        {{humanize.naturalsize(blob.size,
+          binary=True).replace("Byte", "byte")}} binary file not shown.
+      </p>
+      <p>
+        <a href="{{url_for("repo.raw_blob", owner=repo.owner.canonical_name,
+            repo=repo.name, branch=branch_name,
+            path=path_join(*path))}}" class="btn btn-primary">
+          Download {{icon("caret-right")}}
+        </a>
+      </p>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

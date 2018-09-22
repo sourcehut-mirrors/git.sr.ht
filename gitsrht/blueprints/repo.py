@@ -2,12 +2,13 @@ import pygit2
 import pygments
 from datetime import datetime, timedelta
 from jinja2 import Markup
-from flask import Blueprint, render_template, abort
+from flask import Blueprint, render_template, abort, send_file
 from flask_login import current_user
 from gitsrht.access import get_repo, has_access, UserAccess
 from gitsrht.redis import redis
 from gitsrht.git import CachedRepository, commit_time, annotate_tree
 from gitsrht.types import User, Repository
+from io import BytesIO
 from pygments import highlight
 from pygments.lexers import guess_lexer_for_filename, TextLexer
 from pygments.formatters import HtmlFormatter
@@ -116,7 +117,12 @@ def tree(owner, repo, branch, path):
             tree = annotate_tree(git_repo, tree, commit)
             commit = next(e.commit for e in tree if e.name == entry.name)
             blob = git_repo.get(entry.id)
-            data = blob.data.decode()
+            data = None
+            if not blob.is_binary:
+                try:
+                    data = blob.data.decode()
+                except:
+                    pass
             return render_template("blob.html", view="tree",
                     owner=owner, repo=repo, branch=branch, path=path,
                     branch_name=branch_name, entry=entry, blob=blob, data=data,
@@ -129,3 +135,43 @@ def tree(owner, repo, branch, path):
     return render_template("tree.html", view="tree",
             owner=owner, repo=repo, branch=branch, branch_name=branch_name,
             commit=commit, tree=tree, path=path)
+
+@repo.route("/<owner>/<repo>/blob/<branch>/<path:path>")
+def raw_blob(owner, repo, branch, path):
+    owner, repo = get_repo(owner, repo)
+    if not repo:
+        abort(404)
+    if not has_access(repo, UserAccess.read):
+        abort(401)
+    git_repo = CachedRepository(repo.path)
+    if branch is None:
+        branch = git_repo.default_branch()
+    else:
+        branch = git_repo.branches.get(branch)
+    if not branch:
+        abort(404)
+    branch_name = branch.name[len("refs/heads/"):]
+    commit = git_repo.get(branch.target)
+
+    blob = None
+    entry = None
+    tree = commit.tree
+    path = path.split("/")
+    for part in path:
+        if part == "":
+            continue
+        if part not in tree:
+            abort(404)
+        entry = tree[part]
+        if entry.type == "blob":
+            tree = annotate_tree(git_repo, tree, commit)
+            commit = next(e.commit for e in tree if e.name == entry.name)
+            blob = git_repo.get(entry.id)
+            break
+        tree = git_repo.get(entry.id)
+
+    if not blob:
+        abort(404)
+
+    return send_file(BytesIO(blob.data),
+            as_attachment=blob.is_binary, attachment_filename=entry.name)
