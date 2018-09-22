@@ -1,5 +1,6 @@
 import humanize
 import stat
+import os
 from flask import session
 from srht.flask import SrhtFlask
 from srht.config import cfg
@@ -46,7 +47,8 @@ class GitApp(SrhtFlask):
                 "trim_commit": trim_commit,
                 "humanize": humanize,
                 "stat": stat,
-                "notice": notice
+                "notice": notice,
+                "path_join": os.path.join
             }
 
         @self.login_manager.user_loader

@@ -90,8 +90,8 @@ class AnnotatedTreeEntry:
     def __repr__(self):
         return f"<AnnotatedTreeEntry {self.name} {self.id}>"
 
-def annotate_tree(repo, commit):
-    key = f"git.sr.ht:git:tree:{commit.tree.id.hex}"
+def annotate_tree(repo, tree, commit):
+    key = f"git.sr.ht:git:tree:{tree.id.hex}"
     cache = redis.get(key)
     if cache:
         cache = json.loads(cache.decode())
@@ -99,7 +99,7 @@ def annotate_tree(repo, commit):
             e, repo).fetch_blob() for e in cache.values()]
 
     tree = { entry.id.hex: AnnotatedTreeEntry(
-        repo, entry) for entry in commit.tree }
+        repo, entry) for entry in tree }
 
     parents = deque(commit.parents)
     left_tree = set(v for v in tree.values())

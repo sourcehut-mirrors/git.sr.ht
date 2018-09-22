@@ -68,7 +68,7 @@ def summary(owner, repo):
 
 @repo.route("/<owner>/<repo>/tree", defaults={"branch": None, "path": ""})
 @repo.route("/<owner>/<repo>/tree/<branch>", defaults={"path": ""})
-@repo.route("/<owner>/<repo>/tree/<branch>/<path>")
+@repo.route("/<owner>/<repo>/tree/<branch>/<path:path>")
 def tree(owner, repo, branch, path):
     owner, repo = get_repo(owner, repo)
     if not repo:
@@ -84,8 +84,22 @@ def tree(owner, repo, branch, path):
         abort(404)
     commit = git_repo.get(branch.target)
 
-    tree = annotate_tree(git_repo, commit)
+    tree = commit.tree
+    path = path.split("/")
+    for part in path:
+        if part == "":
+            continue
+        if part not in tree:
+            abort(404)
+        entry = tree[part]
+        if entry.type == "blob":
+            return "TODO: render blobs"
+        tree = git_repo.get(entry.id)
+
+    tree = annotate_tree(git_repo, tree, commit)
     tree = sorted(tree, key=lambda e: e.name)
-    # TODO: follow path
+
     return render_template("tree.html", view="tree",
-            owner=owner, repo=repo, commit=commit, tree=tree, path=path)
+            owner=owner, repo=repo, branch=branch,
+            branch_name=branch.name[len("refs/heads/"):],
+            commit=commit, tree=tree, path=path)
