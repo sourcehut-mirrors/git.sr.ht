@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from gitsrht.redis import redis
 from pygit2 import Repository, Tag
+import pygit2
 import json
 
 def trim_commit(msg):
@@ -106,9 +107,10 @@ def annotate_tree(repo, tree, commit):
     unfinished = set(left_tree)
     if not any(commit.parents):
         return [entry.fetch_blob() for entry in tree.values()]
-    parent = commit.parents[0]
-
-    while any(unfinished):
+    parent = commit
+    for commit in repo.walk(commit.id, pygit2.GIT_SORT_TIME):
+        if not any(unfinished):
+            break
         right_tree = { entry.id.hex: AnnotatedTreeEntry(repo, entry)
                 for entry in parent.tree }
         right_tree = set(v for v in right_tree.values())
@@ -118,10 +120,7 @@ def annotate_tree(repo, tree, commit):
                 tree[entry.id].commit = commit
         unfinished = unfinished - diff
         left_tree = right_tree
-        commit = parent
-        if not any(commit.parents):
-            break
-        parent = commit.parents[0]
+        parent = commit
 
     cache = {entry.name: entry.serialize() for entry in tree.values()}
     cache = json.dumps(cache)
