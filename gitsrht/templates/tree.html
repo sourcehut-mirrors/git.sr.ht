@@ -5,11 +5,11 @@
     <span style="padding-left: 1rem">
       {% if path != [''] %}
       <a href="{{url_for("repo.tree",
-        owner=repo.owner.canonical_name, repo=repo.name, branch=branch_name)}}"
+        owner=repo.owner.canonical_name, repo=repo.name, ref=ref)}}"
       >{{repo.name}}</a>{% endif %}/{% for part in path%}{%
         if loop.last %}{{part}}{% else %}<a
           href="{{url_for("repo.tree", owner=repo.owner.canonical_name,
-            repo=repo.name, branch=branch_name,
+            repo=repo.name, ref=ref,
             path=path_join(*path[:loop.index]))}}"
         >{{part}}</a>/{%
       endif %}{% endfor %}
@@ -33,7 +33,7 @@
       <div class="mode"></div>
       <div class="name tree">
         <a href="{{url_for("repo.tree",
-          owner=repo.owner.canonical_name, repo=repo.name, branch=branch_name,
+          owner=repo.owner.canonical_name, repo=repo.name, ref=ref,
           path=path_join(*path[:-1]) if path[:-1] else None)}}">..</a>
       </div>
       <div class="commit"></div>
@@ -48,7 +48,7 @@
       </div>
       <div class="name {{entry.type}}">
         <a href="{{url_for("repo.tree",
-          owner=repo.owner.canonical_name, repo=repo.name, branch=branch_name,
+          owner=repo.owner.canonical_name, repo=repo.name, ref=ref,
           path=path_join(*(path + [entry.name])))}}"
         >
           {{entry.name}}{% if entry.type == "tree" %}/{% endif %}

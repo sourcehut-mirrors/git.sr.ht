@@ -32,7 +32,7 @@ def get_readme(repo, tip):
     except:
         pass
     html = markdown(md, ["h1", "h2", "h3", "h4", "h5"])
-    redis.setex(key, html, timedelta(days=30))
+    redis.setex(key, html, timedelta(days=7))
     return Markup(html)
 
 def _highlight_file(name, data, blob_id):
@@ -47,7 +47,7 @@ def _highlight_file(name, data, blob_id):
     formatter = HtmlFormatter()
     style = formatter.get_style_defs('.highlight')
     html = f"<style>{style}</style>" + highlight(data, lexer, formatter)
-    redis.setex(key, html, timedelta(days=30))
+    redis.setex(key, html, timedelta(days=7))
     return Markup(html)
 
 @repo.route("/<owner>/<repo>")
@@ -86,24 +86,34 @@ def summary(owner, repo):
             clone_urls=clone_urls, latest_tag=latest_tag,
             default_branch=default_branch)
 
-@repo.route("/<owner>/<repo>/tree", defaults={"branch": None, "path": ""})
-@repo.route("/<owner>/<repo>/tree/<branch>", defaults={"path": ""})
-@repo.route("/<owner>/<repo>/tree/<branch>/<path:path>")
-def tree(owner, repo, branch, path):
+@repo.route("/<owner>/<repo>/tree", defaults={"ref": None, "path": ""})
+@repo.route("/<owner>/<repo>/tree/<ref>", defaults={"path": ""})
+@repo.route("/<owner>/<repo>/tree/<ref>/<path:path>")
+def tree(owner, repo, ref, path):
     owner, repo = get_repo(owner, repo)
     if not repo:
         abort(404)
     if not has_access(repo, UserAccess.read):
         abort(401)
     git_repo = CachedRepository(repo.path)
-    if branch is None:
+    if ref is None:
         branch = git_repo.default_branch()
+        ref = branch.name[len("refs/for/"):]
+        commit = git_repo.get(branch.target)
     else:
-        branch = git_repo.branches.get(branch)
-    if not branch:
+        if f"refs/heads/{ref}" in repo.references:
+            branch = git_repo.references[f"refs/heads/{ref}"]
+            commit = git_repo.get(branch.target)
+        elif f"refs/tags/{ref}" in repo.references:
+            tag = git_repo.references[f"refs/tags/{ref}"]
+            commit = git_repo.get(tag.target)
+        else:
+            try:
+                ref = git_repo.get(ref)
+            except:
+                abort(404)
+    if not commit:
         abort(404)
-    branch_name = branch.name[len("refs/heads/"):]
-    commit = git_repo.get(branch.target)
 
     tree = commit.tree
     path = path.split("/")
@@ -124,17 +134,16 @@ def tree(owner, repo, branch, path):
                 except:
                     pass
             return render_template("blob.html", view="tree",
-                    owner=owner, repo=repo, branch=branch, path=path,
-                    branch_name=branch_name, entry=entry, blob=blob, data=data,
-                    commit=commit, highlight_file=_highlight_file)
+                    owner=owner, repo=repo, ref=ref, path=path, entry=entry,
+                    blob=blob, data=data, commit=commit,
+                    highlight_file=_highlight_file)
         tree = git_repo.get(entry.id)
 
     tree = annotate_tree(git_repo, tree, commit)
     tree = sorted(tree, key=lambda e: e.name)
 
-    return render_template("tree.html", view="tree",
-            owner=owner, repo=repo, branch=branch, branch_name=branch_name,
-            commit=commit, tree=tree, path=path)
+    return render_template("tree.html", view="tree", owner=owner, repo=repo,
+            ref=ref, commit=commit, tree=tree, path=path)
 
 @repo.route("/<owner>/<repo>/blob/<branch>/<path:path>")
 def raw_blob(owner, repo, branch, path):
