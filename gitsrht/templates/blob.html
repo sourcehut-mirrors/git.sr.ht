@@ -1,6 +1,11 @@
 {% extends "repo.html" %}
 {% import "utils.html" as utils %}
 {% block content %}
+<style>
+pre {
+  tab-size: {{editorconfig.tab_width()}}
+}
+</style>
 <div class="header-extension">
   <div class="container-fluid">
     <span style="padding-left: 1rem">

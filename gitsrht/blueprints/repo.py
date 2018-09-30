@@ -7,6 +7,7 @@ from jinja2 import Markup
 from flask import Blueprint, render_template, abort, send_file
 from flask_login import current_user
 from gitsrht.access import get_repo, has_access, UserAccess
+from gitsrht.editorconfig import EditorConfig
 from gitsrht.redis import redis
 from gitsrht.git import CachedRepository, commit_time, annotate_tree
 from gitsrht.types import User, Repository
@@ -123,6 +124,8 @@ def tree(owner, repo, ref, path):
     ref, commit = resolve_ref(git_repo, ref)
 
     tree = commit.tree
+    editorconfig = EditorConfig(git_repo, tree, path)
+
     path = path.split("/")
     for part in path:
         if part == "":
@@ -143,7 +146,8 @@ def tree(owner, repo, ref, path):
             return render_template("blob.html", view="tree",
                     owner=owner, repo=repo, ref=ref, path=path, entry=entry,
                     blob=blob, data=data, commit=commit,
-                    highlight_file=_highlight_file)
+                    highlight_file=_highlight_file,
+                    editorconfig=editorconfig)
         tree = git_repo.get(entry.id)
 
     tree = annotate_tree(git_repo, tree, commit)
