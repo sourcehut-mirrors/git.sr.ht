@@ -5,6 +5,10 @@
 pre {
   tab-size: {{editorconfig.tab_width()}}
 }
+pre, body {
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
 </style>
 <div class="header-extension">
   <div class="container-fluid">
@@ -42,7 +46,7 @@ pre {
   </div>
 </div>
 <div class="container-fluid">
-  <div class="row" style="margin-bottom: 1rem">
+  <div class="row">
     {% if not blob.is_binary %}
     <div class="col-md-12 code-view">
       <pre class="ruler"><span>{% for i in range(80) %} {% endfor %}</span></pre>
