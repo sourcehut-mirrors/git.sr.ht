@@ -5,10 +5,19 @@
   <div class="row">
     <div class="col-md-12">
       <div class="event-list">
-        {% for c in commits %}
+        {% for c in commits[:-1] %}
         {{ utils.commit_event(c, commit_time, None, True, refs) }}
         {% endfor %}
       </div>
+      <a
+        class="pull-right btn btn-primary"
+        href="{{url_for("repo.log",
+          owner=owner.canonical_name,
+          repo=repo.name,
+          ref=ref,
+          path=path,
+        )}}?from={{commits[-1].id}}&prev={{commits[0].id}}"
+      >Next {{icon("caret-right")}}</a>
     </div>
 </div>
 {% endblock %}

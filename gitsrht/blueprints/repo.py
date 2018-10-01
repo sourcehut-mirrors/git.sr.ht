@@ -4,7 +4,7 @@ import pygments
 import subprocess
 from datetime import datetime, timedelta
 from jinja2 import Markup
-from flask import Blueprint, render_template, abort, send_file
+from flask import Blueprint, render_template, abort, send_file, request
 from flask_login import current_user
 from gitsrht.access import get_repo, has_access, UserAccess
 from gitsrht.editorconfig import EditorConfig
@@ -90,6 +90,7 @@ def summary(owner, repo):
             default_branch=default_branch)
 
 def resolve_ref(git_repo, ref):
+    commit = None
     if ref is None:
         branch = git_repo.default_branch()
         ref = branch.name[len("refs/heads/"):]
@@ -260,18 +261,23 @@ def log(owner, repo, ref, path):
     ref, commit = resolve_ref(git_repo, ref)
 
     refs = {}
-    for ref in git_repo.references:
-        ref = _AnnotatedRef(git_repo, git_repo.references[ref])
-        if not ref.type:
+    for _ref in git_repo.references:
+        _ref = _AnnotatedRef(git_repo, git_repo.references[_ref])
+        if not _ref.type:
             continue
-        if ref.target.hex not in refs:
-            refs[ref.target.hex] = []
-        refs[ref.target.hex].append(ref)
+        if _ref.target.hex not in refs:
+            refs[_ref.target.hex] = []
+        refs[_ref.target.hex].append(_ref)
 
+    from_id = request.args.get("from")
+    if from_id:
+        commit = git_repo.get(from_id)
+
+    commits_per_page = 20
     commits = list()
     for commit in git_repo.walk(commit.id, pygit2.GIT_SORT_TIME):
         commits.append(commit)
-        if len(commits) >= 20:
+        if len(commits) >= commits_per_page + 1:
             break
 
     return render_template("log.html", view="log",
