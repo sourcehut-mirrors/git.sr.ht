@@ -1,7 +1,7 @@
 {% extends "repo.html" %}
 {% import "utils.html" as utils %}
 {% block title %}
-<title>{{trim_commit(commit.message)}} - {{repo.owner.canonical_name}}/{{repo.name}} - {{cfg("sr.ht", "site-name")}} git</title>
+<title>{{repo.owner.canonical_name}}/{{repo.name}}: {{trim_commit(commit.message)}} - {{cfg("sr.ht", "site-name")}} git</title>
 {% endblock %}
 {% block content %}
 <div class="container">
@@ -17,19 +17,19 @@
     </div>
     <div class="col-md-2">
       <a
-        href="{{url_for("repo.tree",
-          owner=repo.owner.canonical_name,
-          repo=repo.name,
-          ref=commit.id.hex)}}"
-        class="btn btn-primary btn-block"
-      >browse {{icon("caret-right")}}</a>
-      <a
         href="{{url_for("repo.patch",
           owner=repo.owner.canonical_name,
           repo=repo.name,
           ref=commit.id.hex)}}"
-        class="btn btn-default btn-block"
+        class="btn btn-primary btn-block"
       >patch {{icon("caret-right")}}</a>
+      <a
+        href="{{url_for("repo.tree",
+          owner=repo.owner.canonical_name,
+          repo=repo.name,
+          ref=commit.id.hex)}}"
+        class="btn btn-default btn-block"
+      >browse {{icon("caret-right")}}</a>
     </div>
   </div>
   <div class="row">
