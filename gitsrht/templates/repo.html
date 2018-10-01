@@ -35,11 +35,13 @@
             owner=repo.owner.canonical_name,
             repo=repo.name), "refs")}}
         </li>
+        {% if current_user.id == repo.owner_id %}
         <li class="nav-item">
           {{link(url_for("manage.settings_info",
             owner_name=repo.owner.canonical_name,
             repo_name=repo.name), "settings")}}
         </li>
+        {% endif %}
       </ul>
       {% endblock %}
     </div>
