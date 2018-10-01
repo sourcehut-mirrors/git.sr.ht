@@ -106,3 +106,27 @@
     }
   }
 }
+
+.ref {
+  border-width: 1px;
+  border-style: solid;
+  padding: 0.2rem;
+
+  &.branch {
+    border-color: darken($info, 20);
+    background: $info;
+    color: $white;
+  }
+
+  &.tag {
+    border-color: darken($primary, 20);
+    background: $primary;
+    color: $white;
+  }
+
+  &.tag.annotated {
+    border-color: darken($success, 20);
+    background: $success;
+    color: $white;
+  }
+}

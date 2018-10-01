@@ -13,7 +13,7 @@
     <div class="col-md-6">
       <div class="event-list" style="margin-bottom: 0.5rem">
         {% for c in commits %}
-        {{ utils.commit_event(c, commit_time, trim_commit) }}
+        {{ utils.commit_event(repo, c, commit_time, trim_commit) }}
         {% endfor %}
       </div>
     </div>

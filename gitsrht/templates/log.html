@@ -6,7 +6,7 @@
     <div class="col-md-12">
       <div class="event-list">
         {% for c in commits[:-1] %}
-        {{ utils.commit_event(c, commit_time, None, True, refs) }}
+        {{ utils.commit_event(repo, c, commit_time, None, True, refs) }}
         {% endfor %}
       </div>
       <a
@@ -16,7 +16,7 @@
           repo=repo.name,
           ref=ref,
           path=path,
-        )}}?from={{commits[-1].id}}&prev={{commits[0].id}}"
+        )}}?from={{commits[-1].id}}"
       >Next {{icon("caret-right")}}</a>
     </div>
 </div>

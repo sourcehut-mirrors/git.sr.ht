@@ -241,10 +241,15 @@ class _AnnotatedRef:
             self.type = "branch"
             self.name = ref.name[len("refs/heads/"):]
             self.branch = repo.get(ref.target)
+            self.commit = self.branch
         elif ref.name.startswith("refs/tags/"):
             self.type = "tag"
             self.name = ref.name[len("refs/tags/"):]
-            self.tag = repo.get(ref.target)
+            self.tag = repo.get(self.target)
+            if isinstance(self.tag, pygit2.Commit):
+                self.commit = self.tag
+            else:
+                self.commit = repo.get(self.tag.target)
         else:
             self.type = None
 
@@ -265,9 +270,10 @@ def log(owner, repo, ref, path):
         _ref = _AnnotatedRef(git_repo, git_repo.references[_ref])
         if not _ref.type:
             continue
-        if _ref.target.hex not in refs:
-            refs[_ref.target.hex] = []
-        refs[_ref.target.hex].append(_ref)
+        print(_ref.commit.id.hex, _ref.name)
+        if _ref.commit.id.hex not in refs:
+            refs[_ref.commit.id.hex] = []
+        refs[_ref.commit.id.hex].append(_ref)
 
     from_id = request.args.get("from")
     if from_id:
