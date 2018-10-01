@@ -1,0 +1,40 @@
+{% extends "repo.html" %}
+{% import "utils.html" as utils %}
+{% block title %}
+<title>{{repo.owner.canonical_name}}/{{repo.name}} {{tag.name}} - {{cfg("sr.ht", "site-name")}} git</title>
+{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-8">
+      <div class="event-list">
+        <div class="event">
+          <h3 style="margin-bottom: 0.5rem">
+            {{tag.name}}
+            <small class="pull-right text-muted">
+              {{commit_time(tag) | date}}
+            </small>
+          </h3>
+          {% if tag.message %}
+          <pre style="padding-bottom: 0;">{{tag.message}}</pre>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <a
+        class="btn btn-primary btn-block"
+        href="{{url_for("repo.archive",
+          owner=repo.owner.canonical_name,
+          repo=repo.name, ref=tag.name)}}"
+      >.tar.gz {{icon("caret-right")}}</a>
+      <a
+        class="btn btn-default btn-block"
+        href="{{url_for("repo.tree",
+          owner=repo.owner.canonical_name,
+          repo=repo.name, ref=tag.name)}}"
+      >browse {{icon("caret-right")}}</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

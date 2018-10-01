@@ -21,7 +21,10 @@
             {% if isinstance(tag, pygit2.Commit) %}
               {{ref[len("refs/tags/"):]}}
             {% else %}
-            <a href="#">
+            <a href="{{url_for("repo.ref",
+                owner=repo.owner.canonical_name,
+                repo=repo.name,
+                ref=tag.name)}}">
               {{tag.name}}
             </a>
             {% endif %}

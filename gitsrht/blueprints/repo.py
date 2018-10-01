@@ -372,3 +372,17 @@ def refs(owner, repo):
             owner=owner, repo=repo, tags=tags, branches=branches,
             git_repo=git_repo, isinstance=isinstance, pygit2=pygit2,
             page=page + 1, total_pages=total_pages)
+
+@repo.route("/<owner>/<repo>/refs/<ref>")
+def ref(owner, repo, ref):
+    owner, repo = get_repo(owner, repo)
+    if not repo:
+        abort(404)
+    if not has_access(repo, UserAccess.read):
+        abort(401)
+    git_repo = CachedRepository(repo.path)
+    tag = git_repo.revparse_single(ref)
+    if not isinstance(tag, pygit2.Tag):
+        abort(404)
+    return render_template("ref.html", view="refs",
+            owner=owner, repo=repo, git_repo=git_repo, tag=tag)

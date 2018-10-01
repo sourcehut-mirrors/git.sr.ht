@@ -16,20 +16,22 @@
       </div>
     </div>
     <div class="col-md-2">
-      <a
-        href="{{url_for("repo.patch",
-          owner=repo.owner.canonical_name,
-          repo=repo.name,
-          ref=commit.id.hex)}}"
-        class="btn btn-primary btn-block"
-      >patch {{icon("caret-right")}}</a>
-      <a
-        href="{{url_for("repo.tree",
-          owner=repo.owner.canonical_name,
-          repo=repo.name,
-          ref=commit.id.hex)}}"
-        class="btn btn-default btn-block"
-      >browse {{icon("caret-right")}}</a>
+      <div style="margin-bottom: 1rem">
+        <a
+          href="{{url_for("repo.patch",
+            owner=repo.owner.canonical_name,
+            repo=repo.name,
+            ref=commit.id.hex)}}"
+          class="btn btn-primary btn-block"
+        >patch {{icon("caret-right")}}</a>
+        <a
+          href="{{url_for("repo.tree",
+            owner=repo.owner.canonical_name,
+            repo=repo.name,
+            ref=commit.id.hex)}}"
+          class="btn btn-default btn-block"
+        >browse {{icon("caret-right")}}</a>
+      </div>
     </div>
   </div>
   <div class="row">
