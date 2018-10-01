@@ -16,6 +16,12 @@
   background: #ddd;
 }
 
+pre {
+  padding-left: 0;
+  padding-right: 0;
+  background: transparent;
+}
+
 .tree-list {
   display: grid;
   // mode name
@@ -72,6 +78,9 @@
     grid-row-start: 1;
     border-right: 1px solid #444;
     text-align: right;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    background: #eee;
   }
 
   .highlight {
@@ -110,7 +119,7 @@
 .ref {
   border-width: 1px;
   border-style: solid;
-  padding: 0.2rem;
+  padding: 0.1rem 0.2rem;
 
   &.branch {
     border-color: darken($info, 20);
@@ -128,5 +137,15 @@
     border-color: darken($success, 20);
     background: $success;
     color: $white;
+  }
+}
+
+.diff {
+  .text-danger {
+    color: darken($danger, 10) !important;
+  }
+
+  .text-success {
+    color: darken($success, 10) !important;
   }
 }

@@ -6,7 +6,9 @@
     <div class="col-md-12">
       <div class="event-list">
         {% for c in commits[:-1] %}
-        {{ utils.commit_event(repo, c, commit_time, None, True, refs) }}
+        <div class="event">
+          {{ utils.commit_event(repo, c, commit_time, None, True, refs) }}
+        </div>
         {% endfor %}
       </div>
       <a

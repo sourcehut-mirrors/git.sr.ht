@@ -9,7 +9,7 @@ from flask_login import current_user
 from gitsrht.access import get_repo, has_access, UserAccess
 from gitsrht.editorconfig import EditorConfig
 from gitsrht.redis import redis
-from gitsrht.git import CachedRepository, commit_time, annotate_tree
+from gitsrht.git import CachedRepository, commit_time, annotate_tree, diffstat
 from gitsrht.types import User, Repository
 from io import BytesIO
 from pygments import highlight
@@ -89,29 +89,6 @@ def summary(owner, repo):
             clone_urls=clone_urls, latest_tag=latest_tag,
             default_branch=default_branch)
 
-def resolve_ref(git_repo, ref):
-    commit = None
-    if ref is None:
-        branch = git_repo.default_branch()
-        ref = branch.name[len("refs/heads/"):]
-        commit = git_repo.get(branch.target)
-    else:
-        if f"refs/heads/{ref}" in git_repo.references:
-            branch = git_repo.references[f"refs/heads/{ref}"]
-            commit = git_repo.get(branch.target)
-        elif f"refs/tags/{ref}" in git_repo.references:
-            _ref = git_repo.references[f"refs/tags/{ref}"]
-            tag = git_repo.get(_ref.target)
-            commit = git_repo.get(tag.target)
-        else:
-            try:
-                ref = git_repo.get(ref)
-            except:
-                abort(404)
-    if not commit:
-        abort(404)
-    return ref, commit
-
 @repo.route("/<owner>/<repo>/tree", defaults={"ref": None, "path": ""})
 @repo.route("/<owner>/<repo>/tree/<ref>", defaults={"path": ""})
 @repo.route("/<owner>/<repo>/tree/<ref>/<path:path>")
@@ -122,7 +99,10 @@ def tree(owner, repo, ref, path):
     if not has_access(repo, UserAccess.read):
         abort(401)
     git_repo = CachedRepository(repo.path)
-    ref, commit = resolve_ref(git_repo, ref)
+    ref = ref or git_repo.default_branch().name[len("refs/heads/"):]
+    commit = git_repo.revparse_single(ref)
+    if commit is pygit2.Tag:
+        commit = git_repo.get(commit.target)
 
     tree = commit.tree
     editorconfig = EditorConfig(git_repo, tree, path)
@@ -165,7 +145,10 @@ def raw_blob(owner, repo, ref, path):
     if not has_access(repo, UserAccess.read):
         abort(401)
     git_repo = CachedRepository(repo.path)
-    ref, commit = resolve_ref(git_repo, ref)
+    ref = ref or git_repo.default_branch().name[len("refs/heads/"):]
+    commit = git_repo.revparse_single(ref)
+    if commit is pygit2.Tag:
+        commit = git_repo.get(commit.target)
 
     blob = None
     entry = None
@@ -198,7 +181,10 @@ def archive(owner, repo, ref):
     if not has_access(repo, UserAccess.read):
         abort(401)
     git_repo = CachedRepository(repo.path)
-    ref, commit = resolve_ref(git_repo, ref)
+    ref = ref or git_repo.default_branch().name[len("refs/heads/"):]
+    commit = git_repo.revparse_single(ref)
+    if commit is pygit2.Tag:
+        commit = git_repo.get(commit.target)
 
     path = f"/tmp/{commit.id.hex}.tar.gz"
     try:
@@ -253,6 +239,17 @@ class _AnnotatedRef:
         else:
             self.type = None
 
+def collect_refs(git_repo):
+    refs = {}
+    for _ref in git_repo.references:
+        _ref = _AnnotatedRef(git_repo, git_repo.references[_ref])
+        if not _ref.type:
+            continue
+        if _ref.commit.id.hex not in refs:
+            refs[_ref.commit.id.hex] = []
+        refs[_ref.commit.id.hex].append(_ref)
+    return refs
+
 @repo.route("/<owner>/<repo>/log", defaults={"ref": None, "path": ""})
 @repo.route("/<owner>/<repo>/log/<ref>", defaults={"path": ""})
 @repo.route("/<owner>/<repo>/log/<ref>/<path:path>")
@@ -263,17 +260,11 @@ def log(owner, repo, ref, path):
     if not has_access(repo, UserAccess.read):
         abort(401)
     git_repo = CachedRepository(repo.path)
-    ref, commit = resolve_ref(git_repo, ref)
-
-    refs = {}
-    for _ref in git_repo.references:
-        _ref = _AnnotatedRef(git_repo, git_repo.references[_ref])
-        if not _ref.type:
-            continue
-        print(_ref.commit.id.hex, _ref.name)
-        if _ref.commit.id.hex not in refs:
-            refs[_ref.commit.id.hex] = []
-        refs[_ref.commit.id.hex].append(_ref)
+    ref = ref or git_repo.default_branch().name[len("refs/heads/"):]
+    commit = git_repo.revparse_single(ref)
+    if commit is pygit2.Tag:
+        commit = git_repo.get(commit.target)
+    refs = collect_refs(git_repo)
 
     from_id = request.args.get("from")
     if from_id:
@@ -289,3 +280,26 @@ def log(owner, repo, ref, path):
     return render_template("log.html", view="log",
             owner=owner, repo=repo, ref=ref, path=path,
             commits=commits, refs=refs)
+
+@repo.route("/<owner>/<repo>/commit/<ref>")
+def commit(owner, repo, ref):
+    owner, repo = get_repo(owner, repo)
+    if not repo:
+        abort(404)
+    if not has_access(repo, UserAccess.read):
+        abort(401)
+    git_repo = CachedRepository(repo.path)
+    commit = git_repo.revparse_single(ref)
+    if commit is pygit2.Tag:
+        ref = git_repo.get(commit.target)
+    try:
+        parent = git_repo.revparse_single(ref + "^")
+        diff = git_repo.diff(parent, ref)
+    except KeyError:
+        diff = ref.tree.diff_to_tree()
+    diff.find_similar(pygit2.GIT_DIFF_FIND_RENAMES)
+    refs = collect_refs(git_repo)
+    return render_template("commit.html", view="log",
+        owner=owner, repo=repo, ref=ref, refs=refs,
+        commit=commit, parent=parent,
+        diff=diff, diffstat=diffstat, pygit2=pygit2)

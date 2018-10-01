@@ -3,6 +3,8 @@ from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from gitsrht.redis import redis
 from pygit2 import Repository, Tag
+from jinja2 import Markup, escape
+from stat import filemode
 import pygit2
 import json
 
@@ -131,3 +133,52 @@ def annotate_tree(repo, tree, commit):
     redis.setex(key, cache, timedelta(days=30))
 
     return [entry.fetch_blob() for entry in tree.values()]
+
+def _diffstat_name(delta):
+    if delta.status == pygit2.GIT_DELTA_DELETED:
+        return Markup(escape(delta.old_file.path))
+    if delta.old_file.path == delta.new_file.path:
+        return Markup(
+                f"<a href='#{escape(delta.old_file.path)}'>" +
+                f"{escape(delta.old_file.path)}" +
+                f"</a>")
+    # Based on git/diff.c
+    pfx_length = 0
+    old_path = delta.old_file.path
+    new_path = delta.new_file.path
+    for i in range(max(len(old_path), len(new_path))):
+        if i >= len(old_path) or i >= len(new_path):
+            break
+        if old_path[i] == '/':
+            pfx_length = i + 1
+    # TODO: detect common suffix
+    if pfx_length != 0:
+        return (f"{delta.old_file.path[:pfx_length]}{{" +
+            f"{delta.old_file.path[pfx_length:]} =&gt; {delta.new_file.path[pfx_length:]}" +
+            f"}}")
+    return f"{delta.old_file.path} => {delta.new_file.path}"
+
+def _diffstat_line(delta, patch):
+    name = _diffstat_name(delta)
+    change = ""
+    if delta.status not in [
+                pygit2.GIT_DELTA_ADDED,
+                pygit2.GIT_DELTA_DELETED,
+            ]:
+        if delta.old_file.mode != delta.new_file.mode:
+            change = Markup(
+                f" <span title='{delta.old_file.mode}'>" +
+                f"{filemode(delta.old_file.mode)}</span> => " +
+                f"<span title='{delta.new_file.mode}'>" +
+                f"{filemode(delta.new_file.mode)}</span>")
+    return Markup(f"{delta.status_char()} {name}{change}\n")
+
+def diffstat(diff):
+    stat = Markup(f"""{diff.stats.files_changed} files changed, <strong
+        class="text-success">{diff.stats.insertions
+        }</strong> insertions(+), <strong
+        class="text-danger">{diff.stats.deletions
+        }</strong> deletions(-)\n\n""")
+    for delta, patch in zip(diff.deltas, diff):
+        stat += _diffstat_line(delta, patch)
+    return stat

@@ -1,0 +1,100 @@
+{% extends "repo.html" %}
+{% import "utils.html" as utils %}
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-10">
+      <div class="event-list">
+        <div class="event">
+          {{ utils.commit_event(repo, commit, commit_time, trim_commit,
+              full_body=True, full_id=True, refs=refs, parents=True,
+              any=any) }}
+        </div>
+      </div>
+    </div>
+    <div class="col-md-2">
+      <a href="#" class="btn btn-primary btn-block">
+        browse {{icon("caret-right")}}
+      </a>
+      <a href="#" class="btn btn-default btn-block">
+        patch {{icon("caret-right")}}
+      </a>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <div class="event-list">
+        <div class="event">
+          <pre>{{diffstat(diff)}}</pre>
+        </div>
+        {# God, working with <pre> tags is such a fucking mess #}
+        {% for patch in diff %}
+        <pre style="margin-bottom: 0;"
+        >{#
+          #}{{patch.delta.status_char()}} {% if parent %}<a
+           href="{{url_for("repo.tree",
+              owner=repo.owner.canonical_name,
+              repo=repo.name,
+              ref=parent.id.hex,
+              path=patch.delta.old_file.path)}}"
+           id="{{patch.delta.old_file.path}}"
+         >{{patch.delta.old_file.path}}</a>{#
+         #}{% endif %} =&gt; {#
+         #}<a
+           href="{{url_for("repo.tree",
+              owner=repo.owner.canonical_name,
+              repo=repo.name,
+              ref=commit.id.hex,
+              path=patch.delta.new_file.path)}}"
+           id="{{patch.delta.new_file.path}}"
+         >{{patch.delta.new_file.path}}</a>{#
+         #} <span class="pull-right"><span class="text-success">+{{patch.line_stats[1]}}</span>{#
+         #} <span class="text-danger">-{{patch.line_stats[2]}}</span></span>{%
+            if patch.delta.old_file.mode != patch.delta.new_file.mode %}{#
+          #}{#
+          #}{% endif %}</pre>
+        <div class="event diff">
+          <pre>{% for hunk in patch.hunks %}
+{% set hunk_index = loop.index %}<strong
+  class="text-info"
+>@@ {#
+#}{% if parent %}<a
+  style="text-decoration: underline"
+  href="{{url_for("repo.tree",
+    owner=repo.owner.canonical_name,
+    repo=repo.name,
+    ref=parent.id.hex,
+    path=patch.delta.old_file.path)}}#L{{hunk.old_start}}"
+>{{hunk.old_start}}</a>,{{hunk.old_lines}} {#
+#}{% endif %}<a
+  style="text-decoration: underline"
+  href="{{url_for("repo.tree",
+    owner=repo.owner.canonical_name,
+    repo=repo.name,
+    ref=commit.id.hex,
+    path=patch.delta.new_file.path)}}#L{{hunk.new_start}}"
+>{{hunk.new_start}}</a>,{{hunk.new_lines}} {#
+#}@@</strong
+>{% if hunk.old_start == 0 %}
+{% endif %}{% for line in hunk.lines
+%}<span class="{{({
+  "+":"text-success",
+  "-":"text-danger",
+  }).get(line.origin) or ""}}"><a
+    href="#{{patch.delta.old_file.path}}-{{hunk_index}}-{{loop.index}}"
+    id="{{patch.delta.old_file.path}}-{{hunk_index}}-{{loop.index}}"
+    style="color: inherit"
+>{{line.origin}}</a>{%
+  if loop.first and hunk.old_start != 0
+%}{{line.content.lstrip()}}{%
+  else
+%} {{line.content}}{%
+  endif
+%}</span>{% endfor %}
+{% endfor %}</pre>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+</div>
+{% endblock %}
