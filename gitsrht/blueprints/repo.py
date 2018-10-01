@@ -174,7 +174,7 @@ def raw_blob(owner, repo, ref, path):
     return send_file(BytesIO(blob.data),
             as_attachment=blob.is_binary, attachment_filename=entry.name)
 
-@repo.route("/<owner>/<repo>/archive/<ref>")
+@repo.route("/<owner>/<repo>/archive/<ref>.tar.gz")
 def archive(owner, repo, ref):
     owner, repo = get_repo(owner, repo)
     if not repo:
@@ -194,7 +194,7 @@ def archive(owner, repo, ref):
             "--git-dir", repo.path,
             "archive",
             "--format=tar.gz",
-            "--prefix", f"{repo.name}-{ref}",
+            "--prefix", f"{repo.name}-{ref}/",
             "-o", path, ref
         ]
         print(args)
