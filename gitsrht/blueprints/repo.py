@@ -194,7 +194,7 @@ def archive(owner, repo, ref):
             "--git-dir", repo.path,
             "archive",
             "--format=tar.gz",
-            "--prefix", f"{repo.name}-{ref}"
+            "--prefix", f"{repo.name}-{ref}",
             "-o", path, ref
         ]
         print(args)
@@ -327,3 +327,48 @@ def patch(owner, repo, ref):
         print(subp.stdout, subp.stderr)
         return "Error preparing patch", 500
     return Response(subp.stdout, mimetype='text/plain')
+
+@repo.route("/<owner>/<repo>/refs")
+def refs(owner, repo):
+    owner, repo = get_repo(owner, repo)
+    if not repo:
+        abort(404)
+    if not has_access(repo, UserAccess.read):
+        abort(401)
+    git_repo = CachedRepository(repo.path)
+    tags = [(
+            ref,
+            git_repo.get(git_repo.references[ref].target)
+        ) for ref in git_repo.references if ref.startswith("refs/tags/")]
+    def _tag_key(tag):
+        if isinstance(tag[1], pygit2.Commit):
+            return tag[1].commit_time
+        return tag[1].tagger.time
+    tags = sorted(tags, key=_tag_key, reverse=True)
+    branches = [(
+            branch,
+            git_repo.branches[branch],
+            git_repo.get(git_repo.branches[branch].target)
+        ) for branch in git_repo.branches]
+    branches = sorted(branches, key=lambda b: b[2].commit_time, reverse=True)
+
+    results_per_page = 10
+    page = request.args.get("page")
+    total_results = len(tags)
+    total_pages = total_results // results_per_page + 1
+    if total_results % results_per_page == 0:
+        total_pages -= 1
+    if page is not None:
+        try:
+            page = int(page) - 1
+            tags = tags[page*results_per_page:page*results_per_page+results_per_page]
+        except:
+            page = 0
+    else:
+        page = 0
+        tags = tags[:results_per_page]
+
+    return render_template("refs.html", view="refs",
+            owner=owner, repo=repo, tags=tags, branches=branches,
+            git_repo=git_repo, isinstance=isinstance, pygit2=pygit2,
+            page=page + 1, total_pages=total_pages)

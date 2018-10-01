@@ -20,7 +20,7 @@ endif %}{% endfor %}
 {% macro commit_event(
   repo, c, commit_time, trim_commit,
   full_body=False, refs={}, full_id=False, parents=False,
-  any=None) %}
+  any=None, skip_body=False) %}
 <div>
   {% if full_id %}
   {{c.id.hex}}
@@ -71,9 +71,11 @@ endif %}{% endfor %}
   {% endfor %}
   {% endif %}
 </div>
+{% if not skip_body %}
 {% if full_body %}
 <pre>{{c.message}}</pre>
 {% else %}
 <pre>{{ trim_commit(c.message) }}</pre>
+{% endif %}
 {% endif %}
 {% endmacro %}
