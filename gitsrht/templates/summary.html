@@ -1,5 +1,8 @@
 {% extends "repo.html" %}
-{% import "utils.html" as utils %}
+{% import "utils.html" as utils with context %}
+{% block title %}
+<title>{{repo.owner.canonical_name}}/{{repo.name}} - {{cfg("sr.ht", "site-name")}} git</title>
+{% endblock %}
 {% block content %}
 {% if repo.description %}
 <div class="header-extension">
@@ -14,7 +17,7 @@
       <div class="event-list" style="margin-bottom: 0.5rem">
         {% for c in commits %}
         <div class="event">
-          {{ utils.commit_event(repo, c, commit_time, trim_commit) }}
+          {{ utils.commit_event(repo, c) }}
         </div>
         {% endfor %}
       </div>

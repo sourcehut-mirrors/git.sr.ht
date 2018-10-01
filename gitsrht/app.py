@@ -2,6 +2,7 @@ import humanize
 import stat
 import os
 from flask import session
+from functools import lru_cache
 from srht.flask import SrhtFlask
 from srht.config import cfg
 from srht.database import DbSession
@@ -14,6 +15,9 @@ db.init()
 
 import gitsrht.oauth
 from gitsrht.git import commit_time, trim_commit
+
+def lookup_user(email):
+    return User.query.filter(User.email == email).one_or_none()
 
 class GitApp(SrhtFlask):
     def __init__(self):
@@ -46,6 +50,7 @@ class GitApp(SrhtFlask):
                 "commit_time": commit_time,
                 "trim_commit": trim_commit,
                 "humanize": humanize,
+                "lookup_user": lookup_user,
                 "stat": stat,
                 "notice": notice,
                 "path_join": os.path.join

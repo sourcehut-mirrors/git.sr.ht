@@ -17,10 +17,9 @@
 endif %}{% endfor %}
 {% endmacro %}
 
-{% macro commit_event(
-  repo, c, commit_time, trim_commit,
-  full_body=False, refs={}, full_id=False, parents=False,
-  any=None, skip_body=False) %}
+{% macro commit_event(repo, c,
+  full_body=False, refs={}, full_id=False,
+  parents=False, skip_body=False) %}
 <div>
   {% if full_id %}
   {{c.id.hex}}
@@ -32,7 +31,13 @@ endif %}{% endfor %}
   >{{c.id.hex[:8]}}</a>
   {% endif %}
   &mdash;
-  <a href="#">{{c.author.name}}</a>
+  {% set author_user = lookup_user(c.author.email) %}
+  {% if author_user %}
+  <a href="{{url_for("public.user_index",
+    username=author_user.username)}}">{{c.author.name}}</a>
+  {% else %}
+  {{c.author.name}}
+  {% endif %}
   <a
     id="log-{{c.id}}"
     href="#log-{{c.id}}"

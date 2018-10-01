@@ -1,5 +1,8 @@
 {% extends "repo.html" %}
-{% import "utils.html" as utils %}
+{% import "utils.html" as utils with context %}
+{% block title %}
+<title>{{repo.owner.canonical_name}}/{{repo.name}}: {{ref}} - {{cfg("sr.ht", "site-name")}} git</title>
+{% endblock %}
 {% block content %}
 <div class="container">
   <div class="row">
@@ -7,7 +10,7 @@
       <div class="event-list">
         {% for c in commits[:-1] %}
         <div class="event">
-          {{ utils.commit_event(repo, c, commit_time, None, True, refs) }}
+          {{ utils.commit_event(repo, c, True, refs) }}
         </div>
         {% endfor %}
       </div>

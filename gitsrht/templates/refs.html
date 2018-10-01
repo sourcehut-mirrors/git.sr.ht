@@ -1,5 +1,5 @@
 {% extends "repo.html" %}
-{% import "utils.html" as utils %}
+{% import "utils.html" as utils with context %}
 {% block title %}
 <title>{{repo.owner.canonical_name}}/{{repo.name}} refs - {{cfg("sr.ht", "site-name")}} git</title>
 {% endblock %}
@@ -61,8 +61,7 @@
         {% set branch = branch[1] %}
         <div class="event">
           {{name}}
-          {{ utils.commit_event(repo, commit, commit_time,
-            trim_commit, skip_body=True) }}
+          {{ utils.commit_event(repo, commit, skip_body=True) }}
           <a
             href="{{url_for("repo.tree",
               owner=repo.owner.canonical_name,

@@ -1,5 +1,5 @@
 {% extends "repo.html" %}
-{% import "utils.html" as utils %}
+{% import "utils.html" as utils with context %}
 {% block title %}
 <title>{{repo.owner.canonical_name}}/{{repo.name}}: {{trim_commit(commit.message)}} - {{cfg("sr.ht", "site-name")}} git</title>
 {% endblock %}
@@ -9,9 +9,8 @@
     <div class="col-md-10">
       <div class="event-list">
         <div class="event">
-          {{ utils.commit_event(repo, commit, commit_time, trim_commit,
-              full_body=True, full_id=True, refs=refs, parents=True,
-              any=any) }}
+          {{ utils.commit_event(repo, commit, full_body=True,
+            full_id=True, refs=refs, parents=True) }}
         </div>
       </div>
     </div>
