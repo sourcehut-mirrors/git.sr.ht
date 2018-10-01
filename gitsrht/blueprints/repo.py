@@ -5,6 +5,7 @@ import subprocess
 from datetime import datetime, timedelta
 from jinja2 import Markup
 from flask import Blueprint, render_template, abort, send_file, request
+from flask import Response
 from flask_login import current_user
 from gitsrht.access import get_repo, has_access, UserAccess
 from gitsrht.editorconfig import EditorConfig
@@ -303,3 +304,26 @@ def commit(owner, repo, ref):
         owner=owner, repo=repo, ref=ref, refs=refs,
         commit=commit, parent=parent,
         diff=diff, diffstat=diffstat, pygit2=pygit2)
+
+@repo.route("/<owner>/<repo>/commit/<ref>.patch")
+def patch(owner, repo, ref):
+    owner, repo = get_repo(owner, repo)
+    if not repo:
+        abort(404)
+    if not has_access(repo, UserAccess.read):
+        abort(401)
+    git_repo = CachedRepository(repo.path)
+    commit = git_repo.revparse_single(ref)
+    if isinstance(commit, pygit2.Tag):
+        ref = git_repo.get(commit.target)
+    subp = subprocess.run([
+        "git",
+        "--git-dir", repo.path,
+        "format-patch",
+        "--stdout", "-1",
+        ref
+    ], timeout=10, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if subp.returncode != 0:
+        print(subp.stdout, subp.stderr)
+        return "Error preparing patch", 500
+    return Response(subp.stdout, mimetype='text/plain')
