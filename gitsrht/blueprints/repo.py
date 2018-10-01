@@ -101,7 +101,7 @@ def tree(owner, repo, ref, path):
     git_repo = CachedRepository(repo.path)
     ref = ref or git_repo.default_branch().name[len("refs/heads/"):]
     commit = git_repo.revparse_single(ref)
-    if commit is pygit2.Tag:
+    if isinstance(commit, pygit2.Tag):
         commit = git_repo.get(commit.target)
 
     tree = commit.tree
@@ -147,7 +147,7 @@ def raw_blob(owner, repo, ref, path):
     git_repo = CachedRepository(repo.path)
     ref = ref or git_repo.default_branch().name[len("refs/heads/"):]
     commit = git_repo.revparse_single(ref)
-    if commit is pygit2.Tag:
+    if isinstance(commit, pygit2.Tag):
         commit = git_repo.get(commit.target)
 
     blob = None
@@ -183,7 +183,7 @@ def archive(owner, repo, ref):
     git_repo = CachedRepository(repo.path)
     ref = ref or git_repo.default_branch().name[len("refs/heads/"):]
     commit = git_repo.revparse_single(ref)
-    if commit is pygit2.Tag:
+    if isinstance(commit, pygit2.Tag):
         commit = git_repo.get(commit.target)
 
     path = f"/tmp/{commit.id.hex}.tar.gz"
@@ -262,7 +262,7 @@ def log(owner, repo, ref, path):
     git_repo = CachedRepository(repo.path)
     ref = ref or git_repo.default_branch().name[len("refs/heads/"):]
     commit = git_repo.revparse_single(ref)
-    if commit is pygit2.Tag:
+    if isinstance(commit, pygit2.Tag):
         commit = git_repo.get(commit.target)
     refs = collect_refs(git_repo)
 
@@ -290,7 +290,7 @@ def commit(owner, repo, ref):
         abort(401)
     git_repo = CachedRepository(repo.path)
     commit = git_repo.revparse_single(ref)
-    if commit is pygit2.Tag:
+    if isinstance(commit, pygit2.Tag):
         ref = git_repo.get(commit.target)
     try:
         parent = git_repo.revparse_single(ref + "^")
