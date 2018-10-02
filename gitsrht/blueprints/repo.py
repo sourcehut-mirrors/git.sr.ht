@@ -101,7 +101,10 @@ def tree(owner, repo, ref, path):
         abort(401)
     git_repo = CachedRepository(repo.path)
     ref = ref or git_repo.default_branch().name[len("refs/heads/"):]
-    commit = git_repo.revparse_single(ref)
+    try:
+        commit = git_repo.revparse_single(ref)
+    except KeyError:
+        abort(404)
     if isinstance(commit, pygit2.Tag):
         commit = git_repo.get(commit.target)
 
@@ -147,7 +150,10 @@ def raw_blob(owner, repo, ref, path):
         abort(401)
     git_repo = CachedRepository(repo.path)
     ref = ref or git_repo.default_branch().name[len("refs/heads/"):]
-    commit = git_repo.revparse_single(ref)
+    try:
+        commit = git_repo.revparse_single(ref)
+    except KeyError:
+        abort(404)
     if isinstance(commit, pygit2.Tag):
         commit = git_repo.get(commit.target)
 
@@ -183,7 +189,10 @@ def archive(owner, repo, ref):
         abort(401)
     git_repo = CachedRepository(repo.path)
     ref = ref or git_repo.default_branch().name[len("refs/heads/"):]
-    commit = git_repo.revparse_single(ref)
+    try:
+        commit = git_repo.revparse_single(ref)
+    except KeyError:
+        abort(404)
     if isinstance(commit, pygit2.Tag):
         commit = git_repo.get(commit.target)
 
@@ -262,7 +271,10 @@ def log(owner, repo, ref, path):
         abort(401)
     git_repo = CachedRepository(repo.path)
     ref = ref or git_repo.default_branch().name[len("refs/heads/"):]
-    commit = git_repo.revparse_single(ref)
+    try:
+        commit = git_repo.revparse_single(ref)
+    except KeyError:
+        abort(404)
     if isinstance(commit, pygit2.Tag):
         commit = git_repo.get(commit.target)
     refs = collect_refs(git_repo)
@@ -290,7 +302,10 @@ def commit(owner, repo, ref):
     if not has_access(repo, UserAccess.read):
         abort(401)
     git_repo = CachedRepository(repo.path)
-    commit = git_repo.revparse_single(ref)
+    try:
+        commit = git_repo.revparse_single(ref)
+    except KeyError:
+        abort(404)
     if isinstance(commit, pygit2.Tag):
         ref = git_repo.get(commit.target)
     try:
@@ -313,7 +328,10 @@ def patch(owner, repo, ref):
     if not has_access(repo, UserAccess.read):
         abort(401)
     git_repo = CachedRepository(repo.path)
-    commit = git_repo.revparse_single(ref)
+    try:
+        commit = git_repo.revparse_single(ref)
+    except KeyError:
+        abort(404)
     if isinstance(commit, pygit2.Tag):
         ref = git_repo.get(commit.target)
     subp = subprocess.run([
@@ -381,7 +399,10 @@ def ref(owner, repo, ref):
     if not has_access(repo, UserAccess.read):
         abort(401)
     git_repo = CachedRepository(repo.path)
-    tag = git_repo.revparse_single(ref)
+    try:
+        tag = git_repo.revparse_single(ref)
+    except KeyError:
+        abort(404)
     if not isinstance(tag, pygit2.Tag):
         abort(404)
     return render_template("ref.html", view="refs",
