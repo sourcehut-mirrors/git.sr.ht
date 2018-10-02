@@ -191,7 +191,7 @@ def archive(owner, repo, ref):
     git_repo = CachedRepository(repo.path)
     commit, ref = lookup_ref(git_repo, ref)
 
-    path = f"/tmp/{commit.id.hex}{binascii.hexlify(os.urandom(8)}.tar.gz"
+    path = f"/tmp/{commit.id.hex}{binascii.hexlify(os.urandom(8))}.tar.gz"
     try:
         args = [
             "git",
