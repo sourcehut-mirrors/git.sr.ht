@@ -90,6 +90,18 @@ def summary(owner, repo):
             clone_urls=clone_urls, latest_tag=latest_tag,
             default_branch=default_branch)
 
+def lookup_ref(git_repo, ref):
+    ref = ref or git_repo.default_branch().name[len("refs/heads/"):]
+    try:
+        commit = git_repo.revparse_single(ref)
+    except KeyError:
+        abort(404)
+    except ValueError:
+        abort(404)
+    if isinstance(commit, pygit2.Tag):
+        commit = git_repo.get(commit.target)
+    return commit, ref
+
 @repo.route("/<owner>/<repo>/tree", defaults={"ref": None, "path": ""})
 @repo.route("/<owner>/<repo>/tree/<ref>", defaults={"path": ""})
 @repo.route("/<owner>/<repo>/tree/<ref>/<path:path>")
@@ -100,13 +112,7 @@ def tree(owner, repo, ref, path):
     if not has_access(repo, UserAccess.read):
         abort(401)
     git_repo = CachedRepository(repo.path)
-    ref = ref or git_repo.default_branch().name[len("refs/heads/"):]
-    try:
-        commit = git_repo.revparse_single(ref)
-    except KeyError:
-        abort(404)
-    if isinstance(commit, pygit2.Tag):
-        commit = git_repo.get(commit.target)
+    commit, ref = lookup_ref(git_repo, ref)
 
     tree = commit.tree
     editorconfig = EditorConfig(git_repo, tree, path)
@@ -149,13 +155,7 @@ def raw_blob(owner, repo, ref, path):
     if not has_access(repo, UserAccess.read):
         abort(401)
     git_repo = CachedRepository(repo.path)
-    ref = ref or git_repo.default_branch().name[len("refs/heads/"):]
-    try:
-        commit = git_repo.revparse_single(ref)
-    except KeyError:
-        abort(404)
-    if isinstance(commit, pygit2.Tag):
-        commit = git_repo.get(commit.target)
+    commit, ref = lookup_ref(git_repo, ref)
 
     blob = None
     entry = None
@@ -188,13 +188,7 @@ def archive(owner, repo, ref):
     if not has_access(repo, UserAccess.read):
         abort(401)
     git_repo = CachedRepository(repo.path)
-    ref = ref or git_repo.default_branch().name[len("refs/heads/"):]
-    try:
-        commit = git_repo.revparse_single(ref)
-    except KeyError:
-        abort(404)
-    if isinstance(commit, pygit2.Tag):
-        commit = git_repo.get(commit.target)
+    commit, ref = lookup_ref(git_repo, ref)
 
     path = f"/tmp/{commit.id.hex}.tar.gz"
     try:
@@ -270,13 +264,7 @@ def log(owner, repo, ref, path):
     if not has_access(repo, UserAccess.read):
         abort(401)
     git_repo = CachedRepository(repo.path)
-    ref = ref or git_repo.default_branch().name[len("refs/heads/"):]
-    try:
-        commit = git_repo.revparse_single(ref)
-    except KeyError:
-        abort(404)
-    if isinstance(commit, pygit2.Tag):
-        commit = git_repo.get(commit.target)
+    commit, ref = lookup_ref(git_repo, ref)
     refs = collect_refs(git_repo)
 
     from_id = request.args.get("from")
@@ -302,12 +290,7 @@ def commit(owner, repo, ref):
     if not has_access(repo, UserAccess.read):
         abort(401)
     git_repo = CachedRepository(repo.path)
-    try:
-        commit = git_repo.revparse_single(ref)
-    except KeyError:
-        abort(404)
-    if isinstance(commit, pygit2.Tag):
-        ref = git_repo.get(commit.target)
+    commit, ref = lookup_ref(git_repo, ref)
     try:
         parent = git_repo.revparse_single(ref + "^")
         diff = git_repo.diff(parent, ref)
@@ -328,6 +311,7 @@ def patch(owner, repo, ref):
     if not has_access(repo, UserAccess.read):
         abort(401)
     git_repo = CachedRepository(repo.path)
+    commit, ref = lookup_ref(git_repo, ref)
     try:
         commit = git_repo.revparse_single(ref)
     except KeyError:
@@ -399,11 +383,6 @@ def ref(owner, repo, ref):
     if not has_access(repo, UserAccess.read):
         abort(401)
     git_repo = CachedRepository(repo.path)
-    try:
-        tag = git_repo.revparse_single(ref)
-    except KeyError:
-        abort(404)
-    if not isinstance(tag, pygit2.Tag):
-        abort(404)
+    commit, ref = lookup_ref(git_repo, ref)
     return render_template("ref.html", view="refs",
             owner=owner, repo=repo, git_repo=git_repo, tag=tag)
