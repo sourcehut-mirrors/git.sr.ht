@@ -1,3 +1,4 @@
+import binascii
 import os
 import pygit2
 import pygments
@@ -190,7 +191,7 @@ def archive(owner, repo, ref):
     git_repo = CachedRepository(repo.path)
     commit, ref = lookup_ref(git_repo, ref)
 
-    path = f"/tmp/{commit.id.hex}.tar.gz"
+    path = f"/tmp/{commit.id.hex}{binascii.hexlify(os.urandom(8)}.tar.gz"
     try:
         args = [
             "git",
@@ -208,7 +209,7 @@ def archive(owner, repo, ref):
             os.unlink(path)
         except:
             pass
-        return "Error preparing archive", 500
+        raise
 
     if subp.returncode != 0:
         print(subp.stdout, subp.stderr)
