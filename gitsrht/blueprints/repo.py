@@ -2,6 +2,7 @@ import binascii
 import os
 import pygit2
 import pygments
+import sys
 import subprocess
 from datetime import datetime, timedelta
 from jinja2 import Markup
@@ -203,7 +204,7 @@ def archive(owner, repo, ref):
         ]
         print(args)
         subp = subprocess.run(args, timeout=30,
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                stdout=sys.stdout, stderr=sys.stderr)
     except:
         try:
             os.unlink(path)
@@ -212,7 +213,6 @@ def archive(owner, repo, ref):
         raise
 
     if subp.returncode != 0:
-        print(subp.stdout, subp.stderr)
         try:
             os.unlink(path)
         except:
@@ -325,9 +325,8 @@ def patch(owner, repo, ref):
         "format-patch",
         "--stdout", "-1",
         ref
-    ], timeout=10, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    ], timeout=10, stdout=sys.stdout, stderr=sys.stderr)
     if subp.returncode != 0:
-        print(subp.stdout, subp.stderr)
         return "Error preparing patch", 500
     return Response(subp.stdout, mimetype='text/plain')
 
