@@ -7,13 +7,13 @@ import subprocess
 from datetime import datetime, timedelta
 from jinja2 import Markup
 from flask import Blueprint, render_template, abort, send_file, request
-from flask import Response
+from flask import Response, redirect, url_for
 from flask_login import current_user
 from gitsrht.access import get_repo, has_access, UserAccess
 from gitsrht.editorconfig import EditorConfig
 from gitsrht.redis import redis
 from gitsrht.git import CachedRepository, commit_time, annotate_tree, diffstat
-from gitsrht.types import User, Repository
+from gitsrht.types import User, Repository, Redirect
 from io import BytesIO
 from pygments import highlight
 from pygments.lexers import guess_lexer_for_filename, TextLexer
@@ -56,13 +56,26 @@ def _highlight_file(name, data, blob_id):
     redis.setex(key, html, timedelta(days=7))
     return Markup(html)
 
-@repo.route("/<owner>/<repo>")
-def summary(owner, repo):
+def get_repo_or_redir(owner, repo):
     owner, repo = get_repo(owner, repo)
     if not repo:
         abort(404)
     if not has_access(repo, UserAccess.read):
         abort(401)
+    if isinstance(repo, Redirect):
+        view_args = request.view_args
+        if not "repo" in view_args or not "owner" in view_args:
+            return redirect(url_for(".summary",
+                owner=repo.new_repo.owner.canonical_name,
+                repo=repo.new_repo.name))
+        view_args["owner"] = repo.new_repo.owner.canonical_name
+        view_args["repo"] = repo.new_repo.name
+        abort(redirect(url_for(request.endpoint, **view_args)))
+    return owner, repo
+
+@repo.route("/<owner>/<repo>")
+def summary(owner, repo):
+    owner, repo = get_repo_or_redir(owner, repo)
     git_repo = CachedRepository(repo.path)
     base = (cfg("git.sr.ht", "origin")
         .replace("http://", "")
@@ -108,11 +121,7 @@ def lookup_ref(git_repo, ref):
 @repo.route("/<owner>/<repo>/tree/<ref>", defaults={"path": ""})
 @repo.route("/<owner>/<repo>/tree/<ref>/<path:path>")
 def tree(owner, repo, ref, path):
-    owner, repo = get_repo(owner, repo)
-    if not repo:
-        abort(404)
-    if not has_access(repo, UserAccess.read):
-        abort(401)
+    owner, repo = get_repo_or_redir(owner, repo)
     git_repo = CachedRepository(repo.path)
     commit, ref = lookup_ref(git_repo, ref)
 
@@ -151,11 +160,7 @@ def tree(owner, repo, ref, path):
 
 @repo.route("/<owner>/<repo>/blob/<ref>/<path:path>")
 def raw_blob(owner, repo, ref, path):
-    owner, repo = get_repo(owner, repo)
-    if not repo:
-        abort(404)
-    if not has_access(repo, UserAccess.read):
-        abort(401)
+    owner, repo = get_repo_or_redir(owner, repo)
     git_repo = CachedRepository(repo.path)
     commit, ref = lookup_ref(git_repo, ref)
 
@@ -184,11 +189,7 @@ def raw_blob(owner, repo, ref, path):
 
 @repo.route("/<owner>/<repo>/archive/<ref>.tar.gz")
 def archive(owner, repo, ref):
-    owner, repo = get_repo(owner, repo)
-    if not repo:
-        abort(404)
-    if not has_access(repo, UserAccess.read):
-        abort(401)
+    owner, repo = get_repo_or_redir(owner, repo)
     git_repo = CachedRepository(repo.path)
     commit, ref = lookup_ref(git_repo, ref)
 
@@ -259,11 +260,7 @@ def collect_refs(git_repo):
 @repo.route("/<owner>/<repo>/log/<ref>", defaults={"path": ""})
 @repo.route("/<owner>/<repo>/log/<ref>/<path:path>")
 def log(owner, repo, ref, path):
-    owner, repo = get_repo(owner, repo)
-    if not repo:
-        abort(404)
-    if not has_access(repo, UserAccess.read):
-        abort(401)
+    owner, repo = get_repo_or_redir(owner, repo)
     git_repo = CachedRepository(repo.path)
     commit, ref = lookup_ref(git_repo, ref)
     refs = collect_refs(git_repo)
@@ -285,11 +282,7 @@ def log(owner, repo, ref, path):
 
 @repo.route("/<owner>/<repo>/commit/<ref>")
 def commit(owner, repo, ref):
-    owner, repo = get_repo(owner, repo)
-    if not repo:
-        abort(404)
-    if not has_access(repo, UserAccess.read):
-        abort(401)
+    owner, repo = get_repo_or_redir(owner, repo)
     git_repo = CachedRepository(repo.path)
     commit, ref = lookup_ref(git_repo, ref)
     try:
@@ -306,11 +299,7 @@ def commit(owner, repo, ref):
 
 @repo.route("/<owner>/<repo>/commit/<ref>.patch")
 def patch(owner, repo, ref):
-    owner, repo = get_repo(owner, repo)
-    if not repo:
-        abort(404)
-    if not has_access(repo, UserAccess.read):
-        abort(401)
+    owner, repo = get_repo_or_redir(owner, repo)
     git_repo = CachedRepository(repo.path)
     commit, ref = lookup_ref(git_repo, ref)
     try:
@@ -332,11 +321,7 @@ def patch(owner, repo, ref):
 
 @repo.route("/<owner>/<repo>/refs")
 def refs(owner, repo):
-    owner, repo = get_repo(owner, repo)
-    if not repo:
-        abort(404)
-    if not has_access(repo, UserAccess.read):
-        abort(401)
+    owner, repo = get_repo_or_redir(owner, repo)
     git_repo = CachedRepository(repo.path)
     tags = [(
             ref,
@@ -377,11 +362,7 @@ def refs(owner, repo):
 
 @repo.route("/<owner>/<repo>/refs/<ref>")
 def ref(owner, repo, ref):
-    owner, repo = get_repo(owner, repo)
-    if not repo:
-        abort(404)
-    if not has_access(repo, UserAccess.read):
-        abort(401)
+    owner, repo = get_repo_or_redir(owner, repo)
     git_repo = CachedRepository(repo.path)
     try:
         tag = git_repo.revparse_single(ref)
