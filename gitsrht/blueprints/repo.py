@@ -383,6 +383,11 @@ def ref(owner, repo, ref):
     if not has_access(repo, UserAccess.read):
         abort(401)
     git_repo = CachedRepository(repo.path)
-    commit, ref = lookup_ref(git_repo, ref)
+    try:
+        tag = git_repo.revparse_single(ref)
+    except KeyError:
+        abort(404)
+    except ValueError:
+        abort(404)
     return render_template("ref.html", view="refs",
             owner=owner, repo=repo, git_repo=git_repo, tag=tag)
