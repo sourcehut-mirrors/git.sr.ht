@@ -1,6 +1,5 @@
 from collections import deque
 from datetime import datetime, timedelta, timezone
-from functools import lru_cache
 from gitsrht.redis import redis
 from pygit2 import Repository, Tag
 from jinja2 import Markup, escape
@@ -21,11 +20,10 @@ def commit_time(commit):
     diff = datetime.now(timezone.utc) - tzaware
     return datetime.utcnow() - diff
 
-@lru_cache(maxsize=256)
+# TODO: this is no longer cached so we should probably get rid of it
 def CachedRepository(path):
     return _CachedRepository(path)
 
-@lru_cache(maxsize=1024)
 def _get_ref(repo, ref):
     return repo._get(ref)
 
