@@ -289,7 +289,8 @@ def commit(owner, repo, ref):
         parent = git_repo.revparse_single(ref + "^")
         diff = git_repo.diff(parent, ref)
     except KeyError:
-        diff = ref.tree.diff_to_tree()
+        parent = None
+        diff = commit.tree.diff_to_tree(swap=True)
     diff.find_similar(pygit2.GIT_DIFF_FIND_RENAMES)
     refs = collect_refs(git_repo)
     return render_template("commit.html", view="log",
