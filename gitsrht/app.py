@@ -23,6 +23,8 @@ class GitApp(SrhtFlask):
     def __init__(self):
         super().__init__("git.sr.ht", __name__)
 
+        self.url_map.strict_slashes = False
+
         from gitsrht.blueprints.api import api
         from gitsrht.blueprints.public import public
         from gitsrht.blueprints.repo import repo
