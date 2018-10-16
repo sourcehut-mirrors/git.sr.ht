@@ -73,6 +73,16 @@ def get_repo_or_redir(owner, repo):
         abort(redirect(url_for(request.endpoint, **view_args)))
     return owner, repo
 
+def get_last_3_commits(commit):
+    commits = [commit]
+    for parent in commit.parents:
+        commits.append(parent)
+        for grandparent in parent.parents:
+            commits.append(grandparent)
+
+    commits = sorted(commits, key=lambda c: commit_time(c), reverse=True)
+    return commits[:3]
+
 @repo.route("/<owner>/<repo>")
 def summary(owner, repo):
     owner, repo = get_repo_or_redir(owner, repo)
@@ -89,11 +99,7 @@ def summary(owner, repo):
                 clone_urls=clone_urls)
     default_branch = git_repo.default_branch()
     tip = git_repo.get(default_branch.target)
-    commits = list()
-    for commit in git_repo.walk(tip.id, pygit2.GIT_SORT_TIME):
-        commits.append(commit)
-        if len(commits) >= 3:
-            break
+    commits = get_last_3_commits(tip)
     readme = get_readme(git_repo, tip)
     tags = [(ref, git_repo.get(git_repo.references[ref].target))
         for ref in git_repo.listall_references()
