@@ -315,7 +315,7 @@ def patch(owner, repo, ref):
         "format-patch",
         "--stdout", "-1",
         ref
-    ], timeout=10, stdout=sys.stdout, stderr=sys.stderr)
+    ], timeout=10, stdout=subprocess.PIPE, stderr=sys.stderr)
     if subp.returncode != 0:
         return "Error preparing patch", 500
     return Response(subp.stdout, mimetype='text/plain')
