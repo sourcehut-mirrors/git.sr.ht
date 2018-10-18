@@ -132,6 +132,8 @@ def tree(owner, repo, ref, path):
     commit, ref = lookup_ref(git_repo, ref)
 
     tree = commit.tree
+    if not tree:
+        abort(404)
     editorconfig = EditorConfig(git_repo, tree, path)
 
     path = path.split("/")
