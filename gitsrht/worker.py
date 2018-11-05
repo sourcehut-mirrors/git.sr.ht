@@ -75,7 +75,7 @@ def submit_builds(repo, git_repo, commit):
                 # TODO: cgit replacement
                 html.escape(first_line(commit.message)),
                 str(commit.id)[:7],
-                "{}/{}/{}/commit?id={}".format(
+                "{}/{}/{}/commit/{}".format(
                     git_sr_ht,
                     "~" + repo.owner.username,
                     repo.name,
