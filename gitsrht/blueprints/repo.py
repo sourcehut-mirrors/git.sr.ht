@@ -29,7 +29,7 @@ def get_readme(repo, tip):
     readme = tip.tree["README.md"]
     if readme.type != "blob":
         return None
-    key = f"git.sr.ht:git:markdown:{readme.id.hex}:v2"
+    key = f"git.sr.ht:git:markdown:{readme.id.hex}:v3"
     html = redis.get(key)
     if html:
         return Markup(html.decode())
