@@ -49,16 +49,25 @@
       {% for entry in tree %}
       <div class="mode">
         <span title="{{"{0:0o}".format(entry.filemode)}}">
+          {% if entry.filemode == 57344 %}
+          {# git submodule #}
+          m---------
+          {% else %}
           {{stat.filemode(entry.filemode)}}
+          {% endif %}
         </span>
       </div>
       <div class="name {{entry.type}}">
+        {% if entry.type == "commit" %}
+        {{entry.name}} @ {{ entry.id }}
+        {% else %}
         <a href="{{url_for("repo.tree",
           owner=repo.owner.canonical_name, repo=repo.name, ref=ref,
           path=path_join(*(path + [entry.name])))}}"
         >
           {{entry.name}}{% if entry.type == "tree" %}/{% endif %}
         </a>
+        {% endif %}
       </div>
       <div class="commit">
         {% if entry.commit %}
