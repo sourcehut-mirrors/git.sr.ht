@@ -1,7 +1,7 @@
 from collections import deque
 from datetime import datetime, timedelta, timezone
 from gitsrht.redis import redis
-from pygit2 import Repository, Tag
+from pygit2 import Repository as GitRepository, Tag
 from jinja2 import Markup, escape
 from stat import filemode
 import pygit2
@@ -20,16 +20,18 @@ def commit_time(commit):
     diff = datetime.now(timezone.utc) - tzaware
     return datetime.utcnow() - diff
 
-# TODO: this is no longer cached so we should probably get rid of it
-def CachedRepository(path):
-    return _CachedRepository(path)
-
 def _get_ref(repo, ref):
     return repo._get(ref)
 
-class _CachedRepository(Repository):
+class Repository(GitRepository):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        self.free()
 
     def get(self, ref):
         return _get_ref(self, ref)

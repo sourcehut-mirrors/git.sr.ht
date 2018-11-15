@@ -12,7 +12,8 @@ from flask_login import current_user
 from gitsrht.access import get_repo, has_access, UserAccess
 from gitsrht.editorconfig import EditorConfig
 from gitsrht.redis import redis
-from gitsrht.git import CachedRepository, commit_time, annotate_tree, diffstat
+from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
+from gitsrht.git import diffstat
 from gitsrht.types import User, Repository, Redirect
 from io import BytesIO
 from pygments import highlight
@@ -86,30 +87,30 @@ def get_last_3_commits(commit):
 @repo.route("/<owner>/<repo>")
 def summary(owner, repo):
     owner, repo = get_repo_or_redir(owner, repo)
-    git_repo = CachedRepository(repo.path)
-    base = (cfg("git.sr.ht", "origin")
-        .replace("http://", "")
-        .replace("https://", ""))
-    clone_urls = [
-        url.format(base, owner.canonical_name, repo.name)
-        for url in ["https://{}/{}/{}", "git@{}:{}/{}"]
-    ]
-    if git_repo.is_empty:
-        return render_template("empty-repo.html", owner=owner, repo=repo,
-                clone_urls=clone_urls)
-    default_branch = git_repo.default_branch()
-    tip = git_repo.get(default_branch.target)
-    commits = get_last_3_commits(tip)
-    readme = get_readme(git_repo, tip)
-    tags = [(ref, git_repo.get(git_repo.references[ref].target))
-        for ref in git_repo.listall_references()
-        if ref.startswith("refs/tags/")]
-    tags = sorted(tags, key=lambda c: commit_time(c[1]), reverse=True)
-    latest_tag = tags[0] if len(tags) else None
-    return render_template("summary.html", view="summary",
-            owner=owner, repo=repo, readme=readme, commits=commits,
-            clone_urls=clone_urls, latest_tag=latest_tag,
-            default_branch=default_branch)
+    with GitRepository(repo.path) as git_repo:
+        base = (cfg("git.sr.ht", "origin")
+            .replace("http://", "")
+            .replace("https://", ""))
+        clone_urls = [
+            url.format(base, owner.canonical_name, repo.name)
+            for url in ["https://{}/{}/{}", "git@{}:{}/{}"]
+        ]
+        if git_repo.is_empty:
+            return render_template("empty-repo.html", owner=owner, repo=repo,
+                    clone_urls=clone_urls)
+        default_branch = git_repo.default_branch()
+        tip = git_repo.get(default_branch.target)
+        commits = get_last_3_commits(tip)
+        readme = get_readme(git_repo, tip)
+        tags = [(ref, git_repo.get(git_repo.references[ref].target))
+            for ref in git_repo.listall_references()
+            if ref.startswith("refs/tags/")]
+        tags = sorted(tags, key=lambda c: commit_time(c[1]), reverse=True)
+        latest_tag = tags[0] if len(tags) else None
+        return render_template("summary.html", view="summary",
+                owner=owner, repo=repo, readme=readme, commits=commits,
+                clone_urls=clone_urls, latest_tag=latest_tag,
+                default_branch=default_branch)
 
 def lookup_ref(git_repo, ref):
     ref = ref or git_repo.default_branch().name[len("refs/heads/"):]
@@ -128,110 +129,110 @@ def lookup_ref(git_repo, ref):
 @repo.route("/<owner>/<repo>/tree/<ref>/<path:path>")
 def tree(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
-    git_repo = CachedRepository(repo.path)
-    commit, ref = lookup_ref(git_repo, ref)
+    with GitRepository(repo.path) as git_repo:
+        commit, ref = lookup_ref(git_repo, ref)
 
-    tree = commit.tree
-    if not tree:
-        abort(404)
-    editorconfig = EditorConfig(git_repo, tree, path)
-
-    path = path.split("/")
-    for part in path:
-        if part == "":
-            continue
-        if part not in tree:
+        tree = commit.tree
+        if not tree:
             abort(404)
-        entry = tree[part]
-        if entry.type == "blob":
-            tree = annotate_tree(git_repo, tree, commit)
-            commit = next(e.commit for e in tree if e.name == entry.name)
-            blob = git_repo.get(entry.id)
-            data = None
-            if not blob.is_binary:
-                try:
-                    data = blob.data.decode()
-                except:
-                    data = '[unable to decode]'
-            return render_template("blob.html", view="tree",
-                    owner=owner, repo=repo, ref=ref, path=path, entry=entry,
-                    blob=blob, data=data, commit=commit,
-                    highlight_file=_highlight_file,
-                    editorconfig=editorconfig)
-        tree = git_repo.get(entry.id)
+        editorconfig = EditorConfig(git_repo, tree, path)
 
-    tree = annotate_tree(git_repo, tree, commit)
-    tree = sorted(tree, key=lambda e: e.name)
+        path = path.split("/")
+        for part in path:
+            if part == "":
+                continue
+            if part not in tree:
+                abort(404)
+            entry = tree[part]
+            if entry.type == "blob":
+                tree = annotate_tree(git_repo, tree, commit)
+                commit = next(e.commit for e in tree if e.name == entry.name)
+                blob = git_repo.get(entry.id)
+                data = None
+                if not blob.is_binary:
+                    try:
+                        data = blob.data.decode()
+                    except:
+                        data = '[unable to decode]'
+                return render_template("blob.html", view="tree",
+                        owner=owner, repo=repo, ref=ref, path=path, entry=entry,
+                        blob=blob, data=data, commit=commit,
+                        highlight_file=_highlight_file,
+                        editorconfig=editorconfig)
+            tree = git_repo.get(entry.id)
 
-    return render_template("tree.html", view="tree", owner=owner, repo=repo,
-            ref=ref, commit=commit, tree=tree, path=path)
+        tree = annotate_tree(git_repo, tree, commit)
+        tree = sorted(tree, key=lambda e: e.name)
+
+        return render_template("tree.html", view="tree", owner=owner, repo=repo,
+                ref=ref, commit=commit, tree=tree, path=path)
 
 @repo.route("/<owner>/<repo>/blob/<ref>/<path:path>")
 def raw_blob(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
-    git_repo = CachedRepository(repo.path)
-    commit, ref = lookup_ref(git_repo, ref)
+    with GitRepository(repo.path) as git_repo:
+        commit, ref = lookup_ref(git_repo, ref)
 
-    blob = None
-    entry = None
-    tree = commit.tree
-    path = path.split("/")
-    for part in path:
-        if part == "":
-            continue
-        if part not in tree:
+        blob = None
+        entry = None
+        tree = commit.tree
+        path = path.split("/")
+        for part in path:
+            if part == "":
+                continue
+            if part not in tree:
+                abort(404)
+            entry = tree[part]
+            if entry.type == "blob":
+                tree = annotate_tree(git_repo, tree, commit)
+                commit = next(e.commit for e in tree if e.name == entry.name)
+                blob = git_repo.get(entry.id)
+                break
+            tree = git_repo.get(entry.id)
+
+        if not blob:
             abort(404)
-        entry = tree[part]
-        if entry.type == "blob":
-            tree = annotate_tree(git_repo, tree, commit)
-            commit = next(e.commit for e in tree if e.name == entry.name)
-            blob = git_repo.get(entry.id)
-            break
-        tree = git_repo.get(entry.id)
 
-    if not blob:
-        abort(404)
-
-    return send_file(BytesIO(blob.data),
-            as_attachment=blob.is_binary, attachment_filename=entry.name)
+        return send_file(BytesIO(blob.data),
+                as_attachment=blob.is_binary, attachment_filename=entry.name)
 
 @repo.route("/<owner>/<repo>/archive/<ref>.tar.gz")
 def archive(owner, repo, ref):
     owner, repo = get_repo_or_redir(owner, repo)
-    git_repo = CachedRepository(repo.path)
-    commit, ref = lookup_ref(git_repo, ref)
+    with GitRepository(repo.path) as git_repo:
+        commit, ref = lookup_ref(git_repo, ref)
 
-    path = f"/tmp/{commit.id.hex}{binascii.hexlify(os.urandom(8))}.tar.gz"
-    try:
-        args = [
-            "git",
-            "--git-dir", repo.path,
-            "archive",
-            "--format=tar.gz",
-            "--prefix", f"{repo.name}-{ref}/",
-            "-o", path, ref
-        ]
-        print(args)
-        subp = subprocess.run(args, timeout=30,
-                stdout=sys.stdout, stderr=sys.stderr)
-    except:
+        path = f"/tmp/{commit.id.hex}{binascii.hexlify(os.urandom(8))}.tar.gz"
         try:
-            os.unlink(path)
+            args = [
+                "git",
+                "--git-dir", repo.path,
+                "archive",
+                "--format=tar.gz",
+                "--prefix", f"{repo.name}-{ref}/",
+                "-o", path, ref
+            ]
+            print(args)
+            subp = subprocess.run(args, timeout=30,
+                    stdout=sys.stdout, stderr=sys.stderr)
         except:
-            pass
-        raise
+            try:
+                os.unlink(path)
+            except:
+                pass
+            raise
 
-    if subp.returncode != 0:
-        try:
-            os.unlink(path)
-        except:
-            pass
-        return "Error preparing archive", 500
+        if subp.returncode != 0:
+            try:
+                os.unlink(path)
+            except:
+                pass
+            return "Error preparing archive", 500
 
-    f = open(path, "rb")
-    os.unlink(path)
-    return send_file(f, mimetype="application/tar+gzip", as_attachment=True,
-            attachment_filename=f"{repo.name}-{ref}.tar.gz")
+        f = open(path, "rb")
+        os.unlink(path)
+        return send_file(f, mimetype="application/tar+gzip", as_attachment=True,
+                attachment_filename=f"{repo.name}-{ref}.tar.gz")
 
 class _AnnotatedRef:
     def __init__(self, repo, ref):
@@ -269,115 +270,115 @@ def collect_refs(git_repo):
 @repo.route("/<owner>/<repo>/log/<ref>/<path:path>")
 def log(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
-    git_repo = CachedRepository(repo.path)
-    commit, ref = lookup_ref(git_repo, ref)
-    refs = collect_refs(git_repo)
+    with GitRepository(repo.path) as git_repo:
+        commit, ref = lookup_ref(git_repo, ref)
+        refs = collect_refs(git_repo)
 
-    from_id = request.args.get("from")
-    if from_id:
-        commit = git_repo.get(from_id)
+        from_id = request.args.get("from")
+        if from_id:
+            commit = git_repo.get(from_id)
 
-    commits_per_page = 20
-    commits = list()
-    for commit in git_repo.walk(commit.id, pygit2.GIT_SORT_TIME):
-        commits.append(commit)
-        if len(commits) >= commits_per_page + 1:
-            break
+        commits_per_page = 20
+        commits = list()
+        for commit in git_repo.walk(commit.id, pygit2.GIT_SORT_TIME):
+            commits.append(commit)
+            if len(commits) >= commits_per_page + 1:
+                break
 
-    return render_template("log.html", view="log",
-            owner=owner, repo=repo, ref=ref, path=path,
-            commits=commits, refs=refs)
+        return render_template("log.html", view="log",
+                owner=owner, repo=repo, ref=ref, path=path,
+                commits=commits, refs=refs)
 
 @repo.route("/<owner>/<repo>/commit/<ref>")
 def commit(owner, repo, ref):
     owner, repo = get_repo_or_redir(owner, repo)
-    git_repo = CachedRepository(repo.path)
-    commit, ref = lookup_ref(git_repo, ref)
-    try:
-        parent = git_repo.revparse_single(ref + "^")
-        diff = git_repo.diff(parent, ref)
-    except KeyError:
-        parent = None
-        diff = commit.tree.diff_to_tree(swap=True)
-    diff.find_similar(pygit2.GIT_DIFF_FIND_RENAMES)
-    refs = collect_refs(git_repo)
-    return render_template("commit.html", view="log",
-        owner=owner, repo=repo, ref=ref, refs=refs,
-        commit=commit, parent=parent,
-        diff=diff, diffstat=diffstat, pygit2=pygit2)
+    with GitRepository(repo.path) as git_repo:
+        commit, ref = lookup_ref(git_repo, ref)
+        try:
+            parent = git_repo.revparse_single(ref + "^")
+            diff = git_repo.diff(parent, ref)
+        except KeyError:
+            parent = None
+            diff = commit.tree.diff_to_tree(swap=True)
+        diff.find_similar(pygit2.GIT_DIFF_FIND_RENAMES)
+        refs = collect_refs(git_repo)
+        return render_template("commit.html", view="log",
+            owner=owner, repo=repo, ref=ref, refs=refs,
+            commit=commit, parent=parent,
+            diff=diff, diffstat=diffstat, pygit2=pygit2)
 
 @repo.route("/<owner>/<repo>/commit/<ref>.patch")
 def patch(owner, repo, ref):
     owner, repo = get_repo_or_redir(owner, repo)
-    git_repo = CachedRepository(repo.path)
-    commit, ref = lookup_ref(git_repo, ref)
-    try:
-        commit = git_repo.revparse_single(ref)
-    except KeyError:
-        abort(404)
-    if isinstance(commit, pygit2.Tag):
-        ref = git_repo.get(commit.target)
-    subp = subprocess.run([
-        "git",
-        "--git-dir", repo.path,
-        "format-patch",
-        "--stdout", "-1",
-        ref
-    ], timeout=10, stdout=subprocess.PIPE, stderr=sys.stderr)
-    if subp.returncode != 0:
-        return "Error preparing patch", 500
-    return Response(subp.stdout, mimetype='text/plain')
+    with GitRepository(repo.path) as git_repo:
+        commit, ref = lookup_ref(git_repo, ref)
+        try:
+            commit = git_repo.revparse_single(ref)
+        except KeyError:
+            abort(404)
+        if isinstance(commit, pygit2.Tag):
+            ref = git_repo.get(commit.target)
+        subp = subprocess.run([
+            "git",
+            "--git-dir", repo.path,
+            "format-patch",
+            "--stdout", "-1",
+            ref
+        ], timeout=10, stdout=subprocess.PIPE, stderr=sys.stderr)
+        if subp.returncode != 0:
+            return "Error preparing patch", 500
+        return Response(subp.stdout, mimetype='text/plain')
 
 @repo.route("/<owner>/<repo>/refs")
 def refs(owner, repo):
     owner, repo = get_repo_or_redir(owner, repo)
-    git_repo = CachedRepository(repo.path)
-    tags = [(
-            ref,
-            git_repo.get(git_repo.references[ref].target)
-        ) for ref in git_repo.references if ref.startswith("refs/tags/")]
-    def _tag_key(tag):
-        if isinstance(tag[1], pygit2.Commit):
-            return tag[1].commit_time
-        return tag[1].tagger.time
-    tags = sorted(tags, key=_tag_key, reverse=True)
-    branches = [(
-            branch,
-            git_repo.branches[branch],
-            git_repo.get(git_repo.branches[branch].target)
-        ) for branch in git_repo.branches]
-    branches = sorted(branches, key=lambda b: b[2].commit_time, reverse=True)
+    with GitRepository(repo.path) as git_repo:
+        tags = [(
+                ref,
+                git_repo.get(git_repo.references[ref].target)
+            ) for ref in git_repo.references if ref.startswith("refs/tags/")]
+        def _tag_key(tag):
+            if isinstance(tag[1], pygit2.Commit):
+                return tag[1].commit_time
+            return tag[1].tagger.time
+        tags = sorted(tags, key=_tag_key, reverse=True)
+        branches = [(
+                branch,
+                git_repo.branches[branch],
+                git_repo.get(git_repo.branches[branch].target)
+            ) for branch in git_repo.branches]
+        branches = sorted(branches, key=lambda b: b[2].commit_time, reverse=True)
 
-    results_per_page = 10
-    page = request.args.get("page")
-    total_results = len(tags)
-    total_pages = total_results // results_per_page + 1
-    if total_results % results_per_page == 0:
-        total_pages -= 1
-    if page is not None:
-        try:
-            page = int(page) - 1
-            tags = tags[page*results_per_page:page*results_per_page+results_per_page]
-        except:
+        results_per_page = 10
+        page = request.args.get("page")
+        total_results = len(tags)
+        total_pages = total_results // results_per_page + 1
+        if total_results % results_per_page == 0:
+            total_pages -= 1
+        if page is not None:
+            try:
+                page = int(page) - 1
+                tags = tags[page*results_per_page:page*results_per_page+results_per_page]
+            except:
+                page = 0
+        else:
             page = 0
-    else:
-        page = 0
-        tags = tags[:results_per_page]
+            tags = tags[:results_per_page]
 
-    return render_template("refs.html", view="refs",
-            owner=owner, repo=repo, tags=tags, branches=branches,
-            git_repo=git_repo, isinstance=isinstance, pygit2=pygit2,
-            page=page + 1, total_pages=total_pages)
+        return render_template("refs.html", view="refs",
+                owner=owner, repo=repo, tags=tags, branches=branches,
+                git_repo=git_repo, isinstance=isinstance, pygit2=pygit2,
+                page=page + 1, total_pages=total_pages)
 
 @repo.route("/<owner>/<repo>/refs/<ref>")
 def ref(owner, repo, ref):
     owner, repo = get_repo_or_redir(owner, repo)
-    git_repo = CachedRepository(repo.path)
-    try:
-        tag = git_repo.revparse_single(ref)
-    except KeyError:
-        abort(404)
-    except ValueError:
-        abort(404)
-    return render_template("ref.html", view="refs",
-            owner=owner, repo=repo, git_repo=git_repo, tag=tag)
+    with GitRepository(repo.path) as git_repo:
+        try:
+            tag = git_repo.revparse_single(ref)
+        except KeyError:
+            abort(404)
+        except ValueError:
+            abort(404)
+        return render_template("ref.html", view="refs",
+                owner=owner, repo=repo, git_repo=git_repo, tag=tag)
