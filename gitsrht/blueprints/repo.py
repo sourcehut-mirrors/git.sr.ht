@@ -194,7 +194,9 @@ def raw_blob(owner, repo, ref, path):
             abort(404)
 
         return send_file(BytesIO(blob.data),
-                as_attachment=blob.is_binary, attachment_filename=entry.name)
+                as_attachment=blob.is_binary,
+                attachment_filename=entry.name,
+                mimetype="text/plain" if not blob.is_binary else None)
 
 @repo.route("/<owner>/<repo>/archive/<ref>.tar.gz")
 def archive(owner, repo, ref):
