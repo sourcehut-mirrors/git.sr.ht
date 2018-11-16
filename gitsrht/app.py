@@ -17,7 +17,7 @@ import gitsrht.oauth
 from gitsrht.git import commit_time, trim_commit
 
 def lookup_user(email):
-    return User.query.filter(User.email == email).first()
+    return User.query.filter(User.email == email).one_or_none()
 
 class GitApp(SrhtFlask):
     def __init__(self):
