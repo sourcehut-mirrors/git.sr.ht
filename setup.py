@@ -3,8 +3,14 @@ from setuptools import setup
 import subprocess
 import glob
 import os
+import site
+import sys
 
-subprocess.call(["make"])
+site_packages = site.getsitepackages()[0]
+srht_path = os.environ.get("SRHT_PATH", os.path.join(site_packages, "/srht"))
+subp = subprocess.run(["make", "SRHT_PATH=" + srht_path])
+if subp.returncode != 0:
+    sys.exit(subp.returncode)
 
 ver = os.environ.get("PKGVER") or subprocess.run(['git', 'describe', '--tags'],
       stdout=subprocess.PIPE).stdout.decode().strip()
