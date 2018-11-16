@@ -29,6 +29,7 @@
                 repo.name
               }}/settings/access/revoke/{{ grant.id }}"
             >
+              {{csrf_token()}}
               <button type="submit" class="btn btn-danger btn-fill">Revoke</button>
             </form>
           </td>
@@ -39,6 +40,7 @@
     <h4>Grant Access</h4>
     {% endif %}
     <form method="POST">
+      {{csrf_token()}}
       <div class="form-group">
         <label for="user">User</label>
         <input
