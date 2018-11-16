@@ -7,7 +7,7 @@ import site
 import sys
 
 site_packages = site.getsitepackages()[0]
-srht_path = os.environ.get("SRHT_PATH", os.path.join(site_packages, "/srht"))
+srht_path = os.path.join(site_packages, "srht")
 subp = subprocess.run(["make", "SRHT_PATH=" + srht_path])
 if subp.returncode != 0:
     sys.exit(subp.returncode)
