@@ -28,7 +28,7 @@ repo = Blueprint('repo', __name__)
 def authorize_http_access():
     original_uri = request.headers.get("X-Original-URI")
     original_uri = original_uri.split("/")
-    owner, repo = original_url[1], original_uri[2]
+    owner, repo = original_uri[1], original_uri[2]
     owner, repo = get_repo(owner, repo)
     if not repo:
         return "authorized", 200
