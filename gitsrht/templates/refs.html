@@ -11,6 +11,15 @@
     href="{{ root }}{{ repo|refs_rss_url }}">
 {% endblock %}
 
+{% block tabs_extra %}
+  <li class="flex-grow-1 d-none d-sm-block"></li>
+  <li class="nav-item">
+    <a class="nav-link active" href="{{ repo|refs_rss_url }}">
+      {{ icon('rss') }} RSS
+    </a>
+  </li>
+{% endblock %}
+
 {% block content %}
 <div class="container">
   <div class="row">
