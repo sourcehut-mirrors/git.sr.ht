@@ -73,3 +73,4 @@ tasks:
   - deploy: |
       sshopts="-o StrictHostKeyChecking=no"
       ssh $sshopts deploy@$master doas apk upgrade -U
+      ssh $sshopts deploy@$master doas service git.sr.ht restart
