@@ -15,6 +15,7 @@ from gitsrht.redis import redis
 from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
 from gitsrht.git import diffstat
 from gitsrht.types import User, Repository, Redirect
+from gitsrht.rss import generate_feed
 from io import BytesIO
 from pygments import highlight
 from pygments.lexers import guess_lexer_for_filename, TextLexer
@@ -278,6 +279,15 @@ def collect_refs(git_repo):
         refs[_ref.commit.id.hex].append(_ref)
     return refs
 
+def get_log(git_repo, commit, commits_per_page=20):
+    commits = list()
+    for commit in git_repo.walk(commit.id, pygit2.GIT_SORT_TIME):
+        commits.append(commit)
+        if len(commits) >= commits_per_page + 1:
+            break
+
+    return commits
+
 @repo.route("/<owner>/<repo>/log", defaults={"ref": None, "path": ""})
 @repo.route("/<owner>/<repo>/log/<ref>", defaults={"path": ""})
 @repo.route("/<owner>/<repo>/log/<ref>/<path:path>")
@@ -291,16 +301,30 @@ def log(owner, repo, ref, path):
         if from_id:
             commit = git_repo.get(from_id)
 
-        commits_per_page = 20
-        commits = list()
-        for commit in git_repo.walk(commit.id, pygit2.GIT_SORT_TIME):
-            commits.append(commit)
-            if len(commits) >= commits_per_page + 1:
-                break
+        commits = get_log(git_repo, commit)
 
         return render_template("log.html", view="log",
                 owner=owner, repo=repo, ref=ref, path=path,
                 commits=commits, refs=refs)
+
+
+@repo.route("/<owner>/<repo>/log/rss.xml", defaults={"ref": None})
+@repo.route("/<owner>/<repo>/log/<ref>/rss.xml")
+def log_rss(owner, repo, ref):
+    owner, repo = get_repo_or_redir(owner, repo)
+    with GitRepository(repo.path) as git_repo:
+        commit, ref = lookup_ref(git_repo, ref)
+        commits = get_log(git_repo, commit)
+
+    repo_name = f"{repo.owner.canonical_name}/{repo.name}"
+    title = f"{repo_name} log"
+    description = f"Git log for {repo_name} {ref}"
+    link = cfg("git.sr.ht", "origin") + url_for("repo.log",
+        owner=repo.owner.canonical_name,
+        repo=repo.name,
+        ref=ref if ref != "master" else None).replace("%7E", "~")  # hack
+
+    return generate_feed(repo, commits, title, link, description)
 
 @repo.route("/<owner>/<repo>/commit/<ref>")
 def commit(owner, repo, ref):
@@ -382,6 +406,34 @@ def refs(owner, repo):
                 owner=owner, repo=repo, tags=tags, branches=branches,
                 git_repo=git_repo, isinstance=isinstance, pygit2=pygit2,
                 page=page + 1, total_pages=total_pages)
+
+
+@repo.route("/<owner>/<repo>/refs/rss.xml")
+def refs_rss(owner, repo):
+    owner, repo = get_repo_or_redir(owner, repo)
+    with GitRepository(repo.path) as git_repo:
+        references = [
+            git_repo.references[name]
+            for name in git_repo.references
+            if name.startswith("refs/tags/")
+        ]
+
+    def _ref_sort_key(ref):
+        target = git_repo.get(ref.target)
+        author = target.author if hasattr(target, 'author') else target.tagger
+        return author.time + author.offset
+
+    references = sorted(references, key=_ref_sort_key, reverse=True)[:20]
+
+    repo_name = f"{repo.owner.canonical_name}/{repo.name}"
+    title = f"{repo_name} log"
+    description = f"Git refs for {repo_name}"
+    link = cfg("git.sr.ht", "origin") + url_for("repo.refs",
+        owner=repo.owner.canonical_name,
+        repo=repo.name).replace("%7E", "~")  # hack
+
+    return generate_feed(repo, references, title, link, description)
+
 
 @repo.route("/<owner>/<repo>/refs/<ref>")
 def ref(owner, repo, ref):

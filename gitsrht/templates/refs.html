@@ -3,6 +3,16 @@
 {% block title %}
 <title>{{repo.owner.canonical_name}}/{{repo.name}} refs - {{cfg("sr.ht", "site-name")}} git</title>
 {% endblock %}
+
+{% block head %}
+  <link rel="alternate"
+    title="{{ repo.owner.canonical_name }}/{{ repo.name }} refs"
+    type="application/rss+xml"
+    href="{{ root }}{{ url_for('repo.refs_rss',
+      owner=repo.owner.canonical_name,
+      repo=repo.name) }}">
+{% endblock %}
+
 {% block content %}
 <div class="container">
   <div class="row">
