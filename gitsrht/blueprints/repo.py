@@ -226,7 +226,6 @@ def archive(owner, repo, ref):
                 "--prefix", f"{repo.name}-{ref}/",
                 "-o", path, ref
             ]
-            print(args)
             subp = subprocess.run(args, timeout=30,
                     stdout=sys.stdout, stderr=sys.stderr)
         except:
