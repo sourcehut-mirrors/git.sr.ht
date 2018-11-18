@@ -72,4 +72,4 @@ tasks:
         APKINDEX.tar.gz $repo_server:$repo_path/
   - deploy: |
       sshopts="-o StrictHostKeyChecking=no"
-      ssh deploy@$master doas apk upgrade -U
+      ssh $sshopts deploy@$master doas apk upgrade -U
