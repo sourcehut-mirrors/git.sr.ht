@@ -14,6 +14,7 @@ from gitsrht.types import User
 db.init()
 
 import gitsrht.oauth
+from gitsrht import urls
 from gitsrht.git import commit_time, trim_commit
 
 def lookup_user(email):
@@ -78,3 +79,6 @@ class GitApp(SrhtFlask):
         return user
 
 app = GitApp()
+
+app.add_template_filter(urls.log_rss_url)
+app.add_template_filter(urls.refs_rss_url)
