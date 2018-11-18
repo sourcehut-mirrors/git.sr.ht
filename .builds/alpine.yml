@@ -14,6 +14,7 @@ environment:
   project: git.sr.ht
   repo_server: deploy@mirror.sr.ht
   repo_path: /var/www/mirror.sr.ht/alpine/sr.ht/x86_64
+  master: git.sr.ht
 secrets:
   - fa00a8d3-7b63-42d5-8060-3bb31c3e3018 # ssh deploy key
   - d0adc1d4-af78-4852-920f-1134392f5d10 # package signing key
@@ -69,3 +70,6 @@ tasks:
       abuild-sign -k ~/.abuild/alpine@sr.ht.rsa APKINDEX.tar.gz
       rsync --blocking-io -rPe "ssh $sshopts" \
         APKINDEX.tar.gz $repo_server:$repo_path/
+  - deploy: |
+      sshopts="-o StrictHostKeyChecking=no"
+      ssh deploy@$master doas apk upgrade -U
