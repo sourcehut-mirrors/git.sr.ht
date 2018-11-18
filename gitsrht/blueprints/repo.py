@@ -426,7 +426,7 @@ def refs_rss(owner, repo):
     references = sorted(references, key=_ref_sort_key, reverse=True)[:20]
 
     repo_name = f"{repo.owner.canonical_name}/{repo.name}"
-    title = f"{repo_name} log"
+    title = f"{repo_name} refs"
     description = f"Git refs for {repo_name}"
     link = cfg("git.sr.ht", "origin") + url_for("repo.refs",
         owner=repo.owner.canonical_name,
