@@ -18,7 +18,7 @@ from gitsrht.types import User, Repository, Redirect
 from gitsrht.rss import generate_feed
 from io import BytesIO
 from pygments import highlight
-from pygments.lexers import guess_lexer_for_filename, TextLexer
+from pygments.lexers import guess_lexer, guess_lexer_for_filename, TextLexer
 from pygments.formatters import HtmlFormatter
 from srht.config import cfg
 from srht.markdown import markdown
@@ -55,15 +55,37 @@ def get_readme(repo, tip):
     redis.setex(key, html, timedelta(days=7))
     return Markup(html)
 
+def _get_shebang(data):
+    if not data.startswith('#!'):
+        return None
+
+    endline = data.find('\n')
+    if endline == -1:
+        shebang = data
+    else:
+        shebang = data[:endline]
+
+    return shebang
+
+def _get_lexer(name, data):
+    try:
+        return guess_lexer_for_filename(name, data)
+    except pygments.util.ClassNotFound:
+        try:
+            shebang = _get_shebang(data)
+            if not shebang:
+                return TextLexer()
+
+            return guess_lexer(shebang)
+        except pygments.util.ClassNotFound:
+            return TextLexer()
+
 def _highlight_file(name, data, blob_id):
     key = f"git.sr.ht:git:highlight:{blob_id}"
     html = redis.get(key)
     if html:
         return Markup(html.decode())
-    try:
-        lexer = guess_lexer_for_filename(name, data)
-    except pygments.util.ClassNotFound:
-        lexer = TextLexer()
+    lexer = _get_lexer(name, data)
     formatter = HtmlFormatter()
     style = formatter.get_style_defs('.highlight')
     html = f"<style>{style}</style>" + highlight(data, lexer, formatter)
