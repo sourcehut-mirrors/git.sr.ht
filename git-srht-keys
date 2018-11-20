@@ -23,7 +23,8 @@ u = User.query.filter(User.username == username).first()
 if not u:
     sys.stderr.write("Unknown user {}\n", username)
     sys.exit(1)
-shell = os.path.join(os.path.dirname(sys.argv[0]), "git-srht-shell")
+default_shell = os.path.join(os.path.dirname(sys.argv[0]), "git-srht-shell")
+shell = cfg("git.sr.ht", "shell", default=default_shell)
 keys = "command=\"{} '{}' '{}'\",".format(shell, u.id, b64key) + \
     "no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty " + \
     "{} {} {}".format(key_type, b64key, username) + "\n"
