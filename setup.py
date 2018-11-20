@@ -29,7 +29,7 @@ setup(
   author = 'Drew DeVault',
   author_email = 'sir@cmpwn.com',
   url = 'https://git.sr.ht/~sircmpwn/git.sr.ht',
-  install_requires = ['srht', 'flask-login', 'redis', 'pygit2', 'pygments'],
+  install_requires = ['srht', 'flask-login', 'redis<3', 'pygit2', 'pygments'],
   license = 'AGPL-3.0',
   package_data={
       'gitsrht': [
