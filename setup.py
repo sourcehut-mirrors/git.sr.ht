@@ -6,18 +6,9 @@ import os
 import site
 import sys
 
-srht_path = os.getenv("SRHT_PATH")
-if not srht_path:
-    if hasattr(site, 'getsitepackages'):
-        site_packages = site.getsitepackages()[0]
-        srht_path = os.path.join(site_packages, "srht")
-    else:
-        raise Exception("You're running inside a virtual environment. "
-            "Due to `virtualenv` limitations, you need to set the "
-            "`SRHT_PATH` environment variable to the path of the "
-            "`coresrht` module.")
-
-subp = subprocess.run(["make", "SRHT_PATH=" + srht_path], cwd=os.path.dirname(__file__))
+site_packages = site.getsitepackages()[0]
+srht_path = os.path.join(site_packages, "srht")
+subp = subprocess.run(["make", "SRHT_PATH=" + srht_path])
 if subp.returncode != 0:
     sys.exit(subp.returncode)
 
