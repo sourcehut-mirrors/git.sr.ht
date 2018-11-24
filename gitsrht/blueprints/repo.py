@@ -16,8 +16,9 @@ from gitsrht.editorconfig import EditorConfig
 from gitsrht.redis import redis
 from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
 from gitsrht.git import diffstat
-from gitsrht.types import User, Repository, Redirect
+from gitsrht.repos import get_repo_or_redir
 from gitsrht.rss import generate_feed
+from gitsrht.types import User, Repository, Redirect
 from io import BytesIO
 from pygments import highlight
 from pygments.lexers import guess_lexer, guess_lexer_for_filename, TextLexer
@@ -93,23 +94,6 @@ def _highlight_file(name, data, blob_id):
     html = f"<style>{style}</style>" + highlight(data, lexer, formatter)
     redis.setex(key, html, timedelta(days=7))
     return Markup(html)
-
-def get_repo_or_redir(owner, repo):
-    owner, repo = get_repo(owner, repo)
-    if not repo:
-        abort(404)
-    if not has_access(repo, UserAccess.read):
-        abort(401)
-    if isinstance(repo, Redirect):
-        view_args = request.view_args
-        if not "repo" in view_args or not "owner" in view_args:
-            return redirect(url_for(".summary",
-                owner=repo.new_repo.owner.canonical_name,
-                repo=repo.new_repo.name))
-        view_args["owner"] = repo.new_repo.owner.canonical_name
-        view_args["repo"] = repo.new_repo.name
-        abort(redirect(url_for(request.endpoint, **view_args)))
-    return owner, repo
 
 def get_last_3_commits(commit):
     commits = [commit]
@@ -471,73 +455,3 @@ def ref(owner, repo, ref):
             abort(404)
         return render_template("ref.html", view="refs",
                 owner=owner, repo=repo, git_repo=git_repo, tag=tag)
-
-def _week(time):
-    """Used to group contributions by week"""
-    return time.strftime('%Y/%W')
-
-@lru_cache(maxsize=256)
-def _user(email):
-    """Used to grouped contributions by either username or email."""
-    email = email.lower()
-    user = User.query.filter_by(email=email).one_or_none()
-    return (None, user.username) if user else (email, None)
-
-def get_contributions(git_repo, tip, since):
-    contributions = defaultdict(lambda: {
-        "commits": 0,
-        "weekly": defaultdict(lambda: 0)
-    })
-
-    since_ts = since.timestamp()
-    for commit in git_repo.walk(tip.id, pygit2.GIT_SORT_TIME):
-        timestamp = commit.commit_time + commit.commit_time_offset
-        if timestamp < since_ts:
-            break
-
-        week = _week(datetime.fromtimestamp(timestamp))
-        user = _user(commit.author.email)
-        contributions[user]['commits'] += 1
-        contributions[user]['weekly'][week] += 1
-
-    return contributions
-
-def get_contrib_chart_data(contributions):
-    # Max number of commits by a contributor in a single week
-    max_commits = max(
-        max(commits for _, commits in data['weekly'].items())
-        for _, data in contributions.items())
-
-    all_weeks = [_week(date.today() - timedelta(weeks=51 - n))
-        for n in range(52)]
-
-    def bars(contributions):
-        bars = list()
-        for ordinal, week in enumerate(all_weeks):
-            if week in contributions:
-                week_commits = contributions[week]
-                bars.append({
-                    "ordinal": ordinal,
-                    "week": week,
-                    "commits": week_commits,
-                    "height": 100 * week_commits // max_commits
-                })
-        return bars
-
-    chart_data = [(email, username, data['commits'], bars(data['weekly']))
-        for (email, username), data in contributions.items()]
-    return sorted(chart_data, key=lambda x: x[2], reverse=True)
-
-@repo.route("/<owner>/<repo>/contributors")
-def contributors(owner, repo):
-    owner, repo = get_repo_or_redir(owner, repo)
-    since = datetime.now() - timedelta(weeks=52)
-
-    with GitRepository(repo.path) as git_repo:
-        default_branch = git_repo.default_branch()
-        tip = git_repo.get(default_branch.target)
-        contributions = get_contributions(git_repo, tip, since)
-        chart_data = get_contrib_chart_data(contributions)
-
-    return render_template("contributors.html", view="contributors",
-        owner=owner, repo=repo, chart_data=chart_data)

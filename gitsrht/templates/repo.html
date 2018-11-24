@@ -36,7 +36,7 @@
             repo=repo.name), "refs")}}
         </li>
         <li class="nav-item">
-          {{link(url_for("repo.contributors",
+          {{link(url_for("stats.contributors",
             owner=repo.owner.canonical_name,
             repo=repo.name), "contributors")}}
         </li>

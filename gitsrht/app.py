@@ -29,11 +29,13 @@ class GitApp(SrhtFlask):
         from gitsrht.blueprints.api import api
         from gitsrht.blueprints.public import public
         from gitsrht.blueprints.repo import repo
+        from gitsrht.blueprints.stats import stats
         from gitsrht.blueprints.manage import manage
 
         self.register_blueprint(api)
         self.register_blueprint(public)
         self.register_blueprint(repo)
+        self.register_blueprint(stats)
         self.register_blueprint(manage)
 
         meta_client_id = cfg("git.sr.ht", "oauth-client-id")

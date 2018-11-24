@@ -10,17 +10,19 @@
 {% block head %}
   <style type="text/css">
     svg { background-color: WhiteSmoke }
-    rect { fill: #007bff }
+    rect { fill: #116bdd }
     rect:hover { fill: #dc3545 }
   </style>
 {% endblock %}
 
 {% block content %}
 <div class="container">
-  <p>Contributions in the last 52 weeks</p>
-
+  <p>
+    Contributions to {{repo.owner.canonical_name}}/{{repo.name}}
+    in the last 52 weeks:
+  </p>
   <div class="row">
-  {% for email, username, commits, bars in chart_data %}
+  {% for email, full_name, username, commits, bars in chart_data %}
     <div class="col-md-6">
       <h3>
         {% if username %}
@@ -28,8 +30,9 @@
             ~{{ username }}
           </a>
         {% else %}
-          {{ email }}
+          {{ full_name }}
         {% endif %}
+        <small>{{ commits }} commits</small>
       </h3>
 
       <svg
@@ -42,15 +45,15 @@
           <rect
             x="{{ bar.ordinal * 10 }}"
             y="{{ 100 - bar.height }}%"
-            width="10"
+            width="11"
             height="{{ bar.height }}%"
           >
-            <title>{{ bar.commits }} commits in week {{ bar.week }}</title>
+            <title>
+              {{ bar.commits }} commits in the week of {{ bar.week }}
+            </title>
           </rect>
         {% endfor %}
       </svg>
-
-      <p>Commits: {{ commits }}</p>
     </div>
   {% endfor %}
   </div>

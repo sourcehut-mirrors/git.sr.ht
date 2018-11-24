@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from setuptools import setup
 import subprocess
-import glob
 import os
 import site
 import sys

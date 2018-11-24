@@ -1,7 +1,9 @@
 import subprocess
+from flask import redirect, abort, url_for
+from gitsrht.access import get_repo, has_access, UserAccess
+from gitsrht.types import User, Repository, RepoVisibility, Redirect
 from srht.database import db
 from srht.config import cfg
-from gitsrht.types import Repository, RepoVisibility, Redirect
 import shutil
 import re
 import os
@@ -94,3 +96,20 @@ def delete_repo(repo):
         pass
     db.session.delete(repo)
     db.session.commit()
+
+def get_repo_or_redir(owner, repo):
+    owner, repo = get_repo(owner, repo)
+    if not repo:
+        abort(404)
+    if not has_access(repo, UserAccess.read):
+        abort(401)
+    if isinstance(repo, Redirect):
+        view_args = request.view_args
+        if not "repo" in view_args or not "owner" in view_args:
+            return redirect(url_for(".summary",
+                owner=repo.new_repo.owner.canonical_name,
+                repo=repo.new_repo.name))
+        view_args["owner"] = repo.new_repo.owner.canonical_name
+        view_args["repo"] = repo.new_repo.name
+        abort(redirect(url_for(request.endpoint, **view_args)))
+    return owner, repo
