@@ -1,5 +1,5 @@
 import subprocess
-from flask import redirect, abort, url_for
+from flask import redirect, abort, url_for, request
 from gitsrht.access import get_repo, has_access, UserAccess
 from gitsrht.types import User, Repository, RepoVisibility, Redirect
 from srht.database import db
