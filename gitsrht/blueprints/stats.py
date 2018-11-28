@@ -41,9 +41,12 @@ def get_contributions(git_repo, tip, since):
 
 def get_contrib_chart_data(contributions):
     # Max number of commits by a contributor in a single week
-    max_commits = max(
-        max(commits for _, commits in data['weekly'].items())
-        for _, data in contributions.items())
+    try:
+        max_commits = max(
+            max(commits for _, commits in data['weekly'].items())
+            for _, data in contributions.items())
+    except:
+        max_commits = 0
 
     all_weeks = [_week(date.today() - timedelta(weeks=51 - n))
         for n in range(52)]
