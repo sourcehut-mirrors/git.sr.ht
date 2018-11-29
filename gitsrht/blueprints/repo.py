@@ -389,7 +389,7 @@ def refs(owner, repo):
                 branch,
                 git_repo.branches[branch],
                 git_repo.get(git_repo.branches[branch].target)
-            ) for branch in git_repo.branches]
+            ) for branch in git_repo.branches.local]
         branches = sorted(branches, key=lambda b: b[2].commit_time, reverse=True)
 
         results_per_page = 10
