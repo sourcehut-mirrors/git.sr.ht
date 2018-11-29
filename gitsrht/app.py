@@ -38,6 +38,7 @@ class GitApp(SrhtFlask):
         self.register_blueprint(stats)
         self.register_blueprint(manage)
 
+        self.add_template_filter(urls.clone_urls)
         self.add_template_filter(urls.log_rss_url)
         self.add_template_filter(urls.refs_rss_url)
 

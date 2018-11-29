@@ -108,17 +108,11 @@ def get_last_3_commits(commit):
 @repo.route("/<owner>/<repo>")
 def summary(owner, repo):
     owner, repo = get_repo_or_redir(owner, repo)
+
     with GitRepository(repo.path) as git_repo:
-        base = (cfg("git.sr.ht", "origin")
-            .replace("http://", "")
-            .replace("https://", ""))
-        clone_urls = [
-            url.format(base, owner.canonical_name, repo.name)
-            for url in ["https://{}/{}/{}", "git@{}:{}/{}"]
-        ]
         if git_repo.is_empty:
-            return render_template("empty-repo.html", owner=owner, repo=repo,
-                    clone_urls=clone_urls)
+            return render_template("empty-repo.html", owner=owner, repo=repo)
+
         default_branch = git_repo.default_branch()
         tip = git_repo.get(default_branch.target)
         commits = get_last_3_commits(tip)
@@ -130,8 +124,7 @@ def summary(owner, repo):
         latest_tag = tags[0] if len(tags) else None
         return render_template("summary.html", view="summary",
                 owner=owner, repo=repo, readme=readme, commits=commits,
-                clone_urls=clone_urls, latest_tag=latest_tag,
-                default_branch=default_branch)
+                latest_tag=latest_tag, default_branch=default_branch)
 
 def lookup_ref(git_repo, ref):
     ref = ref or git_repo.default_branch().name[len("refs/heads/"):]

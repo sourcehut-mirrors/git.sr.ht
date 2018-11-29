@@ -51,12 +51,14 @@
     </div>
     <div class="col-md-4">
       <h3>clone</h3>
+      {% with read_only, read_write = repo|clone_urls %}
       <dl>
         <dt>read-only</dt>
-        <dd><a href="{{clone_urls[0]}}">{{clone_urls[0]}}</a></dd>
+        <dd><a href="{{read_only}}">{{read_only}}</a></dd>
         <dt>read/write</dt>
-        <dd>{{clone_urls[1]}}</dd>
+        <dd>{{read_write}}</dd>
       </dl>
+      {% endwith %}
     </div>
   </div>
   {% if readme %}
