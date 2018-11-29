@@ -4,13 +4,10 @@ import pygit2
 import pygments
 import sys
 import subprocess
-from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import timedelta
 from jinja2 import Markup
 from flask import Blueprint, render_template, abort, send_file, request
-from flask import Response, redirect, url_for
-from flask_login import current_user
-from functools import lru_cache
+from flask import Response, url_for
 from gitsrht.access import get_repo, has_access, UserAccess
 from gitsrht.editorconfig import EditorConfig
 from gitsrht.redis import redis
@@ -18,7 +15,6 @@ from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
 from gitsrht.git import diffstat
 from gitsrht.repos import get_repo_or_redir
 from gitsrht.rss import generate_feed
-from gitsrht.types import User, Repository, Redirect
 from io import BytesIO
 from pygments import highlight
 from pygments.lexers import guess_lexer, guess_lexer_for_filename, TextLexer
