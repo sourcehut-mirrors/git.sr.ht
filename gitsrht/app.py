@@ -38,6 +38,9 @@ class GitApp(SrhtFlask):
         self.register_blueprint(stats)
         self.register_blueprint(manage)
 
+        self.add_template_filter(urls.log_rss_url)
+        self.add_template_filter(urls.refs_rss_url)
+
         meta_client_id = cfg("git.sr.ht", "oauth-client-id")
         meta_client_secret = cfg("git.sr.ht", "oauth-client-secret")
         builds_client_id = cfg("builds.sr.ht", "oauth-client-id", default=None)
@@ -81,6 +84,3 @@ class GitApp(SrhtFlask):
         return user
 
 app = GitApp()
-
-app.add_template_filter(urls.log_rss_url)
-app.add_template_filter(urls.refs_rss_url)
