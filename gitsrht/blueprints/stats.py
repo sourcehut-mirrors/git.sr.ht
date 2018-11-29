@@ -75,6 +75,9 @@ def contributors(owner, repo):
     since = datetime.now() - timedelta(weeks=52)
 
     with GitRepository(repo.path) as git_repo:
+        if git_repo.is_empty:
+            return render_template("empty-repo.html", owner=owner, repo=repo)
+
         default_branch = git_repo.default_branch()
         tip = git_repo.get(default_branch.target)
         contributions = get_contributions(git_repo, tip, since)

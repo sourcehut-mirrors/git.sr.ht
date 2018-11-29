@@ -144,6 +144,9 @@ def lookup_ref(git_repo, ref):
 def tree(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
+        if git_repo.is_empty:
+            return render_template("empty-repo.html", owner=owner, repo=repo)
+
         commit, ref = lookup_ref(git_repo, ref)
 
         tree = commit.tree
@@ -295,6 +298,9 @@ def get_log(git_repo, commit, commits_per_page=20):
 def log(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
+        if git_repo.is_empty:
+            return render_template("empty-repo.html", owner=owner, repo=repo)
+
         commit, ref = lookup_ref(git_repo, ref)
         refs = collect_refs(git_repo)
 
@@ -371,6 +377,9 @@ def patch(owner, repo, ref):
 def refs(owner, repo):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
+        if git_repo.is_empty:
+            return render_template("empty-repo.html", owner=owner, repo=repo)
+
         tags = [(
                 ref,
                 git_repo.get(git_repo.references[ref].target)
