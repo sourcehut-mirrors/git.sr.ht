@@ -49,7 +49,7 @@ def get_readme(repo, tip):
     try:
         md = repo.get(readme.id).data.decode()
     except:
-        pass
+        md = "Error decoding readme - is it valid UTF-8?"
     html = markdown(md, ["h1", "h2", "h3", "h4", "h5"])
     redis.setex(key, html, timedelta(days=7))
     return Markup(html)
