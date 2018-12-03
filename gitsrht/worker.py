@@ -45,11 +45,16 @@ def submit_builds(repo, git_repo, commit):
     elif ".builds"  in commit.tree:
         build_dir = commit.tree[".builds"]
         if build_dir.type == 'tree':
-            build_dir = git_repo.get(build_dir.id)
-            for blob in build_dir:
-                if blob.type != "blob":
-                    continue
-                manifests[blob.name] = blob
+            manifests.update(
+                {
+                    blob.name: blob
+                    for blob in git_repo.get(build_dir.id)
+                    if blob.type == 'blob' and (
+                        blob.name.endswith('.yml')
+                        or blob.name.endswith('.yaml')
+                    )
+                }
+            )
     if not any(manifests):
         return
     for name, blob in iter(manifests.items()):
