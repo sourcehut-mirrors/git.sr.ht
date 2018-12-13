@@ -34,8 +34,11 @@
 <div class="container-fluid">
   <div class="row" style="margin-bottom: 1rem">
     <div class="col-md-12">
+      {# chromium has a hard limit on 1000 rows per grid #}
+      {% for index in range(0, len(tree), 501) %}
+      {% set group = tree[index:index + 501] %}
       <div class="tree-list">
-      {% if path != [''] %}
+      {% if path != [''] and index == 0 %}
       <div class="mode"></div>
       <div class="name tree">
         <a href="{{url_for("repo.tree",
@@ -46,7 +49,7 @@
       <div class="date"></div>
       <div class="size"></div>
       {% endif %}
-      {% for entry in tree %}
+      {% for entry in group %}
       <div class="mode">
         <span title="{{"{0:0o}".format(entry.filemode)}}">
           {% if entry.filemode == 57344 %}
@@ -94,6 +97,7 @@
       </div>
       {% endfor %}
       </div>
+      {% endfor %}
     </div>
 </div>
 {% endblock %}
