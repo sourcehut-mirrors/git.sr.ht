@@ -135,7 +135,7 @@ def annotate_tree(repo, tree, commit):
 
     cache = {entry.name: entry.serialize() for entry in tree.values()}
     cache = json.dumps(cache)
-    redis.setex(key, cache, timedelta(days=30))
+    redis.setex(key, timedelta(days=30), cache)
 
     return [entry.fetch_blob() for entry in tree.values()]
 

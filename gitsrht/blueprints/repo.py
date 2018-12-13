@@ -51,7 +51,7 @@ def get_readme(repo, tip):
     except:
         md = "Error decoding readme - is it valid UTF-8?"
     html = markdown(md, ["h1", "h2", "h3", "h4", "h5"])
-    redis.setex(key, html, timedelta(days=7))
+    redis.setex(key, timedelta(days=7), html)
     return Markup(html)
 
 def _get_shebang(data):
@@ -88,7 +88,7 @@ def _highlight_file(name, data, blob_id):
     formatter = HtmlFormatter()
     style = formatter.get_style_defs('.highlight')
     html = f"<style>{style}</style>" + highlight(data, lexer, formatter)
-    redis.setex(key, html, timedelta(days=7))
+    redis.setex(key, timedelta(days=7), html)
     return Markup(html)
 
 def get_last_3_commits(commit):
