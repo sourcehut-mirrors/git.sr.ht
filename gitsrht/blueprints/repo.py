@@ -120,7 +120,8 @@ def summary(owner, repo):
         latest_tag = tags[0] if len(tags) else None
         return render_template("summary.html", view="summary",
                 owner=owner, repo=repo, readme=readme, commits=commits,
-                latest_tag=latest_tag, default_branch=default_branch)
+                latest_tag=latest_tag, default_branch=default_branch,
+                is_annotated=lambda t: isinstance(t, pygit2.Tag))
 
 def lookup_ref(git_repo, ref, path):
     ref = ref or git_repo.default_branch().name[len("refs/heads/"):]

@@ -39,12 +39,19 @@
         {% if latest_tag %}
         <dt>{{ latest_tag[0][len("refs/tags/"):] }}</dt>
         <dd>
-          <a href="{{url_for("repo.tree", owner=repo.owner.canonical_name,
-              repo=repo.name, ref=latest_tag[0][len("refs/tags/"):])}}"
-          >browse {{icon("caret-right")}}</a>
-          <a href="{{url_for("repo.archive", owner=repo.owner.canonical_name,
-              repo=repo.name, ref=latest_tag[0][len("refs/tags/"):])}}"
-          >.tar.gz {{icon("caret-right")}}</a>
+          {% if is_annotated(latest_tag[1]) %}
+            <a href="{{url_for("repo.ref",
+                owner=repo.owner.canonical_name,
+                repo=repo.name, ref=latest_tag[1].name)}}"
+            >release notes {{icon("caret-right")}}</a>
+          {% else %}
+            <a href="{{url_for("repo.tree", owner=repo.owner.canonical_name,
+                repo=repo.name, ref=latest_tag[0][len("refs/tags/"):])}}"
+            >browse {{icon("caret-right")}}</a>
+            <a href="{{url_for("repo.archive", owner=repo.owner.canonical_name,
+                repo=repo.name, ref=latest_tag[0][len("refs/tags/"):])}}"
+            >.tar.gz {{icon("caret-right")}}</a>
+          {% endif %}
         </dd>
         {% endif %}
       </dl>
