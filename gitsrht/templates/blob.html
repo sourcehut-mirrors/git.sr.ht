@@ -60,7 +60,11 @@ pre, body {
   </div>
 </div>
 <div class="container-fluid" style="padding-left: 0; padding-right: 0;">
-  <div class="row">
+  {#
+    This row has some weird styles going on. This prevents the page from
+    scrolling horizontally
+  #}
+  <div class="row" style="margin-right: 0;">
     {% if not blob.is_binary %}
     <div class="col-md-12 code-view">
       <pre class="ruler"><span>{% for i in range(80) %} {% endfor %}</span></pre>
