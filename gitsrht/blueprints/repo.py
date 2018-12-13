@@ -122,20 +122,36 @@ def summary(owner, repo):
                 owner=owner, repo=repo, readme=readme, commits=commits,
                 latest_tag=latest_tag, default_branch=default_branch)
 
-def lookup_ref(git_repo, ref):
+def lookup_ref(git_repo, ref, path):
     ref = ref or git_repo.default_branch().name[len("refs/heads/"):]
+    if path is None:
+        path = []
+    else:
+        path = path.split("/")
+    commit = None
     try:
         commit = git_repo.revparse_single(ref)
     except KeyError:
-        abort(404)
+        pass
     except ValueError:
+        pass
+    while commit is None and len(path):
+        ref += "/" + path[0]
+        path = path[1:]
+        try:
+            commit = git_repo.revparse_single(ref)
+        except KeyError:
+            pass
+        except ValueError:
+            pass
+    if commit is None:
         abort(404)
     if isinstance(commit, pygit2.Tag):
         commit = git_repo.get(commit.target)
-    return commit, ref
+    return commit, ref, "/".join(path)
 
 @repo.route("/<owner>/<repo>/tree", defaults={"ref": None, "path": ""})
-@repo.route("/<owner>/<repo>/tree/<ref>", defaults={"path": ""})
+@repo.route("/<owner>/<repo>/tree/<path:ref>", defaults={"path": ""})
 @repo.route("/<owner>/<repo>/tree/<ref>/<path:path>")
 def tree(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
@@ -143,7 +159,7 @@ def tree(owner, repo, ref, path):
         if git_repo.is_empty:
             return render_template("empty-repo.html", owner=owner, repo=repo)
 
-        commit, ref = lookup_ref(git_repo, ref)
+        commit, ref, path = lookup_ref(git_repo, ref, path)
 
         tree = commit.tree
         if not tree:
@@ -180,11 +196,11 @@ def tree(owner, repo, ref, path):
         return render_template("tree.html", view="tree", owner=owner, repo=repo,
                 ref=ref, commit=commit, tree=tree, path=path)
 
-@repo.route("/<owner>/<repo>/blob/<ref>/<path:path>")
+@repo.route("/<owner>/<repo>/blob/<path:ref>/<path:path>")
 def raw_blob(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
-        commit, ref = lookup_ref(git_repo, ref)
+        commit, ref, path = lookup_ref(git_repo, ref, path)
 
         blob = None
         entry = None
@@ -211,11 +227,11 @@ def raw_blob(owner, repo, ref, path):
                 attachment_filename=entry.name,
                 mimetype="text/plain" if not blob.is_binary else None)
 
-@repo.route("/<owner>/<repo>/archive/<ref>.tar.gz")
+@repo.route("/<owner>/<repo>/archive/<path:ref>.tar.gz")
 def archive(owner, repo, ref):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
-        commit, ref = lookup_ref(git_repo, ref)
+        commit, ref, _ = lookup_ref(git_repo, ref, None)
 
         path = f"/tmp/{commit.id.hex}{binascii.hexlify(os.urandom(8))}.tar.gz"
         try:
@@ -289,7 +305,7 @@ def get_log(git_repo, commit, commits_per_page=20):
     return commits
 
 @repo.route("/<owner>/<repo>/log", defaults={"ref": None, "path": ""})
-@repo.route("/<owner>/<repo>/log/<ref>", defaults={"path": ""})
+@repo.route("/<owner>/<repo>/log/<path:ref>", defaults={"path": ""})
 @repo.route("/<owner>/<repo>/log/<ref>/<path:path>")
 def log(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
@@ -297,7 +313,7 @@ def log(owner, repo, ref, path):
         if git_repo.is_empty:
             return render_template("empty-repo.html", owner=owner, repo=repo)
 
-        commit, ref = lookup_ref(git_repo, ref)
+        commit, ref, path = lookup_ref(git_repo, ref, path)
         refs = collect_refs(git_repo)
 
         from_id = request.args.get("from")
@@ -312,11 +328,11 @@ def log(owner, repo, ref, path):
 
 
 @repo.route("/<owner>/<repo>/log/rss.xml", defaults={"ref": None})
-@repo.route("/<owner>/<repo>/log/<ref>/rss.xml")
+@repo.route("/<owner>/<repo>/log/<path:ref>/rss.xml")
 def log_rss(owner, repo, ref):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
-        commit, ref = lookup_ref(git_repo, ref)
+        commit, ref, _ = lookup_ref(git_repo, ref, None)
         commits = get_log(git_repo, commit)
 
     repo_name = f"{repo.owner.canonical_name}/{repo.name}"
@@ -329,11 +345,11 @@ def log_rss(owner, repo, ref):
 
     return generate_feed(repo, commits, title, link, description)
 
-@repo.route("/<owner>/<repo>/commit/<ref>")
+@repo.route("/<owner>/<repo>/commit/<path:ref>")
 def commit(owner, repo, ref):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
-        commit, ref = lookup_ref(git_repo, ref)
+        commit, ref, _ = lookup_ref(git_repo, ref, None)
         try:
             parent = git_repo.revparse_single(ref + "^")
             diff = git_repo.diff(parent, ref)
@@ -347,11 +363,11 @@ def commit(owner, repo, ref):
             commit=commit, parent=parent,
             diff=diff, diffstat=diffstat, pygit2=pygit2)
 
-@repo.route("/<owner>/<repo>/commit/<ref>.patch")
+@repo.route("/<owner>/<repo>/commit/<path:ref>.patch")
 def patch(owner, repo, ref):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
-        commit, ref = lookup_ref(git_repo, ref)
+        commit, ref, _ = lookup_ref(git_repo, ref, None)
         try:
             commit = git_repo.revparse_single(ref)
         except KeyError:
