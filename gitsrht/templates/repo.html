@@ -3,6 +3,9 @@
 {% if repo.visibility.value =='unlisted' %}
 <meta name="robots" content="noindex">
 {% endif %}
+{# Man, this is lame #}
+<meta name="go-import"
+  content="{{cfg('sr.ht', 'site-name')}} git {{(repo | clone_urls)[0]}}">
 {% endblock %}
 {% block body %}
 <div class="container-fluid">
