@@ -34,7 +34,12 @@ def do_webhook(url, payload, headers=None):
         return None
 
 def first_line(text):
-    return text[:text.index("\n") + 1]
+    try:
+        i = text.index("\n")
+    except ValueError:
+        return text + "\n"
+    else:
+        return text[:i + 1]
 
 def submit_builds(repo, git_repo, commit):
     manifests = dict()
