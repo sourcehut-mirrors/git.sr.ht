@@ -191,6 +191,8 @@ def tree(owner, repo, ref, path):
                         editorconfig=editorconfig)
             tree = git_repo.get(entry.id)
 
+        if not tree:
+            abort(404)
         tree = annotate_tree(git_repo, tree, commit)
         tree = sorted(tree, key=lambda e: e.name)
 
