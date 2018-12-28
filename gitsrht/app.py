@@ -71,13 +71,13 @@ class GitApp(SrhtFlask):
             return User.query.filter(User.username == username).one_or_none()
 
     def lookup_or_register(self, exchange, profile, scopes):
-        user = User.query.filter(User.username == profile["username"]).first()
+        user = User.query.filter(User.username == profile["name"]).first()
         if not user:
             user = User()
             db.session.add(user)
-        user.username = profile.get("username")
-        user.email = profile.get("email")
-        user.paid = profile.get("paid")
+        user.username = profile["name"]
+        user.email = profile["email"]
+        user.user_type = profile["user_type"]
         user.oauth_token = exchange["token"]
         user.oauth_token_expires = exchange["expires"]
         user.oauth_token_scopes = scopes
