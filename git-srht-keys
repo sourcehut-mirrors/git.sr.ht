@@ -18,7 +18,7 @@ if r.status_code != 200:
     sys.stderr.write("meta.sr.ht returned 404 for this key\n")
     sys.exit(0)
 j = r.json()
-username = j["user"]["username"]
+username = j["user"]["name"]
 u = User.query.filter(User.username == username).first()
 if not u:
     sys.stderr.write("Unknown user {}\n", username)
