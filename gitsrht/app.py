@@ -9,7 +9,7 @@ from srht.database import DbSession
 
 db = DbSession(cfg("git.sr.ht", "connection-string"))
 
-from gitsrht.types import User
+from gitsrht.types import User, UserType
 
 db.init()
 
@@ -77,7 +77,7 @@ class GitApp(SrhtFlask):
             db.session.add(user)
         user.username = profile["name"]
         user.email = profile["email"]
-        user.user_type = profile["user_type"]
+        user.user_type = UserType(profile["user_type"])
         user.oauth_token = exchange["token"]
         user.oauth_token_expires = exchange["expires"]
         user.oauth_token_scopes = scopes
