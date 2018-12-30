@@ -1,21 +1,18 @@
 import humanize
-import stat
 import os
+import stat
 from flask import session
 from functools import lru_cache
-from srht.flask import SrhtFlask
+from gitsrht import urls
+from gitsrht.git import commit_time, trim_commit
+from gitsrht.types import User, OAuthToken
 from srht.config import cfg
 from srht.database import DbSession
+from srht.flask import SrhtFlask
 from srht.oauth import AbstractOAuthService
 
 db = DbSession(cfg("git.sr.ht", "connection-string"))
-
-from gitsrht.types import User, OAuthToken
-
 db.init()
-
-from gitsrht import urls
-from gitsrht.git import commit_time, trim_commit
 
 def lookup_user(email):
     return User.query.filter(User.email == email).one_or_none()
