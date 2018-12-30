@@ -9,12 +9,12 @@ from srht.database import DbSession
 
 db = DbSession(cfg("git.sr.ht", "connection-string"))
 
-from gitsrht.types import User, UserType
+from gitsrht.types import User
 
 db.init()
 
-import gitsrht.oauth
 from gitsrht import urls
+from gitsrht.oauth import GitOAuthService
 from gitsrht.git import commit_time, trim_commit
 
 def lookup_user(email):
@@ -22,7 +22,8 @@ def lookup_user(email):
 
 class GitApp(SrhtFlask):
     def __init__(self):
-        super().__init__("git.sr.ht", __name__)
+        super().__init__("git.sr.ht", __name__,
+                oauth_service=GitOAuthService())
 
         self.url_map.strict_slashes = False
 
@@ -41,14 +42,6 @@ class GitApp(SrhtFlask):
         self.add_template_filter(urls.clone_urls)
         self.add_template_filter(urls.log_rss_url)
         self.add_template_filter(urls.refs_rss_url)
-
-        meta_client_id = cfg("git.sr.ht", "oauth-client-id")
-        meta_client_secret = cfg("git.sr.ht", "oauth-client-secret")
-        builds_client_id = cfg("builds.sr.ht", "oauth-client-id", default=None)
-        self.configure_meta_auth(meta_client_id, meta_client_secret,
-                base_scopes=["profile"] + ([
-                    "{}/jobs:write".format(builds_client_id)
-                ] if builds_client_id else []))
 
         @self.context_processor
         def inject():
@@ -69,19 +62,5 @@ class GitApp(SrhtFlask):
         def user_loader(username):
             # TODO: Switch to a session token
             return User.query.filter(User.username == username).one_or_none()
-
-    def lookup_or_register(self, exchange, profile, scopes):
-        user = User.query.filter(User.username == profile["name"]).first()
-        if not user:
-            user = User()
-            db.session.add(user)
-        user.username = profile["name"]
-        user.email = profile["email"]
-        user.user_type = UserType(profile["user_type"])
-        user.oauth_token = exchange["token"]
-        user.oauth_token_expires = exchange["expires"]
-        user.oauth_token_scopes = scopes
-        db.session.commit()
-        return user
 
 app = GitApp()
