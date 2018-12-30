@@ -6,19 +6,31 @@ from functools import lru_cache
 from srht.flask import SrhtFlask
 from srht.config import cfg
 from srht.database import DbSession
+from srht.oauth import AbstractOAuthService
 
 db = DbSession(cfg("git.sr.ht", "connection-string"))
 
-from gitsrht.types import User
+from gitsrht.types import User, OAuthToken
 
 db.init()
 
 from gitsrht import urls
-from gitsrht.oauth import GitOAuthService
 from gitsrht.git import commit_time, trim_commit
 
 def lookup_user(email):
     return User.query.filter(User.email == email).one_or_none()
+
+client_id = cfg("git.sr.ht", "oauth-client-id")
+client_secret = cfg("git.sr.ht", "oauth-client-secret")
+builds_client_id = cfg("builds.sr.ht", "oauth-client-id", default=None)
+
+class GitOAuthService(AbstractOAuthService):
+    def __init__(self):
+        super().__init__(client_id, client_secret,
+                required_scopes=["profile"] + ([
+                    "{}/jobs:write".format(builds_client_id)
+                ] if builds_client_id else []),
+                token_class=OAuthToken, user_class=User)
 
 class GitApp(SrhtFlask):
     def __init__(self):
@@ -57,10 +69,5 @@ class GitApp(SrhtFlask):
                 "notice": notice,
                 "path_join": os.path.join
             }
-
-        @self.login_manager.user_loader
-        def user_loader(username):
-            # TODO: Switch to a session token
-            return User.query.filter(User.username == username).one_or_none()
 
 app = GitApp()
