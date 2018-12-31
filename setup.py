@@ -66,8 +66,8 @@ setup(
       'gitsrht-keys',
       'git-srht-migrate',
       'gitsrht-migrate',
-      'git-srht-periodic'
-      'gitsrht-periodic'
+      'git-srht-periodic',
+      'gitsrht-periodic',
       'git-srht-shell',
       'gitsrht-shell',
       'git-srht-update-hook',
