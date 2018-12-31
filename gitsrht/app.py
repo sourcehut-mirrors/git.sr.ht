@@ -36,13 +36,11 @@ class GitApp(SrhtFlask):
 
         self.url_map.strict_slashes = False
 
-        from gitsrht.blueprints.api import api
         from gitsrht.blueprints.public import public
         from gitsrht.blueprints.repo import repo
         from gitsrht.blueprints.stats import stats
         from gitsrht.blueprints.manage import manage
 
-        self.register_blueprint(api)
         self.register_blueprint(public)
         self.register_blueprint(repo)
         self.register_blueprint(stats)
