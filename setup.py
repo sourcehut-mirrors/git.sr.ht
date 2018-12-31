@@ -60,10 +60,12 @@ setup(
       ]
   },
   scripts = [
+      # TODO: Remove this dumb - between git and srht
       'git-srht-dispatch',
       'git-srht-keys',
+      'git-srht-migrate',
+      'git-srht-periodic'
       'git-srht-shell',
       'git-srht-update-hook',
-      'git-srht-periodic'
   ]
 )
