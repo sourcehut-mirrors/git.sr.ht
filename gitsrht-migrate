@@ -1,1 +1,5 @@
-git-srht-migrate
+#!/usr/bin/env python3
+import gitsrht.alembic
+from srht.config import cfg
+from srht.database import alembic
+alembic("git.sr.ht", gitsrht.alembic)

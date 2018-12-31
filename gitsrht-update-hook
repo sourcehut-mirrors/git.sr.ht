@@ -1,1 +1,58 @@
-git-srht-update-hook
+#!/usr/bin/env python3
+from srht.config import cfg, cfgi
+from srht.database import DbSession
+db = DbSession(cfg("git.sr.ht", "connection-string"))
+from gitsrht.types import User, Repository, RepoVisibility
+db.init()
+from configparser import ConfigParser
+from datetime import datetime
+from pygit2 import Repository as GitRepository
+import shlex
+import subprocess
+import sys
+import re
+
+op = sys.argv[0]
+builds_sr_ht = cfg("builds.sr.ht", "origin", default=None)
+origin = cfg("git.sr.ht", "origin")
+
+if op == "hooks/post-update":
+    refs = sys.argv[1:]
+
+    config = ConfigParser()
+    with open("config") as f:
+        config.read_file(f)
+
+    repo_id = config.get("srht", "repo-id")
+    if not repo_id:
+        sys.exit(0)
+    repo_id = int(repo_id)
+
+    repo = Repository.query.get(repo_id)
+    if not repo:
+        sys.exit(0)
+
+    if repo.visibility == RepoVisibility.autocreated:
+        print("\n\t\033[93mNOTICE\033[0m")
+        print("\tWe saved your changes, but this repository does not exist.")
+        print("\tClick here to create it:")
+        print("\t{}/create?name={}".format(origin, repo.name))
+        print("\tYour changes will be discarded in 20 minutes.\n")
+
+    repo.updated = datetime.utcnow()
+    db.session.commit()
+
+    git_repo = GitRepository(repo.path)
+    for ref in refs:
+        try:
+            if re.match(r"^[0-9a-z]{40}$", ref): # commit
+                ref = git_repo.get(ref)
+            elif ref.startswith("refs/"): # ref
+                ref = git_repo.lookup_reference(ref).target
+            else:
+                continue
+        except:
+            continue
+        if builds_sr_ht:
+            from gitsrht.worker import do_post_update
+            do_post_update(repo, git_repo, ref)
