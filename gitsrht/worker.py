@@ -13,6 +13,7 @@ import requests
 import html
 import yaml
 import os
+import re
 
 worker = Celery('git', broker=cfg("git.sr.ht", "redis"))
 builds_sr_ht = cfg("builds.sr.ht", "origin")
@@ -41,16 +42,60 @@ def first_line(text):
     else:
         return text[:i + 1]
 
+def _auto_setup_sub_source(repo, m):
+    sources = m.get('sources', [])
+    re_repo_url = re.compile(r'^{}/(?P<usr>[^/]+)/{}/?$'.format(
+        re.escape(git_sr_ht), re.escape(repo.name)))
+    for i, s in enumerate(sources):
+        m = re_repo_url.search(s)
+        if m:
+            owner = repo.owner.canonical_name
+            if owner != m.group('usr'):
+                new_source = '{}/{}/{}'.format(
+                    git_sr_ht, repo.owner.canonical_name, repo.name)
+                sources[i] = new_source
+                print("auto-setup: changing source {} -> {}".format(
+                    s, new_source))
+                break
+
+def _auto_setup_auto_source(repo, m):
+    sources = m.setdefault('sources', [])
+    this_url = '{}/{}/{}'.format(
+        git_sr_ht, repo.owner.canonical_name, repo.name)
+    if this_url not in sources:
+        sources.append(this_url)
+        print("auto-setup: adding source {}".format(this_url))
+
+_auto_setup_funcs = {
+    'sub_source': _auto_setup_sub_source,
+    'auto_source': _auto_setup_auto_source
+}
+
+def _auto_setup_manifest(repo, m):
+    auto_setup = m.setdefault('autosetup', 'sub_source,auto_source')
+    if not auto_setup:
+        return
+
+    if isinstance(auto_setup, str):
+        auto_setup = [s.strip() for s in auto_setup.split(',')]
+
+    for s in auto_setup:
+        func = _auto_setup_funcs.get(s)
+        if func:
+            func(repo, m)
+        else:
+            print("Warning: unknown build manifest auto-setup function: {}".format(s))
+
 def submit_builds(repo, git_repo, commit):
-    manifests = dict()
+    manifest_blobs = dict()
     if ".build.yml" in commit.tree:
         build_yml = commit.tree[".build.yml"]
         if build_yml.type == 'blob':
-            manifests[".build.yml"] = build_yml
+            manifest_blobs[".build.yml"] = build_yml
     elif ".builds"  in commit.tree:
         build_dir = commit.tree[".builds"]
         if build_dir.type == 'tree':
-            manifests.update(
+            manifest_blobs.update(
                 {
                     blob.name: blob
                     for blob in git_repo.get(build_dir.id)
@@ -60,11 +105,19 @@ def submit_builds(repo, git_repo, commit):
                     )
                 }
             )
+
+    manifests = {}
+    for name, blob in manifest_blobs.items():
+        m = git_repo.get(blob.id).data.decode()
+        m = yaml.safe_load(m)
+        _auto_setup_manifest(repo, m)
+        manifests[name] = m
+
     if not any(manifests):
         return
-    for name, blob in iter(manifests.items()):
-        m = git_repo.get(blob.id).data.decode()
-        m = Manifest(yaml.safe_load(m))
+
+    for name, m in iter(manifests.items()):
+        m = Manifest(m)
         if m.sources:
             m.sources = [source if os.path.basename(source) != repo.name
                     else source + "#" + str(commit.id) for source in m.sources]
