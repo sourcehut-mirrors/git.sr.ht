@@ -1,5 +1,7 @@
 from srht.database import Base
 from srht.oauth import ExternalUserMixin, ExternalOAuthTokenMixin
+from scmsrht.repos import (
+        BaseAccessMixin, BaseRedirectMixin, BaseRepositoryMixin)
 
 class User(Base, ExternalUserMixin):
     pass
@@ -7,6 +9,11 @@ class User(Base, ExternalUserMixin):
 class OAuthToken(Base, ExternalOAuthTokenMixin):
     pass
 
-from .repository import Repository, RepoVisibility
-from .redirect import Redirect
-from .access import Access, AccessMode
+class Access(Base, BaseAccessMixin):
+    pass
+
+class Redirect(Base, BaseRedirectMixin):
+    pass
+
+class Repository(Base, BaseRepositoryMixin):
+    pass

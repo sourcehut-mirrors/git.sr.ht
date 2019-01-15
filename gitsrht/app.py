@@ -5,17 +5,15 @@ from flask import session
 from functools import lru_cache
 from gitsrht import urls
 from gitsrht.git import commit_time, trim_commit
-from gitsrht.types import User, OAuthToken
+from gitsrht.repos import GitRepoApi
+from gitsrht.types import Access, Redirect, Repository, User, OAuthToken
+from scmsrht.flask import ScmSrhtFlask
 from srht.config import cfg
 from srht.database import DbSession
-from srht.flask import SrhtFlask
 from srht.oauth import AbstractOAuthService
 
 db = DbSession(cfg("git.sr.ht", "connection-string"))
 db.init()
-
-def lookup_user(email):
-    return User.query.filter(User.email == email).one_or_none()
 
 client_id = cfg("git.sr.ht", "oauth-client-id")
 client_secret = cfg("git.sr.ht", "oauth-client-secret")
@@ -29,22 +27,19 @@ class GitOAuthService(AbstractOAuthService):
                 ] if builds_client_id else []),
                 token_class=OAuthToken, user_class=User)
 
-class GitApp(SrhtFlask):
+class GitApp(ScmSrhtFlask):
     def __init__(self):
         super().__init__("git.sr.ht", __name__,
+                access_class=Access, redirect_class=Redirect,
+                repository_class=Repository, user_class=User,
+                repo_api=GitRepoApi(),
                 oauth_service=GitOAuthService())
 
-        self.url_map.strict_slashes = False
-
-        from gitsrht.blueprints.public import public
         from gitsrht.blueprints.repo import repo
         from gitsrht.blueprints.stats import stats
-        from gitsrht.blueprints.manage import manage
 
-        self.register_blueprint(public)
         self.register_blueprint(repo)
         self.register_blueprint(stats)
-        self.register_blueprint(manage)
 
         self.add_template_filter(urls.clone_urls)
         self.add_template_filter(urls.log_rss_url)
@@ -59,7 +54,6 @@ class GitApp(SrhtFlask):
                 "commit_time": commit_time,
                 "trim_commit": trim_commit,
                 "humanize": humanize,
-                "lookup_user": lookup_user,
                 "stat": stat,
                 "notice": notice,
                 "path_join": os.path.join

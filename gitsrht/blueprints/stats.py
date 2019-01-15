@@ -4,8 +4,8 @@ from datetime import date, datetime, timedelta
 from flask import Blueprint, render_template
 from functools import lru_cache
 from gitsrht.git import Repository as GitRepository
-from gitsrht.repos import get_repo_or_redir
 from gitsrht.types import User
+from scmsrht.access import get_repo_or_redir
 
 stats = Blueprint('stats', __name__)
 
