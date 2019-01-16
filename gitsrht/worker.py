@@ -72,7 +72,7 @@ _auto_setup_funcs = {
 }
 
 def _auto_setup_manifest(repo, m):
-    auto_setup = m.setdefault('autosetup', 'sub_source,auto_source')
+    auto_setup = m.setdefault('autosetup', 'sub_source')
     if not auto_setup:
         return
 
