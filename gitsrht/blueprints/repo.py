@@ -17,7 +17,9 @@ from pygments import highlight
 from pygments.lexers import guess_lexer, guess_lexer_for_filename, TextLexer
 from pygments.formatters import HtmlFormatter
 from scmsrht.access import get_repo, get_repo_or_redir, has_access, UserAccess
+from scmsrht.formatting import get_formatted_readme, get_highlighted_file
 from scmsrht.redis import redis
+from scmsrht.urls import get_clone_urls
 from srht.config import cfg
 from srht.markdown import markdown
 
@@ -36,59 +38,32 @@ def authorize_http_access():
     return "authorized", 200
 
 def get_readme(repo, tip):
-    if not tip or not "README.md" in tip.tree:
-        return None
-    readme = tip.tree["README.md"]
-    if readme.type != "blob":
-        return None
-    key = f"git.sr.ht:git:markdown:{readme.id.hex}:v3"
-    html = redis.get(key)
-    if html:
-        return Markup(html.decode())
-    try:
-        md = repo.get(readme.id).data.decode()
-    except:
-        md = "Error decoding readme - is it valid UTF-8?"
-    html = markdown(md, ["h1", "h2", "h3", "h4", "h5"])
-    redis.setex(key, timedelta(days=7), html)
-    return Markup(html)
-
-def _get_shebang(data):
-    if not data.startswith('#!'):
+    if not tip:
         return None
 
-    endline = data.find('\n')
-    if endline == -1:
-        shebang = data
-    else:
-        shebang = data[:endline]
-
-    return shebang
-
-def _get_lexer(name, data):
-    try:
-        return guess_lexer_for_filename(name, data)
-    except pygments.util.ClassNotFound:
+    def file_finder(name):
         try:
-            shebang = _get_shebang(data)
-            if not shebang:
-                return TextLexer()
+            blob = tip.tree[name]
+        except KeyError:
+            return None
 
-            return guess_lexer(shebang)
-        except pygments.util.ClassNotFound:
-            return TextLexer()
+        if blob and blob.type == "blob":
+            return blob.id.hex, blob
+        return None
+
+    def content_getter(blob):
+        return repo.get(blob.id).data.decode()
+
+    return get_formatted_readme("git.sr.ht:git", file_finder, content_getter)
 
 def _highlight_file(name, data, blob_id):
-    key = f"git.sr.ht:git:highlight:{blob_id}"
-    html = redis.get(key)
-    if html:
-        return Markup(html.decode())
-    lexer = _get_lexer(name, data)
-    formatter = HtmlFormatter()
-    style = formatter.get_style_defs('.highlight')
-    html = f"<style>{style}</style>" + highlight(data, lexer, formatter)
-    redis.setex(key, timedelta(days=7), html)
-    return Markup(html)
+    return get_highlighted_file("git.sr.ht:git", name, blob_id, data)
+
+def render_empty_repo(owner, repo):
+    origin = cfg("git.sr.ht", "origin")
+    urls = get_clone_urls(origin, owner, repo, 'git@{origin}:{user}/{repo}')
+    return render_template("empty-repo.html", owner=owner, repo=repo,
+            clone_urls=urls)
 
 def get_last_3_commits(commit):
     commits = [commit]
@@ -106,7 +81,7 @@ def summary(owner, repo):
 
     with GitRepository(repo.path) as git_repo:
         if git_repo.is_empty:
-            return render_template("empty-repo.html", owner=owner, repo=repo)
+            return render_empty_repo(owner, repo)
 
         default_branch = git_repo.default_branch()
         tip = git_repo.get(default_branch.target)
@@ -157,7 +132,7 @@ def tree(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
         if git_repo.is_empty:
-            return render_template("empty-repo.html", owner=owner, repo=repo)
+            return render_empty_repo(owner, repo)
 
         commit, ref, path = lookup_ref(git_repo, ref, path)
 
@@ -313,7 +288,7 @@ def log(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
         if git_repo.is_empty:
-            return render_template("empty-repo.html", owner=owner, repo=repo)
+            return render_empty_repo(owner, repo)
 
         commit, ref, path = lookup_ref(git_repo, ref, path)
         refs = collect_refs(git_repo)
@@ -392,7 +367,7 @@ def refs(owner, repo):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
         if git_repo.is_empty:
-            return render_template("empty-repo.html", owner=owner, repo=repo)
+            return render_empty_repo(owner, repo)
 
         tags = [(
                 ref,
