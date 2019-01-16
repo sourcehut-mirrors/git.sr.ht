@@ -68,7 +68,7 @@ def _auto_setup_auto_source(repo, m):
 
 _auto_setup_funcs = {
     'sub_source': _auto_setup_sub_source,
-    'auto_source': _auto_setup_auto_source
+    #'auto_source': _auto_setup_auto_source
 }
 
 def _auto_setup_manifest(repo, m):
