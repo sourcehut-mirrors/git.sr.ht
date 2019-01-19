@@ -43,12 +43,19 @@ if op == "hooks/post-update":
     db.session.commit()
 
     git_repo = GitRepository(repo.path)
+    oids = set()
     for ref in refs:
         try:
             if re.match(r"^[0-9a-z]{40}$", ref): # commit
                 ref = git_repo.get(ref)
+                if ref.id in oids:
+                    continue
+                oids.add(ref.id)
             elif ref.startswith("refs/"): # ref
                 ref = git_repo.lookup_reference(ref).target
+                if ref in oids:
+                    continue
+                oids.add(ref)
             else:
                 continue
         except:
