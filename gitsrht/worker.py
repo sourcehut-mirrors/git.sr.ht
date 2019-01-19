@@ -6,7 +6,6 @@ if not hasattr(db, "session"):
     db.init()
 
 from celery import Celery
-from pygit2 import Commit, Tag
 from srht.oauth import OAuthScope
 from buildsrht.manifest import Manifest
 import requests
@@ -158,13 +157,6 @@ def submit_builds(repo, git_repo, commit):
             print("Build started: https://builds.sr.ht/~{}/job/{}".format(
                 repo.owner.username, build_id))
 
-def do_post_update(repo, git_repo, ref):
-    commit = git_repo.get(ref)
-    if not commit:
-        return
-    if isinstance(commit, Tag):
-        commit = git_repo.get(commit.target)
-    if not isinstance(commit, Commit):
-        return
+def do_post_update(repo, git_repo, commit):
     if builds_sr_ht:
         submit_builds(repo, git_repo, commit)

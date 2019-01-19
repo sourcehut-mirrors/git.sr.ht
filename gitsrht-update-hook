@@ -6,7 +6,7 @@ from gitsrht.types import User, Repository, RepoVisibility
 db.init()
 from configparser import ConfigParser
 from datetime import datetime
-from pygit2 import Repository as GitRepository
+from pygit2 import Repository as GitRepository, Commit, Tag
 import shlex
 import subprocess
 import sys
@@ -47,19 +47,21 @@ if op == "hooks/post-update":
     for ref in refs:
         try:
             if re.match(r"^[0-9a-z]{40}$", ref): # commit
-                ref = git_repo.get(ref)
-                if ref.id in oids:
-                    continue
-                oids.add(ref.id)
+                commit = git_repo.get(ref)
             elif ref.startswith("refs/"): # ref
-                ref = git_repo.lookup_reference(ref).target
-                if ref in oids:
-                    continue
-                oids.add(ref)
+                target_id = git_repo.lookup_reference(ref).target
+                commit = git_repo.get(target_id)
+                if isinstance(commit, Tag):
+                    commit = git_repo.get(commit.target)
             else:
                 continue
+            if not isinstance(commit, Commit):
+                continue
+            if commit.id in oids:
+                continue
+            oids.add(commit.id)
         except:
             continue
         if builds_sr_ht:
             from gitsrht.worker import do_post_update
-            do_post_update(repo, git_repo, ref)
+            do_post_update(repo, git_repo, commit)
