@@ -15,9 +15,9 @@ from srht.config import cfg
 from srht.validation import Validation
 from srht.database import DbSession
 db = DbSession(cfg("git.sr.ht", "connection-string"))
+from scmsrht.access import has_access, UserAccess
 from gitsrht.types import User, Repository, RepoVisibility, Redirect
-from gitsrht.access import has_access, UserAccess
-from gitsrht.repos import create_repo
+from gitsrht.repos import GitRepoApi
 db.init()
 
 def log(s, *args):
@@ -75,17 +75,19 @@ if not repo:
         sys.exit(128)
 
     valid = Validation({ "name": repo_name })
-    repo = create_repo(valid, user)
+    repo_api = GitRepoApi()
+    repo = repo_api.create_repo(valid, user)
     if not valid.ok:
         sys.exit(128)
     repo.visibility = RepoVisibility.autocreated
     db.session.commit()
 
+import gitsrht.types as tables
 if cmd[0] == "git-receive-pack":
-    if not has_access(repo, UserAccess.write, user):
+    if not has_access(repo, UserAccess.write, user, tables=tables):
         sys.exit(128)
 else:
-    if not has_access(repo, UserAccess.read, user):
+    if not has_access(repo, UserAccess.read, user, tables=tables):
         sys.exit(128)
 
 log("Executing {}", " ".join(cmd))
