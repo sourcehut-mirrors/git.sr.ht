@@ -59,6 +59,12 @@
                   owner=repo.owner.canonical_name,
                   repo=repo.name, ref=tag.name)}}"
               >browse {{icon("caret-right")}}</a>
+              <a
+                style="margin-left: 0.5rem"
+                href="{{url_for("repo.log",
+                  owner=repo.owner.canonical_name,
+                  repo=repo.name, ref=tag.name)}}"
+              >log {{icon("caret-right")}}</a>
             </small>
           </h4>
           {% if tag.message %}
