@@ -45,11 +45,11 @@ def get_readme(repo, tip):
         try:
             blob = tip.tree[name]
         except KeyError:
-            return None
+            return None, None
 
         if blob and blob.type == "blob":
             return blob.id.hex, blob
-        return None
+        return None, None
 
     def content_getter(blob):
         return repo.get(blob.id).data.decode()
