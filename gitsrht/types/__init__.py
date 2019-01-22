@@ -1,8 +1,7 @@
 from srht.database import Base
 from srht.oauth import ExternalUserMixin, ExternalOAuthTokenMixin
-from scmsrht.repos import (
-        BaseAccessMixin, BaseRedirectMixin, BaseRepositoryMixin,
-        RepoVisibility)
+from scmsrht.repos import BaseAccessMixin, BaseRedirectMixin
+from scmsrht.repos import BaseRepositoryMixin, RepoVisibility
 
 class User(Base, ExternalUserMixin):
     pass
