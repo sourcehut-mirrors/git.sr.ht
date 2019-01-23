@@ -81,6 +81,17 @@ pre {
     padding-left: 0.5rem;
     padding-right: 0.5rem;
     background: #eee;
+
+    a:target::before, a.selected::before {
+      display: block;
+      content: "";
+      // +2px to connect multiple selected lines
+      height: calc(1rem + 2px);
+      width: 100%;
+      z-index: -1;
+      position: absolute;
+      background: lighten($blue, 35);
+    }
   }
 
   .highlight {
