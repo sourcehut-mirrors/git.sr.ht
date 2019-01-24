@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from setuptools import setup
+from distutils.core import setup
 import subprocess
 import os
 import site
