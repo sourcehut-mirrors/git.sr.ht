@@ -318,7 +318,7 @@ def log_rss(owner, repo, ref):
     link = cfg("git.sr.ht", "origin") + url_for("repo.log",
         owner=repo.owner.canonical_name,
         repo=repo.name,
-        ref=ref if ref != "master" else None).replace("%7E", "~")  # hack
+        ref=ref if ref != "master" else None)
 
     return generate_feed(repo, commits, title, link, description)
 
@@ -431,8 +431,7 @@ def refs_rss(owner, repo):
     title = f"{repo_name} refs"
     description = f"Git refs for {repo_name}"
     link = cfg("git.sr.ht", "origin") + url_for("repo.refs",
-        owner=repo.owner.canonical_name,
-        repo=repo.name).replace("%7E", "~")  # hack
+        owner=repo.owner.canonical_name, repo=repo.name)
 
     return generate_feed(repo, references, title, link, description)
 

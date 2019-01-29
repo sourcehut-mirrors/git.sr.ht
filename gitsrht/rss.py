@@ -21,13 +21,13 @@ def ref_url(repo, reference):
     return ORIGIN + url_for("repo.ref",
         owner=repo.owner.canonical_name,
         repo=repo.name,
-        ref=ref_name(reference)).replace("%7E", "~")  # hack
+        ref=ref_name(reference))
 
 def commit_url(repo, commit):
     return ORIGIN + url_for("repo.commit",
         owner=repo.owner.canonical_name,
         repo=repo.name,
-        ref=commit.id.hex).replace("%7E", "~")  # hack
+        ref=commit.id.hex)
 
 def commit_title_description(commit):
     """Split the commit message to title (first line) and the description
