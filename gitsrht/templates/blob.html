@@ -67,7 +67,8 @@ pre, body {
   <div class="row" style="margin-right: 0;">
     {% if not blob.is_binary %}
     <div class="col-md-12 code-view">
-      <pre class="ruler"><span>{% for i in range(80) %} {% endfor %}</span></pre>
+      <pre class="ruler"><span>{% for i in range(
+        editorconfig.max_line_length()) %} {% endfor %}</span></pre>
       <pre class="lines">{% for line in data.split("\n") %}<a
         href="#L{{loop.index}}"
         id="L{{loop.index}}"
