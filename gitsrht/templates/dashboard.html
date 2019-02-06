@@ -1,0 +1,45 @@
+{% extends "git.html" %}
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-4">
+      <p>
+        Welcome back, {{ current_user.username }}! This is the
+        {{cfg("sr.ht", "site-name")}} git hosting service. Documentation
+        for its use is
+        <a href="https://man.sr.ht/git.sr.ht">available here</a>.
+      </p>
+      <a href="/create" class="btn btn-primary btn-block">
+        Create new repository {{icon("caret-right")}}
+      </a>
+    </div>
+    <div class="col-md-8">
+      <hr class="d-md-none" />
+      {% if repos and len(repos) %}
+      <div class="event-list">
+        {% for repo in repos %}
+        <div class="event">
+          <h4>
+            <a href="/~{{current_user.username}}/{{repo.name}}">
+              ~{{current_user.username}}/{{repo.name}}
+            </a>
+            {% if repo.visibility.value != 'public' %}
+            <small class="pull-right">
+              {{ repo.visibility.value }}
+            </small>
+            {% endif %}
+          </h4>
+          {% if repo.description %}
+          <p>{{ repo.description }}</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      <a href="/~{{current_user.username}}" class="btn btn-default pull-right">
+        More on your profile {{icon("caret-right")}}
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

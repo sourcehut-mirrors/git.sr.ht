@@ -2,57 +2,34 @@
 {% block content %}
 <div class="container">
   <div class="row">
-    {% if current_user %}
-    <div class="col-md-4">
-      <p>
-        Welcome back, {{ current_user.username }}! This is the
-        {{cfg("sr.ht", "site-name")}} git hosting service. Documentation
-        for its use is
-        <a href="https://man.sr.ht/git.sr.ht">available here</a>.
-      </p>
-      <a href="/create" class="btn btn-primary btn-block">
-        Create new repository {{icon("caret-right")}}
-      </a>
-    </div>
     <div class="col-md-8">
-      <hr class="d-md-none" />
-      {% if repos and len(repos) %}
-      <div class="event-list">
-        {% for repo in repos %}
-        <div class="event">
-          <h4>
-            <a href="/~{{current_user.username}}/{{repo.name}}">
-              ~{{current_user.username}}/{{repo.name}}
-            </a>
-            {% if repo.visibility.value != 'public' %}
-            <small class="pull-right">
-              {{ repo.visibility.value }}
-            </small>
-            {% endif %}
-          </h4>
-          {% if repo.description %}
-          <p>{{ repo.description }}</p>
-          {% endif %}
-        </div>
-        {% endfor %}
-      </div>
-      <a href="/~{{current_user.username}}" class="btn btn-default pull-right">
-        More on your profile {{icon("caret-right")}}
-      </a>
-      {% endif %}
-    </div>
-    {% else %}
-    <div class="col-md-6">
       <p>
-        Welcome to {{domain}}. This is a part of the
-        <a href="{{cfg("meta.sr.ht", "origin")}}">
-          {{cfg("sr.ht", "site-name")}} network
-        </a>
-        and provides git hosting services to members. If you already have an
-        account, you can <a href="{{oauth_url}}">log in here</a>. New users can
-        <a href="{{cfg("meta.sr.ht", "origin")}}">register here</a>.
+        Welcome to <strong>{{domain}}</strong>! This is the git hosting service
+        for
+        <a href="{{cfg("sr.ht", "site-info")}}">
+          {{cfg("sr.ht", "site-name")}}</a>,
+        {{cfg("sr.ht", "site-blurb")}}.
+        {% if cfg("hg.sr.ht", "origin", default=None) %}
+        For Mercurial support, see our
+        <a href="{{cfg("hg.sr.ht", "origin")}}">
+          hg service</a>.
+        {% endif %}
+        Features of this service include:
       </p>
-      {% endif %}
+      <ul>
+        <li>Public, private, and "unlisted" repositories</li>
+        <li>Fine grained access control, including access for users without accounts</li>
+        <li>Software release management</li>
+      </ul>
+      <a
+        class="btn btn-primary"
+        href="{{cfg("meta.sr.ht", "origin")}}/register"
+      >Register here {{icon('caret-right')}}</a>
+      or
+      <a href="{{oauth_url}}">
+        Log in {{icon('caret-right')}}
+      </a>
+      to get started.
     </div>
   </div>
 </div>
