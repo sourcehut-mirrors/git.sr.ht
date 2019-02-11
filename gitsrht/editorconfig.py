@@ -46,12 +46,18 @@ class EditorConfig:
     def tab_width(self):
         if self._config == None:
             return 8
-        return self._config.get("tab_size", self._config.get("indent_size", 8))
+        val = self._config.get("tab_size", self._config.get("indent_size", 8))
+        if not isinstance(val, int):
+            return 8
+        return val
 
     def max_line_length(self):
         if self._config == None:
             return 80
-        return self._config.get("max_line_length", 80)
+        val = self._config.get("max_line_length", 80)
+        if not isinstance(val, int):
+            return 80
+        return val
 
 # Via https://github.com/editorconfig/editorconfig-core-py/blob/master/editorconfig/fnmatch.py
 # 2-Clause BSD
