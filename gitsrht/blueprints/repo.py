@@ -150,7 +150,8 @@ def tree(owner, repo, ref, path):
             entry = tree[part]
             if entry.type == "blob":
                 tree = annotate_tree(git_repo, tree, commit)
-                commit = next(e.commit for e in tree if e.name == entry.name)
+                commit = next((e.commit for e in tree if e.name == entry.name),
+                        default=None)
                 blob = git_repo.get(entry.id)
                 data = None
                 if not blob.is_binary:
