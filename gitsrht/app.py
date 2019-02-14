@@ -6,7 +6,7 @@ from functools import lru_cache
 from gitsrht import urls
 from gitsrht.git import commit_time, trim_commit
 from gitsrht.repos import GitRepoApi
-from gitsrht.service import GitOAuthService, webhooks_notify
+from gitsrht.service import oauth_service, webhooks_notify
 from gitsrht.types import Access, Redirect, Repository, User
 from scmsrht.flask import ScmSrhtFlask
 from srht.config import cfg
@@ -21,7 +21,7 @@ class GitApp(ScmSrhtFlask):
                 access_class=Access, redirect_class=Redirect,
                 repository_class=Repository, user_class=User,
                 repo_api=GitRepoApi(),
-                oauth_service=GitOAuthService())
+                oauth_service=oauth_service)
 
         from gitsrht.blueprints.repo import repo
         from gitsrht.blueprints.stats import stats
