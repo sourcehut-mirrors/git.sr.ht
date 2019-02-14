@@ -6,26 +6,14 @@ from functools import lru_cache
 from gitsrht import urls
 from gitsrht.git import commit_time, trim_commit
 from gitsrht.repos import GitRepoApi
-from gitsrht.types import Access, Redirect, Repository, User, OAuthToken
+from gitsrht.service import GitOAuthService, webhooks_notify
+from gitsrht.types import Access, Redirect, Repository, User
 from scmsrht.flask import ScmSrhtFlask
 from srht.config import cfg
 from srht.database import DbSession
-from srht.oauth import AbstractOAuthService
 
 db = DbSession(cfg("git.sr.ht", "connection-string"))
 db.init()
-
-client_id = cfg("git.sr.ht", "oauth-client-id")
-client_secret = cfg("git.sr.ht", "oauth-client-secret")
-builds_client_id = cfg("builds.sr.ht", "oauth-client-id", default=None)
-
-class GitOAuthService(AbstractOAuthService):
-    def __init__(self):
-        super().__init__(client_id, client_secret,
-                required_scopes=["profile"] + ([
-                    "{}/jobs:write".format(builds_client_id)
-                ] if builds_client_id else []),
-                token_class=OAuthToken, user_class=User)
 
 class GitApp(ScmSrhtFlask):
     def __init__(self):
@@ -40,6 +28,7 @@ class GitApp(ScmSrhtFlask):
 
         self.register_blueprint(repo)
         self.register_blueprint(stats)
+        self.register_blueprint(webhooks_notify)
 
         self.add_template_filter(urls.clone_urls)
         self.add_template_filter(urls.log_rss_url)
