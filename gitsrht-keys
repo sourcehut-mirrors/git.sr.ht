@@ -2,32 +2,44 @@
 import os
 import sys
 import requests
+from srht.api import get_results
 from srht.config import cfg
 from srht.database import DbSession
 db = DbSession(cfg("git.sr.ht", "connection-string"))
-from gitsrht.types import User
+from gitsrht.types import User, SSHKey
 db.init()
+from gitsrht.service import oauth_service
 
 sys.stderr.write(str(sys.argv) + "\n")
 key_type = sys.argv[3]
 b64key = sys.argv[4]
 
-r = requests.get("{}/api/ssh-key/{}".format(
-    cfg("meta.sr.ht", "origin"), b64key))
-if r.status_code != 200:
-    sys.stderr.write("meta.sr.ht returned 404 for this key\n")
+user = (User.query.join(SSHKey)
+        .filter(SSHKey.key.ilike(f"%{b64key}%"))).one_or_none()
+if not user:
+    # Fall back to meta.sr.ht first
+    meta_origin = cfg("meta.sr.ht", "origin")
+    r = requests.get(f"{meta_origin}/api/ssh-key/{b64key}")
+    if r.status_code == 200:
+        username = r.json()["owner"]["name"]
+        user = User.query.filter(User.username == username).one_or_none()
+        try:
+            # Attempt to pull down keys for next time
+            keys_url = f"{meta_origin}/api/user/ssh-keys"
+            for key in get_results(keys_url, user.oauth_token):
+                oauth_service.ensure_user_sshkey(user, key)
+            db.session.commit()
+        except:
+            pass
+if not user:
+    sys.stderr.write("Unknown public key")
     sys.exit(0)
-j = r.json()
-username = j["owner"]["name"]
-u = User.query.filter(User.username == username).first()
-if not u:
-    sys.stderr.write("Unknown user {}\n", username)
-    sys.exit(1)
+
 default_shell = os.path.join(os.path.dirname(sys.argv[0]), "gitsrht-shell")
 shell = cfg("git.sr.ht", "shell", default=default_shell)
-keys = "command=\"{} '{}' '{}'\",".format(shell, u.id, b64key) + \
+keys = "command=\"{} '{}' '{}'\",".format(shell, user.id, b64key) + \
     "no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty " + \
-    "{} {} {}".format(key_type, b64key, username) + "\n"
+    "{} {} {}".format(key_type, b64key, user.username) + "\n"
 print(keys)
 sys.stderr.write(keys)
 sys.exit(0)
