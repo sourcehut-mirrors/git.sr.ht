@@ -46,7 +46,7 @@ class GitOAuthService(AbstractOAuthService):
         webhooks.update({
             webhook_url: ["ssh-key:add", "ssh-key:remove"]
         })
-        super().ensure_meta_webhooks(user, webhooks)
+        return super().ensure_meta_webhooks(user, webhooks)
 
     def lookup_or_register(self, token, token_expires, scopes):
         user = super().lookup_or_register(token, token_expires, scopes)

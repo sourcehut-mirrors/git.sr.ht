@@ -60,7 +60,6 @@ setup(
       ]
   },
   scripts = [
-      'gitsrht-dispatch',
       'gitsrht-keys',
       'gitsrht-migrate',
       'gitsrht-periodic',
