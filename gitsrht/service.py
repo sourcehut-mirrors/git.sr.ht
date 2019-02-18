@@ -50,6 +50,7 @@ class GitOAuthService(AbstractOAuthService):
 
     def lookup_or_register(self, token, token_expires, scopes):
         user = super().lookup_or_register(token, token_expires, scopes)
+        db.session.flush()
         keys_url = f"{meta_origin}/api/user/ssh-keys"
         for key in get_results(keys_url, user.oauth_token):
             self.ensure_user_sshkey(user, key)
