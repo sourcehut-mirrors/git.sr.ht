@@ -1,19 +1,15 @@
 #!/usr/bin/env python3
-from srht.config import cfg, cfgi
+from srht.config import cfg
 from srht.database import DbSession
 db = DbSession(cfg("git.sr.ht", "connection-string"))
-from gitsrht.types import User, Repository, RepoVisibility
+from gitsrht.types import Repository, RepoVisibility
 db.init()
 from configparser import ConfigParser
 from datetime import datetime
-from pygit2 import Repository as GitRepository, Commit, Tag
-import shlex
-import subprocess
+from gitsrht.worker import do_post_update
 import sys
-import re
 
 op = sys.argv[0]
-builds_sr_ht = cfg("builds.sr.ht", "origin", default=None)
 origin = cfg("git.sr.ht", "origin")
 
 if op == "hooks/post-update":
@@ -42,26 +38,4 @@ if op == "hooks/post-update":
     repo.updated = datetime.utcnow()
     db.session.commit()
 
-    git_repo = GitRepository(repo.path)
-    oids = set()
-    for ref in refs:
-        try:
-            if re.match(r"^[0-9a-z]{40}$", ref): # commit
-                commit = git_repo.get(ref)
-            elif ref.startswith("refs/"): # ref
-                target_id = git_repo.lookup_reference(ref).target
-                commit = git_repo.get(target_id)
-                if isinstance(commit, Tag):
-                    commit = git_repo.get(commit.target)
-            else:
-                continue
-            if not isinstance(commit, Commit):
-                continue
-            if commit.id in oids:
-                continue
-            oids.add(commit.id)
-        except:
-            continue
-        if builds_sr_ht:
-            from gitsrht.worker import do_post_update
-            do_post_update(repo, git_repo, commit)
+    do_post_update(repo, refs)
