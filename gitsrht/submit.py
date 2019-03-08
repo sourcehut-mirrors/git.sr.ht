@@ -6,7 +6,7 @@ import requests
 import yaml
 from buildsrht.manifest import Manifest
 from pygit2 import Repository as GitRepository, Commit, Tag
-from scmsrht.worker import BuildSubmitterBase
+from scmsrht.submit import BuildSubmitterBase
 from srht.config import cfg
 from srht.database import db
 from srht.oauth import OAuthScope

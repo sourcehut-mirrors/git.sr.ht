@@ -6,7 +6,7 @@ from gitsrht.types import Repository, RepoVisibility
 db.init()
 from configparser import ConfigParser
 from datetime import datetime
-from gitsrht.worker import do_post_update
+from gitsrht.submit import do_post_update
 import sys
 
 op = sys.argv[0]
