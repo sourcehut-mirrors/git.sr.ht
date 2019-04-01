@@ -4,9 +4,12 @@ import re
 
 class EditorConfig:
     def __init__(self, repo, tree, path):
-        self.repo = repo
-        self.tree = tree
-        self._config = self._config_for(path)
+        try:
+            self.repo = repo
+            self.tree = tree
+            self._config = self._config_for(path)
+        except:
+            self._config = None
 
     def _config_for(self, path):
         base = os.path.dirname(path)
