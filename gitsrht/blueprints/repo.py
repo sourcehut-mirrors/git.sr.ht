@@ -37,7 +37,7 @@ def authorize_http_access():
         return "unauthorized", 403
     return "authorized", 200
 
-def get_readme(repo, tip):
+def get_readme(repo, tip, link_prefix=None):
     if not tip:
         return None
 
@@ -54,7 +54,8 @@ def get_readme(repo, tip):
     def content_getter(blob):
         return repo.get(blob.id).data.decode()
 
-    return get_formatted_readme("git.sr.ht:git", file_finder, content_getter)
+    return get_formatted_readme("git.sr.ht:git", file_finder, content_getter,
+            link_prefix=link_prefix)
 
 def _highlight_file(name, data, blob_id):
     return get_highlighted_file("git.sr.ht:git", name, blob_id, data)
@@ -86,7 +87,11 @@ def summary(owner, repo):
         default_branch = git_repo.default_branch()
         tip = git_repo.get(default_branch.target)
         commits = get_last_3_commits(tip)
-        readme = get_readme(git_repo, tip)
+        link_prefix = url_for(
+            'repo.tree', owner=repo.owner, repo=repo.name,
+            ref=default_branch.name)
+        readme = get_readme(git_repo, tip,
+            link_prefix=link_prefix)
         tags = [(ref, git_repo.get(git_repo.references[ref].target))
             for ref in git_repo.listall_references()
             if ref.startswith("refs/tags/")]
