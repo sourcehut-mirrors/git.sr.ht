@@ -3,7 +3,7 @@ import os
 import sys
 import requests
 from srht.api import get_results
-from srht.config import cfg
+from srht.config import cfg, get_origin
 from srht.database import DbSession
 db = DbSession(cfg("git.sr.ht", "connection-string"))
 from gitsrht.types import User, SSHKey
@@ -18,7 +18,7 @@ user = (User.query.join(SSHKey)
         .filter(SSHKey.key.ilike(f"%{b64key}%"))).one_or_none()
 if not user:
     # Fall back to meta.sr.ht first
-    meta_origin = cfg("meta.sr.ht", "origin")
+    meta_origin = get_origin("meta.sr.ht")
     r = requests.get(f"{meta_origin}/api/ssh-key/{b64key}")
     if r.status_code == 200:
         username = r.json()["owner"]["name"]
