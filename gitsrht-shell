@@ -52,8 +52,7 @@ if len(cmd) < 1 or not cmd[0] in valid_commands:
 os.chdir(repos)
 path = os.path.abspath(cmd[-1])
 if not path.startswith(repos):
-    sys.stderr.write("Access denied")
-    sys.exit(128)
+    path = os.path.join(repos, path)
 cmd[-1] = path
 
 repo = Repository.query.filter(Repository.path == path).first()
