@@ -6,8 +6,10 @@ import requests
 import yaml
 from buildsrht.manifest import Manifest
 from pygit2 import Repository as GitRepository, Commit, Tag
+from scmsrht.repos import RepoVisibility
 from scmsrht.submit import BuildSubmitterBase
-from srht.config import cfg
+from scmsrht.urls import get_clone_urls
+from srht.config import cfg, get_origin
 from srht.database import db
 from srht.oauth import OAuthScope
 from urllib.parse import urlparse
@@ -18,9 +20,9 @@ if not hasattr(db, "session"):
     db = DbSession(cfg("git.sr.ht", "connection-string"))
     db.init()
 
-builds_sr_ht = cfg("builds.sr.ht", "origin")
+builds_sr_ht = get_origin("builds.sr.ht")
 builds_client_id = cfg("builds.sr.ht", "oauth-client-id")
-git_sr_ht = cfg("git.sr.ht", "origin")
+git_sr_ht = get_origin("git.sr.ht", external=True)
 
 def first_line(text):
     try:
@@ -66,8 +68,7 @@ class GitBuildSubmitter(BuildSubmitterBase):
 
     def get_commit_note(self, commit):
         return "{}\n\n[{}]({}) &mdash; [{}](mailto:{})".format(
-            # TODO: cgit replacement
-            html.escape(first_line(commit.message)),
+            "<pre>" + html.escape(first_line(commit.message)) + "</pre>",
             str(commit.id)[:7],
             "{}/{}/{}/commit/{}".format(
                 git_sr_ht,
@@ -77,6 +78,18 @@ class GitBuildSubmitter(BuildSubmitterBase):
             commit.author.name,
             commit.author.email,
         )
+
+    def get_clone_url(self):
+        origin = get_origin("git.sr.ht", external=True)
+        owner_name = self.repo.owner.canonical_name
+        repo_name = self.repo.name
+        if self.repo.visibility == RepoVisibility.private:
+            # Use SSH URL
+            origin = origin.replace("http://", "").replace("https://", "")
+            return f"git+ssh://git@{origin}/{owner_name}/{repo_name}"
+        else:
+            # Use http(s) URL
+            return f"{origin}/{owner_name}/{repo_name}"
 
 def do_post_update(repo, refs):
     if not builds_sr_ht:
