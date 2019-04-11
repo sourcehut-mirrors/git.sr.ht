@@ -67,8 +67,7 @@ class GitBuildSubmitter(BuildSubmitterBase):
         return str(commit.id)
 
     def get_commit_note(self, commit):
-        return "{}\n\n[{}]({}) &mdash; [{}](mailto:{})".format(
-            "<pre>" + html.escape(first_line(commit.message)) + "</pre>",
+        return "[{}]({}) &mdash; [{}](mailto:{})\n\n{}".format(
             str(commit.id)[:7],
             "{}/{}/{}/commit/{}".format(
                 git_sr_ht,
@@ -77,6 +76,7 @@ class GitBuildSubmitter(BuildSubmitterBase):
                 str(commit.id)),
             commit.author.name,
             commit.author.email,
+            "<pre>" + html.escape(first_line(commit.message)) + "</pre>",
         )
 
     def get_clone_url(self):
