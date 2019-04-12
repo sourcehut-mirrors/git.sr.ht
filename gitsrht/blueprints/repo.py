@@ -150,7 +150,7 @@ def tree(owner, repo, ref, path):
         for part in path:
             if part == "":
                 continue
-            if part not in tree:
+            if not tree or part not in tree:
                 abort(404)
             entry = tree[part]
             if entry.type == "blob":
