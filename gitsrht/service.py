@@ -1,5 +1,6 @@
 from flask import Blueprint, request, url_for
 from gitsrht.types import User, OAuthToken, SSHKey
+from scmsrht.service import scm_scopes
 from srht.api import get_results
 from srht.database import db
 from srht.config import cfg, get_origin
@@ -20,6 +21,7 @@ class GitOAuthService(AbstractOAuthService):
                 required_scopes=["profile", "keys"] + ([
                     "{}/jobs:write".format(builds_client_id)
                 ] if builds_client_id else []),
+                delegated_scopes=scm_scopes,
                 token_class=OAuthToken, user_class=User)
 
     def ensure_user_sshkey(self, user, meta_key):
