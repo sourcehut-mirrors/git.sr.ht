@@ -3,4 +3,3 @@ import gitsrht.alembic
 import srht.alembic
 from srht.database import alembic
 alembic("git.sr.ht", gitsrht.alembic)
-alembic("git.sr.ht", srht.alembic)

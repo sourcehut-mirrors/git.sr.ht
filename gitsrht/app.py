@@ -11,6 +11,7 @@ from gitsrht.types import Access, Redirect, Repository, User
 from scmsrht.flask import ScmSrhtFlask
 from srht.config import cfg
 from srht.database import DbSession
+import gitsrht.webhooks # makes valid the global
 
 db = DbSession(cfg("git.sr.ht", "connection-string"))
 db.init()
