@@ -6,9 +6,13 @@ import requests
 import yaml
 from buildsrht.manifest import Manifest
 from pygit2 import Repository as GitRepository, Commit, Tag
+from gitsrht.blueprints.api import commit_to_dict
+from gitsrht.types import User
+from scmsrht.redis import redis
 from scmsrht.repos import RepoVisibility
 from scmsrht.submit import BuildSubmitterBase
 from scmsrht.urls import get_clone_urls
+from gitsrht.webhooks import RepoWebhook
 from srht.config import cfg, get_origin
 from srht.database import db
 from srht.oauth import OAuthScope
@@ -91,13 +95,34 @@ class GitBuildSubmitter(BuildSubmitterBase):
             # Use http(s) URL
             return f"{origin}/{owner_name}/{repo_name}"
 
+# https://stackoverflow.com/a/14693789
+ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
+
 def do_post_update(repo, refs):
-    if not builds_sr_ht:
-        return False
+    uid = os.environ.get("SRHT_UID")
+    push = os.environ.get("SRHT_PUSH")
+    user = User.query.get(int(uid))
+
+    payload = {
+        "push": push,
+        "pusher": user.to_dict(),
+        "refs": list(),
+    }
 
     git_repo = GitRepository(repo.path)
     oids = set()
     for ref in refs:
+        update = redis.get(f"update.{push}.{ref}")
+        if update:
+            old, new = update.decode().split(":")
+            old = git_repo.get(old)
+            new = git_repo.get(new)
+            payload["refs"].append({
+                "name": ref,
+                "old": commit_to_dict(old) if old else None,
+                "new": commit_to_dict(new),
+            })
+
         try:
             if re.match(r"^[0-9a-z]{40}$", ref): # commit
                 commit = git_repo.get(ref)
@@ -119,3 +144,23 @@ def do_post_update(repo, refs):
         if builds_sr_ht:
             s = GitBuildSubmitter(repo, git_repo)
             s.submit(commit)
+
+    # sync webhooks
+    for resp in RepoWebhook.deliver(RepoWebhook.Events.repo_post_update, payload,
+            RepoWebhook.Subscription.repo_id == repo.id,
+            RepoWebhook.Subscription.sync,
+            delay=False):
+        if resp == None:
+            # TODO: Add details?
+            print("Error submitting webhook")
+            continue
+        if resp.status_code != 200:
+            print(f"Webhook returned status {resp.status_code}")
+        try:
+            print(ansi_escape.sub('', resp.text))
+        except:
+            print("Unable to decode webhook response")
+    # async webhooks
+    RepoWebhook.deliver(RepoWebhook.Events.repo_post_update, payload,
+            RepoWebhook.Subscription.repo_id == repo.id,
+            RepoWebhook.Subscription.sync == False)

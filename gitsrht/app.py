@@ -11,7 +11,6 @@ from gitsrht.types import Access, Redirect, Repository, User
 from scmsrht.flask import ScmSrhtFlask
 from srht.config import cfg
 from srht.database import DbSession
-import gitsrht.webhooks # makes valid the global
 
 db = DbSession(cfg("git.sr.ht", "connection-string"))
 db.init()
@@ -21,8 +20,7 @@ class GitApp(ScmSrhtFlask):
         super().__init__("git.sr.ht", __name__,
                 access_class=Access, redirect_class=Redirect,
                 repository_class=Repository, user_class=User,
-                repo_api=GitRepoApi(),
-                oauth_service=oauth_service)
+                repo_api=GitRepoApi(), oauth_service=oauth_service)
 
         from gitsrht.blueprints.api import data
         from gitsrht.blueprints.repo import repo

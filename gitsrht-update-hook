@@ -5,12 +5,26 @@ db = DbSession(cfg("git.sr.ht", "connection-string"))
 from gitsrht.types import Repository, RepoVisibility
 db.init()
 from configparser import ConfigParser
-from datetime import datetime
+from datetime import datetime, timedelta
 from gitsrht.submit import do_post_update
+from scmsrht.redis import redis
+import os
 import sys
 
 op = sys.argv[0]
 origin = cfg("git.sr.ht", "origin")
+
+if op == "hooks/update":
+    # Stash updated refs for later processing
+    refname = sys.argv[1]
+    old = sys.argv[2]
+    new = sys.argv[3]
+
+    push_uuid = os.environ.get("SRHT_PUSH")
+    if not push_uuid:
+        sys.exit(0)
+    redis.setex(f"update.{push_uuid}.{refname}",
+            timedelta(minutes=10), f"{old}:{new}")
 
 if op == "hooks/post-update":
     refs = sys.argv[1:]

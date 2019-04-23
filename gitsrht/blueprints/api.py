@@ -3,6 +3,7 @@ import pygit2
 from flask import Blueprint, current_app, request, send_file, abort
 from gitsrht.blueprints.repo import lookup_ref, get_log, collect_refs
 from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
+from gitsrht.webhooks import RepoWebhook
 from io import BytesIO
 from scmsrht.blueprints.api import get_user, get_repo
 from srht.api import paginated_response
@@ -10,7 +11,7 @@ from srht.oauth import current_token, oauth
 
 data = Blueprint("api.data", __name__)
 
-def _commit_to_dict(c):
+def commit_to_dict(c):
     return {
         "id": str(c.id),
         "short_id": c.short_id,
@@ -32,7 +33,7 @@ def _commit_to_dict(c):
         } if c.gpg_signature[0] else None
     }
 
-def _tree_to_dict(t):
+def tree_to_dict(t):
     return {
         "id": str(t.id),
         "short_id": t.short_id,
@@ -100,7 +101,7 @@ def repo_commits_GET(username, reponame, ref, path):
             next_id = str(commits[-1].id)
         return {
             "next": next_id,
-            "results": [_commit_to_dict(c) for c in commits],
+            "results": [commit_to_dict(c) for c in commits],
             # TODO: Track total commits per repo per branch
             "total": -1,
             "results_per_page": commits_per_page
@@ -130,7 +131,7 @@ def repo_tree_GET(username, reponame, ref, path):
             tree = commit
         else:
             abort(404)
-        return _tree_to_dict(tree)
+        return tree_to_dict(tree)
 
 @data.route("/api/repos/<reponame>/blob/<path:ref>",
         defaults={"username": None, "path": ""})
@@ -175,3 +176,19 @@ def repo_blob_GET(username, reponame, ref, path):
                 as_attachment=blob.is_binary,
                 attachment_filename=entry.name if entry else None,
                 mimetype="text/plain" if not blob.is_binary else None)
+
+
+def _webhook_filters(query, username, reponame):
+    user = get_user(username)
+    repo = get_repo(user, reponame)
+    return query.filter(RepoWebhook.Subscription.repo_id == repo.id)
+
+def _webhook_create(sub, valid, username, reponame):
+    user = get_user(username)
+    repo = get_repo(user, reponame)
+    sub.repo_id = repo.id
+    sub.sync = valid.optional("sync", cls=bool, default=False)
+    return sub
+
+RepoWebhook.api_routes(data, "/api/<username>/repos/<reponame>",
+        filters=_webhook_filters, create=_webhook_create)

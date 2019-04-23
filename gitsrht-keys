@@ -8,6 +8,7 @@ from srht.database import DbSession
 db = DbSession(cfg("git.sr.ht", "connection-string"))
 from gitsrht.types import User, SSHKey
 db.init()
+from uuid import uuid4
 
 sys.stderr.write(str(sys.argv) + "\n")
 key_type = sys.argv[3]
@@ -37,9 +38,11 @@ if not user:
 
 default_shell = os.path.join(os.path.dirname(sys.argv[0]), "gitsrht-shell")
 shell = cfg("git.sr.ht", "shell", default=default_shell)
-keys = "command=\"{} '{}' '{}'\",".format(shell, user.id, b64key) + \
-    "no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty " + \
-    "{} {} {}".format(key_type, b64key, user.username) + "\n"
+keys = ("command=\"{} '{}' '{}'\",".format(shell, user.id, b64key) +
+    "no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty," +
+    "environment=\"SRHT_UID={}\",environment=\"SRHT_PUSH={}\"".format(
+        user.id, str(uuid4())) +
+    " {} {} {}".format(key_type, b64key, user.username) + "\n")
 print(keys)
 sys.stderr.write(keys)
 sys.exit(0)
