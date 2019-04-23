@@ -118,7 +118,7 @@ def do_post_update(repo, refs):
             old = git_repo.get(old)
             new = git_repo.get(new)
             update = dict()
-            if isinstance(new, pygit2.Tag):
+            if isinstance(new, Tag):
                 update.update({
                     "annotated_tag": {
                         "name": new.name,
