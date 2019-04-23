@@ -117,11 +117,21 @@ def do_post_update(repo, refs):
             old, new = update.decode().split(":")
             old = git_repo.get(old)
             new = git_repo.get(new)
-            payload["refs"].append({
+            update = dict()
+            if isinstance(new, pygit2.Tag):
+                update.update({
+                    "annotated_tag": {
+                        "name": new.name,
+                        "message": new.message,
+                    },
+                })
+                new = git_repo.get(new.target)
+            update.update({
                 "name": ref,
                 "old": commit_to_dict(old) if old else None,
                 "new": commit_to_dict(new),
-            })
+            }
+            payload["refs"].append(update)
 
         try:
             if re.match(r"^[0-9a-z]{40}$", ref): # commit
