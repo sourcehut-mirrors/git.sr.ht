@@ -8,7 +8,6 @@ from srht.database import DbSession
 db = DbSession(cfg("git.sr.ht", "connection-string"))
 from gitsrht.types import User, SSHKey
 db.init()
-from gitsrht.service import oauth_service
 
 sys.stderr.write(str(sys.argv) + "\n")
 key_type = sys.argv[3]
@@ -17,6 +16,7 @@ b64key = sys.argv[4]
 user = (User.query.join(SSHKey)
         .filter(SSHKey.key.ilike(f"%{b64key}%"))).one_or_none()
 if not user:
+    from gitsrht.service import oauth_service
     # Fall back to meta.sr.ht first
     meta_origin = get_origin("meta.sr.ht")
     r = requests.get(f"{meta_origin}/api/ssh-key/{b64key}")
