@@ -129,7 +129,7 @@ def do_post_update(repo, refs):
             update.update({
                 "name": ref,
                 "old": commit_to_dict(old) if old else None,
-                "new": commit_to_dict(new),
+                "new": commit_to_dict(new) if new else None,
             })
             payload["refs"].append(update)
 
