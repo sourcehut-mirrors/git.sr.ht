@@ -261,7 +261,7 @@ def collect_refs(git_repo):
     refs = {}
     for _ref in git_repo.references:
         _ref = _AnnotatedRef(git_repo, git_repo.references[_ref])
-        if not _ref.type or not _ref.commit:
+        if not _ref.type or not hasattr(_ref, "commit"):
             continue
         if _ref.commit.id.hex not in refs:
             refs[_ref.commit.id.hex] = []
@@ -369,6 +369,8 @@ def refs(owner, repo):
                 ref,
                 git_repo.get(git_repo.references[ref].target)
             ) for ref in git_repo.references if ref.startswith("refs/tags/")]
+        tags = [tag for tag in tags
+                if isinstance(tag[1], pygit2.Commit) or isinstance(tag[1], pygit2.Tag)]
         def _tag_key(tag):
             if isinstance(tag[1], pygit2.Commit):
                 return tag[1].commit_time
