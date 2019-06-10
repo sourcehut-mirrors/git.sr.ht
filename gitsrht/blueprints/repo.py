@@ -252,7 +252,7 @@ class _AnnotatedRef:
             self.tag = repo.get(self.target)
             if isinstance(self.tag, pygit2.Commit):
                 self.commit = self.tag
-            else:
+            elif isinstance(self.tag, pygit2.Tag):
                 self.commit = repo.get(self.tag.target)
         else:
             self.type = None
