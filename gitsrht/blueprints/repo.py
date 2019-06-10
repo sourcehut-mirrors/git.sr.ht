@@ -261,7 +261,7 @@ def collect_refs(git_repo):
     refs = {}
     for _ref in git_repo.references:
         _ref = _AnnotatedRef(git_repo, git_repo.references[_ref])
-        if not _ref.type:
+        if not _ref.type or not _ref.commit:
             continue
         if _ref.commit.id.hex not in refs:
             refs[_ref.commit.id.hex] = []
