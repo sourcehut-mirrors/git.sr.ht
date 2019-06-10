@@ -15,10 +15,13 @@ def trim_commit(msg):
 def commit_time(commit):
     author = commit.author if hasattr(commit, 'author') else commit.tagger
     # Time handling in python is so dumb
-    tzinfo = timezone(timedelta(minutes=author.offset))
-    tzaware = datetime.fromtimestamp(float(author.time), tzinfo)
-    diff = datetime.now(timezone.utc) - tzaware
-    return datetime.utcnow() - diff
+    try:
+        tzinfo = timezone(timedelta(minutes=author.offset))
+        tzaware = datetime.fromtimestamp(float(author.time), tzinfo)
+        diff = datetime.now(timezone.utc) - tzaware
+        return datetime.utcnow() - diff
+    except:
+        return datetime.utcnow()
 
 def _get_ref(repo, ref):
     return repo._get(ref)

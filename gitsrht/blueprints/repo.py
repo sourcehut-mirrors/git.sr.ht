@@ -83,6 +83,8 @@ def summary(owner, repo):
         tags = [(ref, git_repo.get(git_repo.references[ref].target))
             for ref in git_repo.listall_references()
             if ref.startswith("refs/tags/")]
+        tags = [tag for tag in tags
+                if isinstance(tag[1], pygit2.Tag) or isinstance(tag[1], pygit2.Commit)]
         tags = sorted(tags, key=lambda c: commit_time(c[1]), reverse=True)
         latest_tag = tags[0] if len(tags) else None
         return render_template("summary.html", view="summary",

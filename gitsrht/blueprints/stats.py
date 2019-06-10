@@ -32,7 +32,10 @@ def get_contributions(git_repo, tip, since):
         if timestamp < since_ts:
             break
 
-        week = _week(datetime.fromtimestamp(timestamp))
+        try:
+            week = _week(datetime.fromtimestamp(timestamp))
+        except:
+            continue
         user = _user(commit.author.email, commit.author.name)
         contributions[user]['commits'] += 1
         contributions[user]['weekly'][week] += 1
