@@ -25,7 +25,7 @@ pre {
 .tree-list {
   display: grid;
   // mode name
-  grid-template-columns: auto 1fr 4fr auto auto;
+  grid-template-columns: auto 1fr fit-content(40em) auto auto;
 
   svg {
     color: #777;
@@ -39,8 +39,20 @@ pre {
     color: $gray-900;
   }
 
+  .name.blob {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
   .mode, .commit, .commit a, .date, .size {
     color: $gray-700;
+  }
+
+  .commit {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
   }
 
   & > div {
