@@ -98,9 +98,7 @@ class AnnotatedTreeEntry:
         return f"<AnnotatedTreeEntry {self.name} {self.id}>"
 
 def annotate_tree(repo, tree, commit):
-    tree = { entry.id.hex: AnnotatedTreeEntry(
-        repo, entry) for entry in tree }
-    return [entry.fetch_blob() for entry in tree.values()]
+    return [AnnotatedTreeEntry(repo, entry).fetch_blob() for entry in tree]
 
     # TODO: This is slow and broken
     key = f"git.sr.ht:git:tree:{tree.id.hex}"
