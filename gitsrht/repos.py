@@ -14,17 +14,17 @@ class GitRepoApi(SimpleRepoApi):
                 repository_class=Repository)
 
     def do_init_repo(self, owner, repo):
-        subprocess.run(["mkdir", "-p", repo.path],
+        subprocess.run(["mkdir", "-p", repo.path], check=True,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        subprocess.run(["git", "init", "--bare"], cwd=repo.path,
+        subprocess.run(["git", "init", "--bare"], cwd=repo.path, check=True,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        subprocess.run(["git", "config", "srht.repo-id", str(repo.id)],
+        subprocess.run(["git", "config", "srht.repo-id", str(repo.id)], check=True,
             cwd=repo.path, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.run(["ln", "-s",
                 post_update,
                 os.path.join(repo.path, "hooks", "update")
-            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.run(["ln", "-s",
                 post_update,
                 os.path.join(repo.path, "hooks", "post-update")
-            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
