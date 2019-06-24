@@ -23,8 +23,8 @@ if not hasattr(db, "session"):
     db = DbSession(cfg("git.sr.ht", "connection-string"))
     db.init()
 
-builds_sr_ht = get_origin("builds.sr.ht")
-builds_client_id = cfg("builds.sr.ht", "oauth-client-id")
+builds_sr_ht = cfg("builds.sr.ht", "origin", None)
+builds_client_id = cfg("builds.sr.ht", "oauth-client-id", None)
 git_sr_ht = get_origin("git.sr.ht", external=True)
 
 def first_line(text):
