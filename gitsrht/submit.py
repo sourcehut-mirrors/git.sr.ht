@@ -4,7 +4,6 @@ import os.path
 import re
 import requests
 import yaml
-from buildsrht.manifest import Manifest
 from pygit2 import Repository as GitRepository, Commit, Tag
 from gitsrht.blueprints.api import commit_to_dict
 from gitsrht.types import User
