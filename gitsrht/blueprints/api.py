@@ -157,8 +157,8 @@ def repo_annotate_PUT(username, reponame):
             validate_annotation(valid, anno)
         if not valid.ok:
             return valid.response
-        # TODO: more validation on annotation structure
-        redis.set(f"git.sr.ht:git:annotations:{oid}", json.dumps(annotations))
+        redis.set(f"git.sr.ht:git:annotations:{repo.id}:{oid}",
+                json.dumps(annotations))
         # Invalidate rendered markup cache
         redis.delete(f"git.sr.ht:git:highlight:{oid}")
 

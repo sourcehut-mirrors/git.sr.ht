@@ -48,7 +48,7 @@ def get_readme(repo, tip, link_prefix=None):
             link_prefix=link_prefix)
 
 def _highlight_file(repo, ref, name, data, blob_id):
-    annotations = redis.get(f"git.sr.ht:git:annotations:{blob_id}")
+    annotations = redis.get(f"git.sr.ht:git:annotations:{repo.id}:{blob_id}")
     if annotations:
         annotations = json.loads(annotations.decode())
     link_prefix = url_for(
