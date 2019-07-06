@@ -7,6 +7,7 @@ from gitsrht.blueprints.repo import lookup_ref, get_log, collect_refs
 from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
 from gitsrht.webhooks import RepoWebhook
 from io import BytesIO
+from scmsrht.access import UserAccess
 from scmsrht.blueprints.api import get_user, get_repo
 from scmsrht.redis import redis
 from srht.api import paginated_response
@@ -139,10 +140,10 @@ def repo_tree_GET(username, reponame, ref, path):
 
 @data.route("/api/repos/<reponame>/annotate", methods=["PUT"])
 @data.route("/api/<username>/repos/<reponame>/annotate", methods=["PUT"])
-@oauth("data:read")
+@oauth("repo:write")
 def repo_annotate_PUT(username, reponame):
     user = get_user(username)
-    repo = get_repo(user, reponame)
+    repo = get_repo(user, reponame, needs=UserAccess.manage)
 
     valid = Validation(request)
 
