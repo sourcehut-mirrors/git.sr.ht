@@ -1,13 +1,15 @@
 import binascii
+import json
 import os
 import pygit2
 import pygments
-import sys
 import subprocess
+import sys
 from datetime import timedelta
 from jinja2 import Markup
 from flask import Blueprint, render_template, abort, send_file, request
 from flask import Response, url_for
+from gitsrht.annotations import AnnotatedFormatter
 from gitsrht.editorconfig import EditorConfig
 from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
 from gitsrht.git import diffstat
@@ -45,8 +47,14 @@ def get_readme(repo, tip, link_prefix=None):
     return get_formatted_readme("git.sr.ht:git", file_finder, content_getter,
             link_prefix=link_prefix)
 
-def _highlight_file(name, data, blob_id):
-    return get_highlighted_file("git.sr.ht:git", name, blob_id, data)
+def _highlight_file(repo, ref, name, data, blob_id):
+    annotations = redis.get(f"git.sr.ht:git:annotations:{blob_id}")
+    if annotations:
+        annotations = json.loads(annotations.decode())
+    link_prefix = url_for(
+        'repo.tree', owner=repo.owner, repo=repo.name, ref=ref)
+    return get_highlighted_file("git.sr.ht:git", name, blob_id, data,
+            formatter=AnnotatedFormatter(annotations, link_prefix))
 
 def render_empty_repo(owner, repo):
     origin = cfg("git.sr.ht", "origin")

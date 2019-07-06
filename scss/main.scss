@@ -176,3 +176,42 @@ pre {
 img {
   max-width: 100%;
 }
+
+// Annotations
+.highlight {
+  a.annotation {
+    color: inherit;
+    background: lighten($primary, 45);
+    border-bottom: 1px dotted $gray-800;
+
+    &:hover {
+      text-decoration: none;
+      border-bottom: 1px solid $gray-800;
+    }
+  }
+
+  details {
+    display: inline;
+    margin-left: 3rem;
+    color: $gray-600;
+
+    &[open] {
+      display: block;
+      color: inherit;
+      background: $gray-100;
+      width: 30rem;
+      margin: 0;
+      white-space: normal;
+      font: inherit;
+      position: absolute;
+
+      summary {
+        background: $gray-300;
+      }
+
+      ul:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}

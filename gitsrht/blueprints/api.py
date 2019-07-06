@@ -1,13 +1,17 @@
 import base64
+import json
 import pygit2
 from flask import Blueprint, current_app, request, send_file, abort
+from gitsrht.annotations import validate_annotation
 from gitsrht.blueprints.repo import lookup_ref, get_log, collect_refs
 from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
 from gitsrht.webhooks import RepoWebhook
 from io import BytesIO
 from scmsrht.blueprints.api import get_user, get_repo
+from scmsrht.redis import redis
 from srht.api import paginated_response
 from srht.oauth import current_token, oauth
+from srht.validation import Validation
 
 data = Blueprint("api.data", __name__)
 
@@ -132,6 +136,32 @@ def repo_tree_GET(username, reponame, ref, path):
         else:
             abort(404)
         return tree_to_dict(tree)
+
+@data.route("/api/repos/<reponame>/annotate", methods=["PUT"])
+@data.route("/api/<username>/repos/<reponame>/annotate", methods=["PUT"])
+@oauth("data:read")
+def repo_annotate_PUT(username, reponame):
+    user = get_user(username)
+    repo = get_repo(user, reponame)
+
+    valid = Validation(request)
+
+    for oid, annotations in valid.source.items():
+        valid.expect(isinstance(oid, str), "blob keys must be strings")
+        valid.expect(isinstance(annotations, list),
+                "blob values must be lists of annotations")
+        if not valid.ok:
+            return valid.response
+        for anno in annotations:
+            validate_annotation(valid, anno)
+        if not valid.ok:
+            return valid.response
+        # TODO: more validation on annotation structure
+        redis.set(f"git.sr.ht:git:annotations:{oid}", json.dumps(annotations))
+        # Invalidate rendered markup cache
+        redis.delete(f"git.sr.ht:git:highlight:{oid}")
+
+    return { }, 200
 
 @data.route("/api/repos/<reponame>/blob/<path:ref>",
         defaults={"username": None, "path": ""})
