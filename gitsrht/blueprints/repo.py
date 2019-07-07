@@ -48,13 +48,15 @@ def get_readme(repo, tip, link_prefix=None):
             link_prefix=link_prefix)
 
 def _highlight_file(repo, ref, name, data, blob_id):
-    annotations = redis.get(f"git.sr.ht:git:annotations:{repo.id}:{blob_id}")
-    if annotations:
-        annotations = json.loads(annotations.decode())
+    def get_annos():
+        annotations = redis.get(f"git.sr.ht:git:annotations:{repo.id}:{blob_id}")
+        if annotations:
+            return json.loads(annotations.decode())
+        return None
     link_prefix = url_for(
         'repo.tree', owner=repo.owner, repo=repo.name, ref=ref)
     return get_highlighted_file("git.sr.ht:git", name, blob_id, data,
-            formatter=AnnotatedFormatter(annotations, link_prefix))
+            formatter=AnnotatedFormatter(get_annos, link_prefix))
 
 def render_empty_repo(owner, repo):
     origin = cfg("git.sr.ht", "origin")

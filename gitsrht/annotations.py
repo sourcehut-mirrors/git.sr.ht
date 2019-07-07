@@ -200,16 +200,23 @@ def validate_annotation(valid, anno):
                     "f'{field}' must be a string")
 
 class AnnotatedFormatter(_BaseFormatter):
-    def __init__(self, annos, link_prefix):
+    def __init__(self, get_annos, link_prefix):
         super().__init__()
-        self.annos = dict()
+        self.get_annos = get_annos
         self.link_prefix = link_prefix
-        for anno in (annos or list()):
+
+    @property
+    def annos(self):
+        if hasattr(self, "_annos"):
+            return self._annos
+        self._annos = dict()
+        for anno in (self.get_annos() or list()):
             lineno = int(anno["lineno"])
-            self.annos.setdefault(lineno, list())
-            self.annos[lineno].append(anno)
-            self.annos[lineno] = sorted(self.annos[lineno],
+            self._annos.setdefault(lineno, list())
+            self._annos[lineno].append(anno)
+            self._annos[lineno] = sorted(self._annos[lineno],
                     key=lambda anno: anno.get("from", -1))
+        return self._annos
 
     def _annotate_token(self, token, colno, annos):
         # TODO: Extend this to support >1 anno per token
