@@ -189,6 +189,14 @@ def validate_annotation(valid, anno):
         valid.expect("to" in anno, "'to' is required")
         valid.expect("title" not in anno or isinstance(anno["title"], str),
                 "'title' must be a string")
+        valid.expect("color" not in anno or isinstance(anno["color"], str),
+                "'color' must be a string")
+        if "color" in anno and anno["color"] != "transparent":
+            valid.expect("color" not in anno or len(anno["color"]) == 7,
+                    "'color' must be a 7 digit string or 'transparent'")
+            valid.expect("color" not in anno or not any(
+                c for c in anno["color"].lower() if c not in "#0123456789abcdef"),
+                    "'color' must be in hexadecimal or 'transparent'")
     elif anno["type"] == "markdown":
         for field in ["lineno"]:
             valid.expect(field in anno, "f'{field}' is required")
@@ -226,14 +234,22 @@ class AnnotatedFormatter(_BaseFormatter):
                 end = anno["colno"] + anno["len"] - 1
                 target = anno["to"]
                 title = anno.get("title", "")
+                color = anno.get("color", None)
                 url = urlparse(target)
                 if url.scheme == "":
                     target = self.link_prefix + "/" + target
                 if start <= colno < end:
-                    return (f"<a class='annotation' title='{title}' " +
-                        f"href='{escape_html(target)}' " +
-                        f"rel='nofollow noopener' " +
-                        f">{escape_html(token)}</a>""")
+                    if color is not None:
+                        return (f"<a class='annotation' title='{title}' " +
+                            f"href='{escape_html(target)}' " +
+                            f"rel='nofollow noopener' " +
+                            f"style='background-color: {color}' " +
+                            f">{escape_html(token)}</a>""")
+                    else:
+                        return (f"<a class='annotation' title='{title}' " +
+                            f"href='{escape_html(target)}' " +
+                            f"rel='nofollow noopener' " +
+                            f">{escape_html(token)}</a>""")
             elif anno["type"] == "markdown":
                 if "\n" not in token:
                     continue
