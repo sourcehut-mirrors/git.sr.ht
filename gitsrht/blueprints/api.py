@@ -122,7 +122,7 @@ def repo_commits_GET(username, reponame, ref, path):
         defaults={"ref": None, "path": ""})
 @data.route("/api/<username>/repos/<reponame>/tree/<path:ref>",
         defaults={"path": ""})
-@data.route("/api/repos/<username>/<reponame>/tree/<ref>/<path:path>")
+@data.route("/api/<username>/repos/<reponame>/tree/<ref>/<path:path>")
 @oauth("data:read")
 def repo_tree_GET(username, reponame, ref, path):
     user = get_user(username)
@@ -135,6 +135,17 @@ def repo_tree_GET(username, reponame, ref, path):
         elif isinstance(commit, pygit2.Tree):
             tree = commit
         else:
+            abort(404)
+
+        path = [p for p in path.split("/") if p]
+        for part in path:
+            if not tree or part not in tree:
+                abort(404)
+            entry = tree[part]
+            if entry.type == "blob":
+                abort(404)
+            tree = git_repo.get(entry.id)
+        if not tree:
             abort(404)
         return tree_to_dict(tree)
 
@@ -170,7 +181,7 @@ def repo_annotate_PUT(username, reponame):
         defaults={"username": None})
 @data.route("/api/<username>/blob/<reponame>/blob/<path:ref>",
         defaults={"path": ""})
-@data.route("/api/repos/<username>/<reponame>/blob/<ref>/<path:path>")
+@data.route("/api/<username>/repos/<reponame>/blob/<ref>/<path:path>")
 @oauth("data:read")
 def repo_blob_GET(username, reponame, ref, path):
     user = get_user(username)
