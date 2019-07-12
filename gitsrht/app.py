@@ -1,7 +1,6 @@
 import humanize
 import os
 import stat
-from flask import session
 from functools import lru_cache
 from gitsrht import urls
 from gitsrht.git import commit_time, trim_commit
@@ -11,6 +10,7 @@ from gitsrht.types import Access, Redirect, Repository, User
 from scmsrht.flask import ScmSrhtFlask
 from srht.config import cfg
 from srht.database import DbSession
+from srht.flask import session
 
 db = DbSession(cfg("git.sr.ht", "connection-string"))
 db.init()
