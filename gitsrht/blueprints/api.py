@@ -85,7 +85,7 @@ def repo_refs_GET(username, reponame):
         defaults={"ref": None, "path": ""})
 @data.route("/api/<username>/repos/<reponame>/log/<path:ref>",
         defaults={"path": ""})
-@data.route("/api/repos/<username>/<reponame>/log/<ref>/<path:path>")
+@data.route("/api/<username>/repos/<reponame>/log/<ref>/<path:path>")
 @oauth("data:read")
 def repo_commits_GET(username, reponame, ref, path):
     user = get_user(username)
@@ -94,7 +94,7 @@ def repo_commits_GET(username, reponame, ref, path):
     commits_per_page=50
     with GitRepository(repo.path) as git_repo:
         if git_repo.is_empty:
-            return { "next": next_id, "results": [],
+            return { "next": None, "results": [],
                     "total": 0, "results_per_page": commits_per_page }
         commit, ref, path = lookup_ref(git_repo, ref, path)
         start = request.args.get("start")
