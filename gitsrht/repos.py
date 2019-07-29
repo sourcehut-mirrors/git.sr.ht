@@ -28,3 +28,9 @@ class GitRepoApi(SimpleRepoApi):
                 post_update,
                 os.path.join(repo.path, "hooks", "post-update")
             ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    def do_delete_repo(self, repo):
+        from gitsrht.webhooks import RepoWebhook
+        RepoWebhook.Subscription.query.filter(
+                RepoWebhook.Subscription.repo_id == repo.id).delete()
+        super().do_delete_repo(repo)
