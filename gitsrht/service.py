@@ -9,6 +9,7 @@ from srht.flask import csrf_bypass
 from srht.oauth import AbstractOAuthService
 import json
 import requests
+import sys
 
 origin = cfg("git.sr.ht", "origin")
 meta_origin = get_origin("meta.sr.ht")
@@ -25,6 +26,17 @@ class GitOAuthService(AbstractOAuthService):
                 delegated_scopes=scm_scopes,
                 token_class=OAuthToken, user_class=User)
 
+    def cache_key(self, user, meta_key):
+        b64key = meta_key["key"].split(" ")
+        if len(b64key) > 3:
+            return False
+        b64key = b64key[1]
+        cache = {
+            "user_id": user.id,
+            "username": user.username,
+        }
+        redis.set(f"git.sr.ht.ssh-keys.{b64key}", json.dumps(cache))
+
     def ensure_user_sshkey(self, user, meta_key):
         """
         Ensures this SSH key is registered with this user, and returns True if
@@ -35,6 +47,7 @@ class GitOAuthService(AbstractOAuthService):
         key = SSHKey.query.filter(
                 SSHKey.meta_id == meta_key["id"]).one_or_none()
         if key:
+            self.cache_key(user, meta_key)
             return False
         key = SSHKey()
         key.user_id = user.id
@@ -42,15 +55,7 @@ class GitOAuthService(AbstractOAuthService):
         key.key = meta_key["key"]
         key.fingerprint = meta_key["fingerprint"]
         db.session.add(key)
-        b64key = meta_key["key"].split(" ")
-        if len(b64key) > 3:
-            return True
-        b64key = b64key[1]
-        cache = {
-            "user_id": user.id,
-            "username": user.username,
-        }
-        redis.set(f"git.sr.ht.ssh-keys.{b64key}", json.dumps(cache))
+        self.cache_key(user, meta_key)
         return True
 
     def ensure_meta_webhooks(self, user, webhooks):

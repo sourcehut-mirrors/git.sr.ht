@@ -25,24 +25,21 @@ else:
     from gitsrht.types import User, SSHKey
     db.init()
 
-    user = (User.query.join(SSHKey)
-            .filter(SSHKey.key.ilike(f"%{b64key}%"))).one_or_none()
-    if not user:
-        from gitsrht.service import oauth_service
-        # Fall back to meta.sr.ht first
-        meta_origin = get_origin("meta.sr.ht")
-        r = requests.get(f"{meta_origin}/api/ssh-key/{b64key}")
-        if r.status_code == 200:
-            username = r.json()["owner"]["name"]
-            user = User.query.filter(User.username == username).one_or_none()
-            try:
-                # Attempt to pull down keys for next time
-                keys_url = f"{meta_origin}/api/user/ssh-keys"
-                for key in get_results(keys_url, user.oauth_token):
-                    oauth_service.ensure_user_sshkey(user, key)
-                db.session.commit()
-            except:
-                pass
+    from gitsrht.service import oauth_service
+    # Fall back to meta.sr.ht first
+    meta_origin = get_origin("meta.sr.ht")
+    r = requests.get(f"{meta_origin}/api/ssh-key/{b64key}")
+    if r.status_code == 200:
+        username = r.json()["owner"]["name"]
+        user = User.query.filter(User.username == username).one_or_none()
+        try:
+            # Attempt to pull down keys for next time
+            keys_url = f"{meta_origin}/api/user/ssh-keys"
+            for key in get_results(keys_url, user.oauth_token):
+                oauth_service.ensure_user_sshkey(user, key)
+            db.session.commit()
+        except:
+            pass
     if user:
         user_id = user.id
         username = user.username
