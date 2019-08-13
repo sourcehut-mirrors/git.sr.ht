@@ -53,7 +53,7 @@ def push_check():
             repo_api = GitRepoApi()
             repo = repo_api.create_repo(valid, user)
             if not valid.ok:
-                sys.exit(128)
+                return valid.response
             repo.visibility = RepoVisibility.autocreated
             db.session.commit()
             return { }, 200
