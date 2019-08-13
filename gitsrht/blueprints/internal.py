@@ -3,7 +3,6 @@ This blueprint is used internally by gitsrht-shell to speed up git pushes, by
 taking advantage of the database connection already established by the web app.
 """
 
-import base64
 from flask import Blueprint, request
 from srht.config import get_origin
 from scmsrht.access import has_access, UserAccess
@@ -14,6 +13,8 @@ from srht.crypto import verify_request_signature
 from srht.database import db
 from srht.flask import csrf_bypass
 from srht.validation import Validation
+import base64
+import os
 
 internal = Blueprint("internal", __name__)
 
@@ -41,20 +42,23 @@ def push_check():
                 "redirect": 'git@{origin}:{repo.owner.username}/{repo.name}'
             }, 302
 
-        # Autocreate this repo
-        _path, repo_name = os.path.split(path)
-        owner = os.path.basename(_path)
-        if "~" + user.username != owner:
-            return { }, 401
+        if access == UserAccess.write:
+            # Autocreate this repo
+            _path, repo_name = os.path.split(path)
+            owner = os.path.basename(_path)
+            if "~" + user.username != owner:
+                return { }, 401
 
-        valid = Validation({ "name": repo_name })
-        repo_api = GitRepoApi()
-        repo = repo_api.create_repo(valid, user)
-        if not valid.ok:
-            sys.exit(128)
-        repo.visibility = RepoVisibility.autocreated
-        db.session.commit()
-        return { }, 200
+            valid = Validation({ "name": repo_name })
+            repo_api = GitRepoApi()
+            repo = repo_api.create_repo(valid, user)
+            if not valid.ok:
+                sys.exit(128)
+            repo.visibility = RepoVisibility.autocreated
+            db.session.commit()
+            return { }, 200
+        else:
+            return { }, 404
 
     if not has_access(repo, access, user):
         return { }, 401
