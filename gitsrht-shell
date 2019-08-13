@@ -8,23 +8,19 @@ try:
 except Exception as ex:
     sys.stderr.write("Unable to open log for writing\n")
     sys.stderr.write(str(ex) + "\n")
+import json
 import requests
 import shlex
 from datetime import datetime
-from srht.config import cfg
+from srht.config import cfg, get_origin
+from srht.crypto import sign_payload
 from srht.validation import Validation
-from srht.database import DbSession
-db = DbSession(cfg("git.sr.ht", "connection-string"))
-from scmsrht.access import has_access, UserAccess
-from gitsrht.types import User, Repository, RepoVisibility, Redirect
-from gitsrht.repos import GitRepoApi
-db.init()
 
 def log(s, *args):
     sys.stderr.write("{} {}\n".format(datetime.now().isoformat(),
         s.format(*args) if isinstance(s, str) else str(s)))
 
-origin = cfg("git.sr.ht", "origin")
+origin = get_origin("git.sr.ht")
 repos = cfg("git.sr.ht", "repos")
 
 _cmd = os.environ.get("SSH_ORIGINAL_COMMAND")
@@ -33,20 +29,17 @@ if not _cmd:
 if len(sys.argv) < 2:
     log("Error: expected 2 arguments from SSH")
     sys.exit(1)
-user_id = sys.argv[1]
-ssh_key = sys.argv[2]
+user_id = int(sys.argv[1])
+username = sys.argv[2]
+ssh_key = sys.argv[3]
 
-user = User.query.filter(User.id == user_id).first()
-if not user:
-    log("Unknown user ID {}", user_id)
-    sys.exit(1)
-log("User: {}", user.username)
+log("User: {}", username)
 
 cmd = shlex.split(_cmd)
 valid_commands = ["git-receive-pack", "git-upload-pack", "git-upload-archive"]
 if len(cmd) < 1 or not cmd[0] in valid_commands:
     log("Not permitting unacceptable command")
-    print("Hi {}! You've successfully authenticated, ".format(user.username) +
+    print("Hi {}! You've successfully authenticated, ".format(username) +
         "but I do not provide an interactive shell. Bye!")
     sys.exit(128)
 os.chdir(repos)
@@ -55,40 +48,31 @@ if not path.startswith(repos):
     path = os.path.join(repos, path)
 cmd[-1] = path
 
-repo = Repository.query.filter(Repository.path == path).first()
-if not repo:
-    repo = Redirect.query.filter(Redirect.path == path).first()
-    if repo:
-        repo = repo.new_repo
-        sys.stderr.write("\n\t\033[93mNOTICE\033[0m\n")
-        sys.stderr.write("\tThis repository has moved:\n")
-        # TODO: orgs
-        sys.stderr.write("\t{}/~{}/{}\n".format(
-            origin, repo.owner.username, repo.name))
-        sys.stderr.write("\tPlease update your remote.\n\n")
-        sys.exit(128)
-
-    _path, repo_name = os.path.split(path)
-    owner = os.path.basename(_path)
-    if "~" + user.username != owner:
-        sys.exit(128)
-
-    valid = Validation({ "name": repo_name })
-    repo_api = GitRepoApi()
-    repo = repo_api.create_repo(valid, user)
-    if not valid.ok:
-        sys.exit(128)
-    repo.visibility = RepoVisibility.autocreated
-    db.session.commit()
-
-import gitsrht.types as tables
-if cmd[0] == "git-receive-pack":
-    if not has_access(repo, UserAccess.write, user, tables=tables):
-        sys.exit(128)
+# Delegate to web application for validation
+payload = {
+    "path": path,
+    "user_id": user_id,
+    # 2 is write, 1 is read
+    "access": 2 if cmd[0] == "git-receive-pack" else 1,
+}
+payload = json.dumps(payload)
+headers = {
+    "Content-Type": "application/json",
+}
+headers.update(sign_payload(payload))
+r = requests.post(f"{origin}/internal/push-check",
+        data=payload, headers=headers)
+sys.stderr.write(r.text + "\n")
+response = r.json()
+if r.status_code == 302:
+    print("\n\t\033[93mNOTICE\033[0m\n")
+    print("\tThis repository has moved:\n")
+    print(f"\t{response['redirect']}\n")
+    print("\tPlease update your remote.\n\n")
+    sys.exit(128)
+elif r.status_code == 200:
+    log("Executing {}", " ".join(cmd))
+    sys.stderr.close()
+    os.execvp(cmd[0], cmd)
 else:
-    if not has_access(repo, UserAccess.read, user, tables=tables):
-        sys.exit(128)
-
-log("Executing {}", " ".join(cmd))
-sys.stderr.close()
-os.execvp(cmd[0], cmd)
+    sys.exit(128)

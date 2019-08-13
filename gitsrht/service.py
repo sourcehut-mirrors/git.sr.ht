@@ -1,5 +1,6 @@
 from flask import Blueprint, request, url_for
 from gitsrht.types import User, OAuthToken, SSHKey
+from scmsrht.redis import redis
 from scmsrht.service import scm_scopes
 from srht.api import get_results
 from srht.database import db
@@ -41,6 +42,15 @@ class GitOAuthService(AbstractOAuthService):
         key.key = meta_key["key"]
         key.fingerprint = meta_key["fingerprint"]
         db.session.add(key)
+        b64key = meta_key["key"].split(" ")
+        if len(b64key) > 3:
+            return True
+        b64key = b64key[1]
+        cache = {
+            "user_id": user.id,
+            "username": user.username,
+        }
+        redis.set(f"git.sr.ht.ssh-keys.{b64key}", json.dumps(cache))
         return True
 
     def ensure_meta_webhooks(self, user, webhooks):
@@ -68,7 +78,6 @@ webhooks_notify = Blueprint("webhooks.notify", __name__)
 def notify_keys():
     payload = json.loads(request.data.decode('utf-8'))
     event = request.headers.get("X-Webhook-Event")
-    # TODO: Regenerate authorized_keys
     if event == "ssh-key:add":
         user = User.query.filter(
                 User.username == payload["owner"]["name"]).one_or_none()
@@ -78,6 +87,10 @@ def notify_keys():
     elif event == "ssh-key:remove":
         key = SSHKey.query.filter(
                 SSHKey.meta_id == payload["id"]).one_or_none()
+        b64key = key.key.split(" ")
+        if len(b64key) >= 2:
+            b64key = b64key[1]
+            redis.delete(f"git.sr.ht.ssh-keys.{b64key}")
         if key:
             db.session.delete(key)
             db.session.commit()
