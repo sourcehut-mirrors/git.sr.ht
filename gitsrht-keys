@@ -8,12 +8,15 @@ from srht.api import get_results
 from srht.config import cfg, get_origin
 from uuid import uuid4
 
+from srht.crypto import sign_payload
+
 sys.stderr.write(str(sys.argv) + "\n")
 key_type = sys.argv[3]
 b64key = sys.argv[4]
 
 user_id = username = None
 
+meta_origin = get_origin("meta.sr.ht")
 cache = redis.get(f"git.sr.ht.ssh-keys.{b64key}")
 if cache:
     cache = json.loads(cache.decode())
@@ -27,7 +30,6 @@ else:
 
     from gitsrht.service import oauth_service
     # Fall back to meta.sr.ht first
-    meta_origin = get_origin("meta.sr.ht")
     r = requests.get(f"{meta_origin}/api/ssh-key/{b64key}")
     if r.status_code == 200:
         username = r.json()["owner"]["name"]
@@ -47,6 +49,16 @@ else:
 if not user_id:
     sys.stderr.write("Unknown public key")
     sys.exit(0)
+
+try:
+    headers = {
+        "Content-Type": "application/json",
+    }
+    headers.update(sign_payload(""))
+    requests.put(f"{meta_origin}/api/ssh-key/{b64key}",
+        data="", headers=headers)
+except:
+    pass
 
 default_shell = os.path.join(os.path.dirname(sys.argv[0]), "gitsrht-shell")
 shell = cfg("git.sr.ht", "shell", default=default_shell)
