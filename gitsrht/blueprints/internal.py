@@ -3,12 +3,13 @@ This blueprint is used internally by gitsrht-shell to speed up git pushes, by
 taking advantage of the database connection already established by the web app.
 """
 
+from datetime import datetime
 from flask import Blueprint, request
-from srht.config import get_origin
-from scmsrht.access import has_access, UserAccess
-from scmsrht.urls import get_clone_urls
 from gitsrht.repos import GitRepoApi
 from gitsrht.types import User, Repository, RepoVisibility, Redirect
+from scmsrht.access import has_access, UserAccess
+from scmsrht.urls import get_clone_urls
+from srht.config import get_origin
 from srht.crypto import verify_request_signature
 from srht.database import db
 from srht.flask import csrf_bypass
@@ -30,6 +31,18 @@ def push_check():
         return valid.response
     access = UserAccess(access)
     user = User.query.filter(User.id == user_id).one()
+
+    def push_context(user, repo):
+        if access == UserAccess.write:
+            repo.updated = datetime.utcnow()
+            db.session.commit()
+        return {
+            "user": user.to_dict(),
+            "repo": {
+                "path": repo.path,
+                **repo.to_dict(),
+            },
+        }
 
     repo = Repository.query.filter(Repository.path == path).first()
     if not repo:
@@ -56,11 +69,11 @@ def push_check():
                 return valid.response
             repo.visibility = RepoVisibility.autocreated
             db.session.commit()
-            return { }, 200
+            return push_context(user, repo), 200
         else:
             return { }, 404
 
     if not has_access(repo, access, user):
         return { }, 401
 
-    return { }, 200
+    return push_context(user, repo), 200

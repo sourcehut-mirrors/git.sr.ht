@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
+import json
+import os
+import sys
+# TEMP
+sys.path.append('/home/sircmpwn/sources/git.sr.ht')
+sys.path.append('/home/sircmpwn/sources/scm.sr.ht')
 from srht.config import cfg
-from srht.database import DbSession
-db = DbSession(cfg("git.sr.ht", "connection-string"))
-from gitsrht.types import Repository, RepoVisibility
-db.init()
 from configparser import ConfigParser
 from datetime import datetime, timedelta
 from gitsrht.submit import do_post_update
 from scmsrht.redis import redis
-import os
-import sys
 
 op = sys.argv[0]
 origin = cfg("git.sr.ht", "origin")
@@ -38,18 +38,14 @@ if op == "hooks/post-update":
         sys.exit(0)
     repo_id = int(repo_id)
 
-    repo = Repository.query.get(repo_id)
-    if not repo:
-        sys.exit(0)
+    context = json.loads(os.environ.get("SRHT_PUSH_CTX"))
+    repo = context["repo"]
 
-    if repo.visibility == RepoVisibility.autocreated:
+    if repo["visibility"] == "autocreated":
         print("\n\t\033[93mNOTICE\033[0m")
         print("\tWe saved your changes, but this repository does not exist.")
         print("\tClick here to create it:")
-        print("\t{}/create?name={}".format(origin, repo.name))
+        print("\t{}/create?name={}".format(origin, repo["name"]))
         print("\tYour changes will be discarded in 20 minutes.\n")
 
-    repo.updated = datetime.utcnow()
-    db.session.commit()
-
-    do_post_update(repo, refs)
+    do_post_update(context, refs)

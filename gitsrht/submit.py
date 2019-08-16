@@ -1,30 +1,18 @@
 import html
 import os
-import os.path
 import re
-import requests
-import yaml
 from pygit2 import Repository as GitRepository, Commit, Tag
 from gitsrht.blueprints.api import commit_to_dict
-from gitsrht.types import User
+from gitsrht.types import User, Repository
 from scmsrht.redis import redis
 from scmsrht.repos import RepoVisibility
 from scmsrht.submit import BuildSubmitterBase
-from scmsrht.urls import get_clone_urls
 from gitsrht.webhooks import RepoWebhook
 from srht.config import cfg, get_origin
 from srht.database import db
-from srht.oauth import OAuthScope
 from urllib.parse import urlparse
 
-if not hasattr(db, "session"):
-    import gitsrht.types
-    from srht.database import DbSession
-    db = DbSession(cfg("git.sr.ht", "connection-string"))
-    db.init()
-
 builds_sr_ht = cfg("builds.sr.ht", "origin", None)
-builds_client_id = cfg("builds.sr.ht", "oauth-client-id", None)
 git_sr_ht = get_origin("git.sr.ht", external=True)
 
 def first_line(text):
@@ -97,18 +85,28 @@ class GitBuildSubmitter(BuildSubmitterBase):
 # https://stackoverflow.com/a/14693789
 ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
 
-def do_post_update(repo, refs):
+def do_post_update(context, refs):
+    global db
+    # TODO: we shouldn't need this once we move most of this shit to the
+    # internal API
+    if not hasattr(db, "session"):
+        import gitsrht.types
+        from srht.database import DbSession
+        db = DbSession(cfg("git.sr.ht", "connection-string"))
+        db.init()
+
     uid = os.environ.get("SRHT_UID")
     push = os.environ.get("SRHT_PUSH")
-    user = User.query.get(int(uid))
+    user = context["user"]
+    repo = context["repo"]
 
     payload = {
         "push": push,
-        "pusher": user.to_dict(),
+        "pusher": user,
         "refs": list(),
     }
 
-    git_repo = GitRepository(repo.path)
+    git_repo = GitRepository(repo["path"])
     oids = set()
     for ref in refs:
         update = redis.get(f"update.{push}.{ref}")
@@ -151,12 +149,15 @@ def do_post_update(repo, refs):
             continue
 
         if builds_sr_ht:
-            s = GitBuildSubmitter(repo, git_repo)
+            # TODO: move this to internal API
+            r = Repository.query.get(repo["id"])
+            s = GitBuildSubmitter(r, git_repo)
             s.submit(commit)
 
+    # TODO: get these from internal API
     # sync webhooks
     for resp in RepoWebhook.deliver(RepoWebhook.Events.repo_post_update, payload,
-            RepoWebhook.Subscription.repo_id == repo.id,
+            RepoWebhook.Subscription.repo_id == repo["id"],
             RepoWebhook.Subscription.sync,
             delay=False):
         if resp == None:
@@ -171,5 +172,5 @@ def do_post_update(repo, refs):
             print("Unable to decode webhook response")
     # async webhooks
     RepoWebhook.deliver(RepoWebhook.Events.repo_post_update, payload,
-            RepoWebhook.Subscription.repo_id == repo.id,
+            RepoWebhook.Subscription.repo_id == repo["id"],
             RepoWebhook.Subscription.sync == False)

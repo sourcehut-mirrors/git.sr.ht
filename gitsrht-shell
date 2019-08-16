@@ -71,6 +71,7 @@ if r.status_code == 302:
     print("\tPlease update your remote.\n\n")
     sys.exit(128)
 elif r.status_code == 200:
+    os.environ["SRHT_PUSH_CTX"] = r.text
     log("Executing {}", " ".join(cmd))
     sys.stderr.close()
     os.execvp(cmd[0], cmd)
