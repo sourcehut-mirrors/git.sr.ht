@@ -164,7 +164,7 @@ def tree(owner, repo, ref, path):
                         data = blob.data.decode()
                     except:
                         data = '[unable to decode]'
-                return render_template("blob.html", view="tree",
+                return render_template("blob.html", view="blob",
                         owner=owner, repo=repo, ref=ref, path=path, entry=entry,
                         blob=blob, data=data, commit=commit,
                         highlight_file=_highlight_file,
