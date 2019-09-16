@@ -76,4 +76,6 @@ elif r.status_code == 200:
     sys.stderr.close()
     os.execvp(cmd[0], cmd)
 else:
+    if "why" in response:
+        print(response["why"])
     sys.exit(128)

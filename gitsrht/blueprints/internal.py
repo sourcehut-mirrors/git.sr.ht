@@ -9,10 +9,11 @@ from gitsrht.repos import GitRepoApi
 from gitsrht.types import User, Repository, RepoVisibility, Redirect
 from scmsrht.access import has_access, UserAccess
 from scmsrht.urls import get_clone_urls
-from srht.config import get_origin
+from srht.config import cfg, get_origin
 from srht.crypto import verify_request_signature
 from srht.database import db
 from srht.flask import csrf_bypass
+from srht.oauth import UserType
 from srht.validation import Validation
 import base64
 import os
@@ -75,5 +76,12 @@ def push_check():
 
     if not has_access(repo, access, user):
         return { }, 401
+
+    if access == UserAccess.write and user.user_type == UserType.suspended:
+        return {
+            "why": "Your account has been suspended with the following notice:\n" +
+                user.suspension_notice + "\n" +
+                "Please contact support: " + cfg("sr.ht", "owner-email"),
+        }, 401
 
     return push_context(user, repo), 200
