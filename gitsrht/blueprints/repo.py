@@ -6,18 +6,18 @@ import pygments
 import subprocess
 import sys
 from datetime import timedelta
-from jinja2 import Markup
 from flask import Blueprint, render_template, abort, send_file, request
-from flask import Response, url_for
+from flask import Response, url_for, session
 from gitsrht.annotations import AnnotatedFormatter
 from gitsrht.editorconfig import EditorConfig
 from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
-from gitsrht.git import diffstat
+from gitsrht.git import diffstat, get_log
 from gitsrht.rss import generate_feed
 from io import BytesIO
+from jinja2 import Markup
 from pygments import highlight
-from pygments.lexers import guess_lexer, guess_lexer_for_filename, TextLexer
 from pygments.formatters import HtmlFormatter
+from pygments.lexers import guess_lexer, guess_lexer_for_filename, TextLexer
 from scmsrht.access import get_repo, get_repo_or_redir
 from scmsrht.formatting import get_formatted_readme, get_highlighted_file
 from scmsrht.redis import redis
@@ -97,10 +97,13 @@ def summary(owner, repo):
                 if isinstance(tag[1], pygit2.Tag) or isinstance(tag[1], pygit2.Commit)]
         tags = sorted(tags, key=lambda c: commit_time(c[1]), reverse=True)
         latest_tag = tags[0] if len(tags) else None
+
+        message = session.pop("message", None)
         return render_template("summary.html", view="summary",
                 owner=owner, repo=repo, readme=readme, commits=commits,
                 latest_tag=latest_tag, default_branch=default_branch,
-                is_annotated=lambda t: isinstance(t, pygit2.Tag))
+                is_annotated=lambda t: isinstance(t, pygit2.Tag),
+                message=message)
 
 def lookup_ref(git_repo, ref, path):
     ref = ref or git_repo.default_branch().name[len("refs/heads/"):]
@@ -277,15 +280,6 @@ def collect_refs(git_repo):
             refs[_ref.commit.id.hex] = []
         refs[_ref.commit.id.hex].append(_ref)
     return refs
-
-def get_log(git_repo, commit, commits_per_page=20):
-    commits = list()
-    for commit in git_repo.walk(commit.id, pygit2.GIT_SORT_TIME):
-        commits.append(commit)
-        if len(commits) >= commits_per_page + 1:
-            break
-
-    return commits
 
 @repo.route("/<owner>/<repo>/log", defaults={"ref": None, "path": ""})
 @repo.route("/<owner>/<repo>/log/<path:ref>", defaults={"path": ""})

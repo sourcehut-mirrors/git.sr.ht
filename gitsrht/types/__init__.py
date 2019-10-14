@@ -1,3 +1,4 @@
+import sqlalchemy as sa
 from srht.database import Base
 from srht.oauth import ExternalUserMixin, ExternalOAuthTokenMixin
 from scmsrht.repos import BaseAccessMixin, BaseRedirectMixin

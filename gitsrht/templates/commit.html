@@ -40,73 +40,7 @@
           <pre>{{diffstat(diff)}}</pre>
         </div>
         <div style="margin-bottom: 2rem"></div>
-        {# God, working with <pre> tags is such a fucking mess #}
-        {% for patch in diff %}
-        <pre style="margin-bottom: 0;"
-        >{#
-          #}{{patch.delta.status_char()}} {% if parent %}<a
-           href="{{url_for("repo.tree",
-              owner=repo.owner.canonical_name,
-              repo=repo.name,
-              ref=parent.id.hex,
-              path=patch.delta.old_file.path)}}"
-           id="{{patch.delta.old_file.path}}"
-         >{{patch.delta.old_file.path}}</a>{#
-         #}{% endif %} =&gt; {#
-         #}<a
-           href="{{url_for("repo.tree",
-              owner=repo.owner.canonical_name,
-              repo=repo.name,
-              ref=commit.id.hex,
-              path=patch.delta.new_file.path)}}"
-           id="{{patch.delta.new_file.path}}"
-         >{{patch.delta.new_file.path}}</a>{#
-         #} <span class="pull-right"><span class="text-success">+{{patch.line_stats[1]}}</span>{#
-         #} <span class="text-danger">-{{patch.line_stats[2]}}</span></span>{%
-            if patch.delta.old_file.mode != patch.delta.new_file.mode %}{#
-          #}{#
-          #}{% endif %}</pre>
-        <div class="event diff">
-          <pre>{% for hunk in patch.hunks %}
-{% set hunk_index = loop.index %}<strong
-  class="text-info"
->@@ {#
-#}{% if parent %}<a
-  style="text-decoration: underline"
-  href="{{url_for("repo.tree",
-    owner=repo.owner.canonical_name,
-    repo=repo.name,
-    ref=parent.id.hex,
-    path=patch.delta.old_file.path)}}#L{{hunk.old_start}}"
->{{hunk.old_start}}</a>,{{hunk.old_lines}} {#
-#}{% endif %}<a
-  style="text-decoration: underline"
-  href="{{url_for("repo.tree",
-    owner=repo.owner.canonical_name,
-    repo=repo.name,
-    ref=commit.id.hex,
-    path=patch.delta.new_file.path)}}#L{{hunk.new_start}}"
->{{hunk.new_start}}</a>,{{hunk.new_lines}} {#
-#}@@</strong
->{% if hunk.old_start == 0 %}
-{% endif %}{% for line in hunk.lines
-%}<span class="{{({
-  "+":"text-success",
-  "-":"text-danger",
-  }).get(line.origin) or ""}}"><a
-    href="#{{patch.delta.old_file.path}}-{{hunk_index}}-{{loop.index}}"
-    id="{{patch.delta.old_file.path}}-{{hunk_index}}-{{loop.index}}"
-    style="color: inherit"
->{{line.origin}}</a>{%
-  if loop.first and hunk.old_start != 0
-%}{{line.content.lstrip()}}{%
-  else
-%} {{line.content}}{%
-  endif
-%}</span>{% endfor %}
-{% endfor %}</pre>
-        </div>
-        {% endfor %}
+        {{utils.commit_diff(repo, commit, diff)}}
       </div>
     </div>
 </div>

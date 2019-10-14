@@ -26,6 +26,16 @@ def commit_time(commit):
 def _get_ref(repo, ref):
     return repo._get(ref)
 
+def get_log(git_repo, commit, commits_per_page=20, until=None):
+    commits = list()
+    for commit in git_repo.walk(commit.id, pygit2.GIT_SORT_TIME):
+        commits.append(commit)
+        if until is not None and commit == until:
+            break
+        elif len(commits) >= commits_per_page + 1:
+            break
+    return commits
+
 class Repository(GitRepository):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -140,12 +150,12 @@ def annotate_tree(repo, tree, commit):
 
     return [entry.fetch_blob() for entry in tree.values()]
 
-def _diffstat_name(delta):
+def _diffstat_name(delta, anchor):
     if delta.status == pygit2.GIT_DELTA_DELETED:
         return Markup(escape(delta.old_file.path))
     if delta.old_file.path == delta.new_file.path:
         return Markup(
-                f"<a href='#{escape(delta.old_file.path)}'>" +
+                f"<a href='#{escape(anchor)}{escape(delta.old_file.path)}'>" +
                 f"{escape(delta.old_file.path)}" +
                 f"</a>")
     # Based on git/diff.c
@@ -164,8 +174,8 @@ def _diffstat_name(delta):
             f"}}")
     return f"{delta.old_file.path} => {delta.new_file.path}"
 
-def _diffstat_line(delta, patch):
-    name = _diffstat_name(delta)
+def _diffstat_line(delta, patch, anchor):
+    name = _diffstat_name(delta, anchor)
     change = ""
     if delta.status not in [
                 pygit2.GIT_DELTA_ADDED,
@@ -179,12 +189,12 @@ def _diffstat_line(delta, patch):
                 f"{filemode(delta.new_file.mode)}</span>")
     return Markup(f"{delta.status_char()} {name}{change}\n")
 
-def diffstat(diff):
+def diffstat(diff, anchor=""):
     stat = Markup(f"""{diff.stats.files_changed} files changed, <strong
         class="text-success">{diff.stats.insertions
         }</strong> insertions(+), <strong
         class="text-danger">{diff.stats.deletions
         }</strong> deletions(-)\n\n""")
     for delta, patch in zip(diff.deltas, diff):
-        stat += _diffstat_line(delta, patch)
+        stat += _diffstat_line(delta, patch, anchor)
     return stat

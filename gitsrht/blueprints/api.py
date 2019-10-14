@@ -3,8 +3,9 @@ import json
 import pygit2
 from flask import Blueprint, current_app, request, send_file, abort
 from gitsrht.annotations import validate_annotation
-from gitsrht.blueprints.repo import lookup_ref, get_log, collect_refs
+from gitsrht.blueprints.repo import lookup_ref, collect_refs
 from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
+from gitsrht.git import get_log
 from gitsrht.webhooks import RepoWebhook
 from io import BytesIO
 from scmsrht.access import UserAccess

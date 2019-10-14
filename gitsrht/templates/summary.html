@@ -12,6 +12,9 @@
 </div>
 {% endif %}
 <div class="container">
+  {% if message %}
+  <div class="alert alert-success">{{message}}</div>
+  {% endif %}
   <div class="row" style="margin-bottom: 1rem">
     <div class="col-md-6">
       <div class="event-list" style="margin-bottom: 0.5rem">
@@ -22,54 +25,101 @@
         {% endfor %}
       </div>
     </div>
-    <div class="col-md-2">
-      <h3>refs</h3>
-      <dl>
-        {% if default_branch %}
-        <dt>{{default_branch.name[len("refs/heads/"):]}}</dt>
-        <dd>
-          <a href="{{url_for("repo.tree",
-            owner=repo.owner.canonical_name, repo=repo.name)}}"
-          >browse {{icon("caret-right")}}</a>
-          <a href="{{url_for("repo.log",
-            owner=repo.owner.canonical_name, repo=repo.name)}}"
-          >log {{icon("caret-right")}}</a>
-        </dd>
-        {% endif %}
-        {% if latest_tag %}
-        <dt>{{ latest_tag[0][len("refs/tags/"):] }}</dt>
-        <dd>
-          {% if is_annotated(latest_tag[1]) %}
-            <a href="{{url_for("repo.ref",
-                owner=repo.owner.canonical_name,
-                repo=repo.name, ref=latest_tag[1].name)}}"
-            >release notes {{icon("caret-right")}}</a>
+    <div class="col-md-6">
+      <div class="row">
+        <div class="col-md-4">
+          <h3>refs</h3>
+          <dl>
+            {% if default_branch %}
+            <dt>{{default_branch.name[len("refs/heads/"):]}}</dt>
+            <dd>
+              <a href="{{url_for("repo.tree",
+                owner=repo.owner.canonical_name, repo=repo.name)}}"
+              >browse {{icon("caret-right")}}</a>
+              <a href="{{url_for("repo.log",
+                owner=repo.owner.canonical_name, repo=repo.name)}}"
+              >log {{icon("caret-right")}}</a>
+            </dd>
+            {% endif %}
+            {% if latest_tag %}
+            <dt>{{ latest_tag[0][len("refs/tags/"):] }}</dt>
+            <dd>
+              {% if is_annotated(latest_tag[1]) %}
+                <a href="{{url_for("repo.ref",
+                    owner=repo.owner.canonical_name,
+                    repo=repo.name, ref=latest_tag[1].name)}}"
+                >release notes {{icon("caret-right")}}</a>
+              {% else %}
+                <a href="{{url_for("repo.tree", owner=repo.owner.canonical_name,
+                    repo=repo.name, ref=latest_tag[0][len("refs/tags/"):])}}"
+                >browse {{icon("caret-right")}}</a>
+                <a href="{{url_for("repo.archive", owner=repo.owner.canonical_name,
+                    repo=repo.name, ref=latest_tag[0][len("refs/tags/"):])}}"
+                >.tar.gz {{icon("caret-right")}}</a>
+              {% endif %}
+            </dd>
+            {% endif %}
+          </dl>
+        </div>
+        <div class="col-md-8">
+          <h3>clone</h3>
+          {% with read_only, read_write = repo|clone_urls %}
+          <dl>
+            <dt>read-only</dt>
+            <dd><a href="{{read_only}}">{{read_only}}</a></dd>
+            <dt>read/write</dt>
+            <dd>{{read_write}}</dd>
+          </dl>
+          {% endwith %}
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-8 offset-md-4">
+          {% if current_user == repo.owner %}
+          <a
+            href="{{ url_for('mail.send_email_start',
+              owner=repo.owner.canonical_name, repo=repo.name) }}"
+            class="btn btn-primary btn-block"
+          >Prepare a patchset {{icon('caret-right')}}</a>
+          <p class="text-muted text-centered">
+            <small>
+              Use this or <a href="https://git-send-email.io">git
+              send-email</a> to send changes upstream.
+            </small>
+          </p>
+          {% elif current_user != repo.owner %}
+          <form method="POST" action="{{url_for('manage.clone_POST')}}">
+            {{csrf_token()}}
+            <input type="hidden" name="source_repo_id" value="{{repo.id}}" />
+            <button type="submit" class="btn btn-primary btn-block">
+              Clone repo to your account {{icon('caret-right')}}
+            </button>
+            <p class="text-muted text-centered">
+              <small>
+                You can also use your local clone with
+                <a href="https://git-send-email.io">git send-email</a>.
+              </small>
+            </p>
+          </form>
           {% else %}
-            <a href="{{url_for("repo.tree", owner=repo.owner.canonical_name,
-                repo=repo.name, ref=latest_tag[0][len("refs/tags/"):])}}"
-            >browse {{icon("caret-right")}}</a>
-            <a href="{{url_for("repo.archive", owner=repo.owner.canonical_name,
-                repo=repo.name, ref=latest_tag[0][len("refs/tags/"):])}}"
-            >.tar.gz {{icon("caret-right")}}</a>
+          <p class="text-centered text-muted">
+            <small>
+              You can contribute to this project without a
+              {{cfg('sr.ht', 'site-name')}}
+              account with
+              <a href="https://git-send-email.io">git send-email</a>,
+              or you can <a
+                href="{{get_origin('meta.sr.ht', external=True)}}"
+              >sign up here</a>.
+            </small>
+          </p>
           {% endif %}
-        </dd>
-        {% endif %}
-      </dl>
-    </div>
-    <div class="col-md-4">
-      <h3>clone</h3>
-      {% with read_only, read_write = repo|clone_urls %}
-      <dl>
-        <dt>read-only</dt>
-        <dd><a href="{{read_only}}">{{read_only}}</a></dd>
-        <dt>read/write</dt>
-        <dd>{{read_write}}</dd>
-      </dl>
-      {% endwith %}
+        </div>
+      </div>
     </div>
   </div>
   {% if readme %}
-  <div class="row">
+  <div class="row" id="readme">
     <div class="col-md-10">
       {{ readme }}
     </div>

@@ -215,3 +215,92 @@ img {
     }
   }
 }
+
+.prepare-patchset {
+  legend {
+    font-weight: bold;
+  }
+
+  label {
+    margin-right: 1rem;
+    cursor: pointer;
+  }
+
+  details {
+    display: inline;
+    color: $gray-600;
+
+    &[open] {
+      display: block;
+      color: $black;
+
+      summary {
+        color: $black;
+      }
+    }
+
+    ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    li {
+      margin-top: 1rem;
+    }
+  }
+
+  .event-list {
+    display: flex;
+    flex-direction: column;
+
+    &.reverse {
+      flex-direction: column-reverse;
+    }
+
+    input[type="radio"] {
+      display: none;
+    }
+
+    & > .commit-diff {
+      margin-top: 1rem;
+      order: -2;
+    }
+
+    & > .form-controls {
+      order: -1;
+      margin-top: 1rem;
+      align-self: flex-end;
+
+      &.last {
+        order: -3;
+      }
+    }
+
+    & > details {
+      order: 0;
+    }
+
+    & > .event {
+      order: 1;
+      display: block;
+      margin: 0.25rem 0;
+
+      // Because the order is reversed
+      &:last-child {
+        margin: 0.25rem 0;
+      }
+
+      &:first-child {
+        margin: 0;
+      }
+    }
+
+    input[type="radio"]:checked ~ .event {
+      background: lighten($info, 50) !important;
+    }
+
+    input[type="radio"]:checked + .event {
+      background: lighten($info, 45) !important;
+    }
+  }
+}

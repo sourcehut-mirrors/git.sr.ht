@@ -34,3 +34,18 @@ class GitRepoApi(SimpleRepoApi):
         RepoWebhook.Subscription.query.filter(
                 RepoWebhook.Subscription.repo_id == repo.id).delete()
         super().do_delete_repo(repo)
+
+    def do_clone_repo(self, source, repo):
+        subprocess.run(["mkdir", "-p", repo.path], check=True,
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(["git", "clone", "--bare", source, repo.path])
+        subprocess.run(["git", "config", "srht.repo-id", str(repo.id)], check=True,
+            cwd=repo.path, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(["ln", "-s",
+                post_update,
+                os.path.join(repo.path, "hooks", "update")
+            ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(["ln", "-s",
+                post_update,
+                os.path.join(repo.path, "hooks", "post-update")
+            ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
