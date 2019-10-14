@@ -154,7 +154,9 @@ def prepare_patchset(repo, git_repo, cover_letter=None, extra_headers=False,
             emails[0].set_payload(body)
 
         for i, email in enumerate(emails[(1 if cover_letter else 0):]):
-            commentary = valid.optional(f"commentary-{i}")
+            commentary = valid.optional(f"commentary_{i}")
+            if not commentary:
+                commentary = session.get(f"commentary_{i}")
             if not commentary:
                 continue
             commentary = "\n".join(wrapper.wrap(commentary))
@@ -222,6 +224,11 @@ def send_email_review(owner, repo):
                     view="send-email", owner=owner, repo=repo,
                     commits=log, start=start, diffs=diffs,
                     diffstat=diffstat, **valid.kwargs)
+
+        for i, email in enumerate(emails):
+            comm = valid.optional(f"commentary_{i}")
+            if comm:
+                session[f"commentary_{i}"] = comm
 
         session["cover_letter"] = cover_letter
         return render_template("send-email-review.html",
@@ -291,7 +298,8 @@ def send_email_send(owner, repo):
             smtp.starttls()
             smtp.login(smtp_user, smtp_password)
         print("Sending to receipients", recipients)
-        for email in emails:
+        for i, email in enumerate(emails):
+            session.pop("commentary_{i}", None)
             smtp.sendmail(smtp_user, recipients,
                     email.as_bytes(unixfrom=False))
         smtp.quit()
