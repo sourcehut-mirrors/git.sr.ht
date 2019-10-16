@@ -34,6 +34,8 @@ def send_email_start(owner, repo):
         ncommits = int(request.args.get("commits", default=8))
         if ncommits > 32:
             ncommits = 32
+        if ncommits < 8:
+            ncommits = 8
         selected_branch = request.args.get("branch", default=None)
 
         branches = [(
