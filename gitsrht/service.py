@@ -28,7 +28,7 @@ class GitOAuthService(AbstractOAuthService):
 
     def cache_key(self, user, meta_key):
         b64key = meta_key["key"].split(" ")
-        if len(b64key) > 3:
+        if len(b64key) < 2:
             return False
         b64key = b64key[1]
         cache = {
