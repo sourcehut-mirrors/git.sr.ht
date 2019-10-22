@@ -64,7 +64,6 @@ setup(
       'gitsrht-keys',
       'gitsrht-migrate',
       'gitsrht-periodic',
-      'gitsrht-shell',
       'gitsrht-update-hook',
   ]
 )
