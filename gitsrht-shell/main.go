@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
@@ -22,6 +21,7 @@ import (
 
 	"github.com/google/shlex"
 	"github.com/vaughan0/go-ini"
+	"golang.org/x/crypto/ed25519"
 )
 
 func main() {
