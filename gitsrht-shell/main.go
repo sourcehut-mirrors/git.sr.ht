@@ -51,7 +51,7 @@ func main() {
 		logger = log.New(logf, "", log.LstdFlags)
 	}
 
-	if len(os.Args) < 2 {
+	if len(os.Args) < 3 {
 		logger.Fatalf("Expected two arguments from SSH")
 	}
 	logger.Printf("os.Args: %v", os.Args)
