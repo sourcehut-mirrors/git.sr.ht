@@ -152,7 +152,9 @@ def do_post_update(context, refs):
             # TODO: move this to internal API
             r = Repository.query.get(repo["id"])
             s = GitBuildSubmitter(r, git_repo)
-            s.submit(commit)
+            res = s.submit(commit)
+            if res.status != 'skipped':
+                res.printmsgs()
 
     # TODO: get these from internal API
     # sync webhooks
