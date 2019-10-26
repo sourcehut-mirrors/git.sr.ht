@@ -59,6 +59,10 @@ class Repository(GitRepository):
             branch = self.branches.get(branch)
         return branch
 
+    @property
+    def is_empty(self):
+        return len(list(self.branches.local)) == 0
+
 class AnnotatedTreeEntry:
     def __init__(self, repo, entry):
         self._entry = entry
