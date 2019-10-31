@@ -159,9 +159,8 @@ endif %}{% endfor %}
   target="_blank"
   {% endif %}
 >{{hunk.new_start}}</a>,{{hunk.new_lines}} {#
-#}@@</strong
->{% if hunk.old_start == 0 %}
-{% endif %}{% for line in hunk.lines
+#}@@</strong>
+{% for line in hunk.lines
 %}<span class="{{({
   "+":"text-success",
   "-":"text-danger",
@@ -169,13 +168,8 @@ endif %}{% endfor %}
     href="#{{anchor}}{{patch.delta.old_file.path}}-{{hunk_index}}-{{loop.index}}"
     id="{{anchor}}{{patch.delta.old_file.path}}-{{hunk_index}}-{{loop.index}}"
     style="color: inherit"
->{{line.origin}}</a>{%
-  if loop.first and hunk.old_start != 0
-%}{{line.content.lstrip()}}{%
-  else
-%} {{line.content}}{%
-  endif
-%}</span>{% endfor %}
+>{{line.origin}}</a>{{line.content}}{#
+#}</span>{% endfor %}
 {% endfor %}</pre>
 </div>
 {% endfor %}
