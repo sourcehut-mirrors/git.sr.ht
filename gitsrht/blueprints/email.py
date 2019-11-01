@@ -172,6 +172,8 @@ def prepare_patchset(repo, git_repo, cover_letter=None, extra_headers=False,
             for i, email in enumerate(emails):
                 email["Message-ID"] = f"{msgid[0]}-{i}@{msgid[1]}"
                 email["X-Mailer"] = "git.sr.ht"
+                email["Reply-to"] = (f"{current_user.canonical_name} " +
+                    f"<{current_user.email}>")
                 if i != 0:
                     email["In-Reply-To"] = f"{msgid[0]}-{0}@{msgid[1]}"
                 if to:
