@@ -97,8 +97,8 @@ pre {
     a:target::before, a.selected::before {
       display: block;
       content: "";
-      // +3px to connect multiple selected lines
-      height: calc(1rem + 3px);
+      // +5px to connect multiple selected lines
+      height: calc(1rem + 5px);
       width: 100%;
       z-index: -1;
       position: absolute;
