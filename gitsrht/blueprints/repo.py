@@ -351,13 +351,16 @@ def patch(owner, repo, ref):
             abort(404)
         if isinstance(commit, pygit2.Tag):
             ref = git_repo.get(commit.target)
-        subp = subprocess.run([
-            "git",
-            "--git-dir", repo.path,
-            "format-patch",
-            "--stdout", "-1",
-            ref
-        ], timeout=10, stdout=subprocess.PIPE, stderr=sys.stderr)
+        try:
+            subp = subprocess.run([
+                "git",
+                "--git-dir", repo.path,
+                "format-patch",
+                "--stdout", "-1",
+                ref
+            ], timeout=10, stdout=subprocess.PIPE, stderr=sys.stderr)
+        except subprocess.TimeoutExpired:
+            return "Operation timed out", 500
         if subp.returncode != 0:
             return "Error preparing patch", 500
         return Response(subp.stdout, mimetype='text/plain')
