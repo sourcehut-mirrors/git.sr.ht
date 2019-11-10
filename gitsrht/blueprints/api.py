@@ -159,6 +159,7 @@ def repo_annotate_PUT(username, reponame):
 
     valid = Validation(request)
 
+    nblobs = 0
     for oid, annotations in valid.source.items():
         valid.expect(isinstance(oid, str), "blob keys must be strings")
         valid.expect(isinstance(annotations, list),
@@ -173,8 +174,9 @@ def repo_annotate_PUT(username, reponame):
                 json.dumps(annotations))
         # Invalidate rendered markup cache
         redis.delete(f"git.sr.ht:git:highlight:{oid}")
+        nblobs += 1
 
-    return { }, 200
+    return { "updated": nblobs }, 200
 
 @data.route("/api/repos/<reponame>/blob/<path:ref>",
         defaults={"username": None, "path": ""})
