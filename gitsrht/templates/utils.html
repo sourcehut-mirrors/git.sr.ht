@@ -159,7 +159,7 @@ endif %}{% endfor %}
   target="_blank"
   {% endif %}
 >{{hunk.new_start}}</a>,{{hunk.new_lines}} {#
-#}@@</strong>
+#}@@{{hunk.header.split('@@')[-1][:-1]}}</strong>
 {% for line in hunk.lines
 %}<span class="{{({
   "+":"text-success",
