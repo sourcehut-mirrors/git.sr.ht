@@ -194,7 +194,7 @@ func main() {
 		}
 		userId = cache.UserId
 		username = cache.Username
-		logger.Println("Cache hit: %d %s", userId, username)
+		logger.Printf("Cache hit: %d %s", userId, username)
 	}
 
 	if username == "" {
