@@ -156,9 +156,10 @@ func main() {
 		repoOwnerName       string
 		repoVisibility      string
 		pusherType          string
-		pusherSuspendNotice string
+		pusherSuspendNotice *string
 		accessGrant         *string
 	)
+	logger.Printf("Looking up repo: pusher ID %d, repo path %s", pusherId, path)
 	row := db.QueryRow(`
 		SELECT
 			repo.id,
@@ -179,6 +180,9 @@ func main() {
 	`, pusherId, path)
 	if err := row.Scan(&repoId, &repoName, &repoOwnerId, &repoOwnerName,
 		&repoVisibility, &pusherType, &pusherSuspendNotice, &accessGrant); err != nil {
+
+		logger.Printf("Lookup failed: %v", err)
+		logger.Println("Looking up redirect")
 
 		row = db.QueryRow(`
 			SELECT
@@ -204,6 +208,8 @@ func main() {
 			&repoVisibility, &pusherType, &pusherSuspendNotice,
 			&accessGrant); err != nil {
 
+			logger.Printf("Lookup failed: %v", err)
+
 			repoName = gopath.Base(path)
 			repoOwnerName = gopath.Base(gopath.Dir(path))
 			if repoOwnerName != "" {
@@ -214,6 +220,7 @@ func main() {
 				if err != nil {
 					logger.Printf("Error autocreating repo: %s: %v", ctx, err)
 				}
+				logger.Println("Repository not found.")
 				log.Println("Repository not found.")
 				log.Println()
 				os.Exit(128)
@@ -247,7 +254,7 @@ func main() {
 				}
 				defer createQuery.Close()
 
-				if createQuery.QueryRow(repoName, repoOwnerId, path).
+				if err = createQuery.QueryRow(repoName, repoOwnerId, path).
 					Scan(&repoId); err != nil {
 
 					notFound("insert", err)
@@ -312,6 +319,7 @@ func main() {
 	}
 
 	if needsAccess&hasAccess != needsAccess {
+		logger.Println("Access denied.")
 		log.Println("Access denied.")
 		log.Println()
 		os.Exit(128)
@@ -320,7 +328,7 @@ func main() {
 	if pusherType == "suspended" {
 		log.Println("Your account has been suspended for the following reason:")
 		log.Println()
-		log.Println("\t" + pusherSuspendNotice)
+		log.Println("\t" + *pusherSuspendNotice)
 		log.Println()
 		log.Printf("Please contact support: %s <%s>",
 			siteOwnerName, siteOwnerEmail)
