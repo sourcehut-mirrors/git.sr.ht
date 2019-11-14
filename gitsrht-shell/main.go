@@ -26,6 +26,15 @@ const (
 )
 
 func main() {
+	// gitsrht-shell runs after we've authenticated the SSH session as an
+	// authentic agent of a particular account, but before we've checked if
+	// they have permission to perform the git operation they're trying to do.
+	// Our job is to:
+	//
+	// 1. Find the repo they're trying to access, and handle redirects
+	// 2. Check if they're allowed to do the thing they're trying to
+	// 3. exec(2) into the git binary that does the rest of the work
+
 	var (
 		config ini.File
 		err    error
@@ -44,6 +53,7 @@ func main() {
 		cmd    []string
 	)
 
+	// Initialization and set up, collect our runtime needs
 	log.SetFlags(0)
 	logf, err := os.OpenFile("/var/log/gitsrht-shell",
 		os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
@@ -98,6 +108,7 @@ func main() {
 		cmdstr = ""
 	}
 
+	// Grab the command the user is trying to execute
 	cmd, err = shlex.Split(cmdstr)
 	if err != nil {
 		logger.Fatalf("Unable to parse command: %v", err)
@@ -105,6 +116,7 @@ func main() {
 
 	logger.Println("Running git.sr.ht shell")
 
+	// Make sure it's a git command that we're expecting
 	validCommands := []string{
 		"git-receive-pack", "git-upload-pack", "git-upload-archive",
 	}
@@ -124,6 +136,7 @@ func main() {
 
 	os.Chdir(repos)
 
+	// Validate the path that they're trying to access is in the repos directory
 	path := cmd[len(cmd)-1]
 	path, err = filepath.Abs(path)
 	if err != nil {
@@ -134,11 +147,18 @@ func main() {
 	}
 	cmd[len(cmd)-1] = path
 
+	// Check what kind of access they're interested in
 	needsAccess := ACCESS_READ
 	if cmd[0] == "git-receive-pack" {
 		needsAccess = ACCESS_WRITE
 	}
 
+	// Fetch the necessary info from SQL. This first query fetches:
+	//
+	// 1. Repository information, such as visibility (public|unlisted|private)
+	// 2. Information about the repository owner's account
+	// 3. Information about the pusher's account
+	// 4. Any access control policies for that repo that apply to the pusher
 	pgcs, ok := config.Get("git.sr.ht", "connection-string")
 	if !ok {
 		logger.Fatalf("No connection string configured for git.sr.ht: %v", err)
@@ -184,6 +204,9 @@ func main() {
 		logger.Printf("Lookup failed: %v", err)
 		logger.Println("Looking up redirect")
 
+		// If looking up the repo failed, it might have been renamed. Look for a
+		// corresponding redirect, and grab all of the same information that we
+		// need for the new repo while we're at it.
 		row = db.QueryRow(`
 			SELECT
 				repo.id,
@@ -210,6 +233,11 @@ func main() {
 
 			logger.Printf("Lookup failed: %v", err)
 
+			// There wasn't a repo or a redirect by this name, so maybe the user
+			// is pushing to a repo that doesn't exist. If so, autocreate it.
+			//
+			// If an error occurs at this step, we just log it internally and
+			// tell the user we couldn't find the repo they're asking after.
 			repoName = gopath.Base(path)
 			repoOwnerName = gopath.Base(gopath.Dir(path))
 			if repoOwnerName != "" {
@@ -291,6 +319,8 @@ func main() {
 		}
 	}
 
+	// We have everything we need, now we find out if the user is allowed to do
+	// what they're trying to do.
 	hasAccess := ACCESS_NONE
 	if pusherId == repoOwnerId {
 		hasAccess = ACCESS_READ | ACCESS_WRITE | ACCESS_MANAGE
@@ -336,6 +366,10 @@ func main() {
 		os.Exit(128)
 	}
 
+	// At this point, we know they're allowed to execute this operation. We
+	// gather some of the information we've collected so far into a "push
+	// context" so that steps later in the pipeline don't have to repeat our
+	// lookups, then exec(2) into git.
 	type RepoContext struct {
 		Id         int    `json:"id"`
 		Name       string `json:"name"`
