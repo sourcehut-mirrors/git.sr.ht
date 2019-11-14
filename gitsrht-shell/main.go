@@ -185,8 +185,8 @@ func main() {
 			repo.id,
 			repo.name,
 			repo.owner_id,
-			repo.visibility,
 			owner.username,
+			repo.visibility,
 			pusher.user_type,
 			pusher.suspension_notice,
 			access.mode
@@ -212,8 +212,8 @@ func main() {
 				repo.id,
 				repo.name,
 				repo.owner_id,
-				repo.visibility,
 				owner.username,
+				repo.visibility,
 				pusher.user_type,
 				pusher.suspension_notice,
 				access.mode
@@ -318,6 +318,11 @@ func main() {
 			log.Println()
 		}
 	}
+
+	logger.Printf("repo ID %d; name '%s'; owner ID %d; owner name '%s'; " +
+		"visibility '%s'; pusher type '%s'; pusher suspension notice '%s'; " +
+		"access grant '%s'", repoId, repoName, repoOwnerId, repoOwnerName,
+		repoVisibility, pusherType, pusherSuspendNotice, accessGrant)
 
 	// We have everything we need, now we find out if the user is allowed to do
 	// what they're trying to do.
