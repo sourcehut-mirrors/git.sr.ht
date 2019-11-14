@@ -147,9 +147,6 @@ func main() {
 	if err != nil {
 		logger.Fatalf("Failed to open a database connection: %v", err)
 	}
-	if err := db.Ping(); err != nil {
-		logger.Fatalf("Failed to open a database connection: %v", err)
-	}
 
 	// Note: when updating push access logic, also update scm.sr.ht/access.py
 	var (
