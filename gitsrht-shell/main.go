@@ -361,9 +361,8 @@ func main() {
 	if err != nil {
 		logger.Fatalf("exec.LookPath: %v", err)
 	}
-	if err := syscall.Exec(bin, cmd,
-		append(os.Environ(), fmt.Sprintf(
-			"SRHT_PUSH_CTX=%s", string(pushContext)))); err != nil {
+	if err := syscall.Exec(bin, cmd, append(os.Environ(), fmt.Sprintf(
+		"SRHT_PUSH_CTX=%s", string(pushContext)))); err != nil {
 
 		logger.Fatalf("syscall.Exec: %v", err)
 	}
