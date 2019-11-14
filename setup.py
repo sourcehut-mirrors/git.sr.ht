@@ -61,7 +61,6 @@ setup(
       ]
   },
   scripts = [
-      'gitsrht-keys',
       'gitsrht-migrate',
       'gitsrht-periodic',
       'gitsrht-update-hook',
