@@ -1,10 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"database/sql"
-	"log"
+	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	gopath "path"
@@ -13,8 +13,8 @@ import (
 	"strings"
 	"syscall"
 
-	_ "github.com/lib/pq"
 	"github.com/google/shlex"
+	_ "github.com/lib/pq"
 	"github.com/vaughan0/go-ini"
 )
 
@@ -40,15 +40,15 @@ func main() {
 		siteOwnerEmail string
 		postUpdate     string
 
-		cmdstr   string
-		cmd      []string
+		cmdstr string
+		cmd    []string
 	)
 
 	log.SetFlags(0)
 	logf, err := os.OpenFile("/var/log/gitsrht-shell",
 		os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
-		log.Printf("Warning: unable to open log file: %v " +
+		log.Printf("Warning: unable to open log file: %v "+
 			"(using stderr instead)", err)
 		logger = log.New(os.Stderr, "", log.LstdFlags)
 	} else {
@@ -117,7 +117,7 @@ func main() {
 
 	if !valid {
 		logger.Printf("Not permitting unacceptable command: %v", cmd)
-		log.Printf("Hi %s! You've successfully authenticated, " +
+		log.Printf("Hi %s! You've successfully authenticated, "+
 			"but I do not provide an interactive shell. Bye!", pusherName)
 		os.Exit(128)
 	}
@@ -311,7 +311,7 @@ func main() {
 		}
 	}
 
-	if needsAccess & hasAccess != needsAccess {
+	if needsAccess&hasAccess != needsAccess {
 		log.Println("Access denied.")
 		log.Println()
 		os.Exit(128)
@@ -364,6 +364,7 @@ func main() {
 	if err := syscall.Exec(bin, cmd,
 		append(os.Environ(), fmt.Sprintf(
 			"SRHT_PUSH_CTX=%s", string(pushContext)))); err != nil {
-				logger.Fatalf("syscall.Exec: %v", err)
+
+		logger.Fatalf("syscall.Exec: %v", err)
 	}
 }
