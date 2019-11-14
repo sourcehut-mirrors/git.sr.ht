@@ -2,9 +2,6 @@
 import json
 import os
 import sys
-# TEMP
-sys.path.append('/home/sircmpwn/sources/git.sr.ht')
-sys.path.append('/home/sircmpwn/sources/scm.sr.ht')
 from srht.config import cfg
 from configparser import ConfigParser
 from datetime import datetime, timedelta
@@ -33,11 +30,6 @@ if op == "hooks/post-update":
     with open("config") as f:
         config.read_file(f)
 
-    repo_id = config.get("srht", "repo-id")
-    if not repo_id:
-        sys.exit(0)
-    repo_id = int(repo_id)
-
     context = json.loads(os.environ.get("SRHT_PUSH_CTX"))
     repo = context["repo"]
 
@@ -45,7 +37,9 @@ if op == "hooks/post-update":
         print("\n\t\033[93mNOTICE\033[0m")
         print("\tWe saved your changes, but this repository does not exist.")
         print("\tClick here to create it:")
+        print()
         print("\t{}/create?name={}".format(origin, repo["name"]))
+        print()
         print("\tYour changes will be discarded in 20 minutes.\n")
 
     do_post_update(context, refs)

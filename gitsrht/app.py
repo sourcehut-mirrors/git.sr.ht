@@ -24,13 +24,11 @@ class GitApp(ScmSrhtFlask):
 
         from gitsrht.blueprints.api import data
         from gitsrht.blueprints.email import mail
-        from gitsrht.blueprints.internal import internal
         from gitsrht.blueprints.repo import repo
         from gitsrht.blueprints.stats import stats
 
         self.register_blueprint(data)
         self.register_blueprint(mail)
-        self.register_blueprint(internal)
         self.register_blueprint(repo)
         self.register_blueprint(stats)
         self.register_blueprint(webhooks_notify)

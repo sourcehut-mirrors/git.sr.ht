@@ -1,16 +1,10 @@
 package main
 
 import (
-	"bytes"
-	"crypto/rand"
-	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
+	"database/sql"
 	"log"
-	"net/http"
-	"net/url"
+	"fmt"
 	"os"
 	"os/exec"
 	gopath "path"
@@ -19,9 +13,16 @@ import (
 	"strings"
 	"syscall"
 
+	_ "github.com/lib/pq"
 	"github.com/google/shlex"
 	"github.com/vaughan0/go-ini"
-	"golang.org/x/crypto/ed25519"
+)
+
+const (
+	ACCESS_NONE   = 0
+	ACCESS_READ   = 1
+	ACCESS_WRITE  = 2
+	ACCESS_MANAGE = 4
 )
 
 func main() {
@@ -30,17 +31,20 @@ func main() {
 		err    error
 		logger *log.Logger
 
-		userId   int
-		username string
+		pusherId   int
+		pusherName string
 
-		origin   string
-		repos    string
-		privkey  ed25519.PrivateKey
+		origin         string
+		repos          string
+		siteOwnerName  string
+		siteOwnerEmail string
+		postUpdate     string
 
 		cmdstr   string
 		cmd      []string
 	)
 
+	log.SetFlags(0)
 	logf, err := os.OpenFile("/var/log/gitsrht-shell",
 		os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
@@ -56,10 +60,10 @@ func main() {
 	}
 	logger.Printf("os.Args: %v", os.Args)
 
-	if userId, err = strconv.Atoi(os.Args[1]); err != nil {
+	if pusherId, err = strconv.Atoi(os.Args[1]); err != nil {
 		logger.Fatalf("Couldn't interpret user ID: %v", err)
 	}
-	username = os.Args[2]
+	pusherName = os.Args[2]
 
 	for _, path := range []string{"../config.ini", "/etc/sr.ht/config.ini"} {
 		config, err = ini.LoadFile(path)
@@ -71,11 +75,8 @@ func main() {
 		logger.Fatalf("Failed to load config file: %v", err)
 	}
 
-	origin, ok := config.Get("git.sr.ht", "internal-origin")
+	origin, ok := config.Get("git.sr.ht", "origin")
 	if !ok {
-		origin, ok = config.Get("git.sr.ht", "origin")
-	}
-	if !ok || origin == "" {
 		logger.Fatalf("No origin configured for git.sr.ht")
 	}
 
@@ -84,15 +85,13 @@ func main() {
 		logger.Fatalf("No repo path configured for git.sr.ht")
 	}
 
-	b64key, ok := config.Get("webhooks", "private-key")
+	postUpdate, ok = config.Get("git.sr.ht", "post-update-script")
 	if !ok {
-		logger.Fatalf("No webhook key configured")
+		logger.Fatalf("No post-update script configured for git.sr.ht")
 	}
-	seed, err := base64.StdEncoding.DecodeString(b64key)
-	if err != nil {
-		logger.Fatalf("base64 decode webhooks private key: %v", err)
-	}
-	privkey = ed25519.NewKeyFromSeed(seed)
+
+	siteOwnerName, _ = config.Get("sr.ht", "owner-name")
+	siteOwnerEmail, _ = config.Get("sr.ht", "owner-email")
 
 	cmdstr, ok = os.LookupEnv("SSH_ORIGINAL_COMMAND")
 	if !ok {
@@ -118,8 +117,8 @@ func main() {
 
 	if !valid {
 		logger.Printf("Not permitting unacceptable command: %v", cmd)
-		fmt.Printf("Hi %s! You've successfully authenticated, " +
-			"but I do not provide an interactive shell. Bye!\n", username)
+		log.Printf("Hi %s! You've successfully authenticated, " +
+			"but I do not provide an interactive shell. Bye!", pusherName)
 		os.Exit(128)
 	}
 
@@ -135,93 +134,239 @@ func main() {
 	}
 	cmd[len(cmd)-1] = path
 
-	access := 1
+	needsAccess := ACCESS_READ
 	if cmd[0] == "git-receive-pack" {
-		access = 2
+		needsAccess = ACCESS_WRITE
 	}
 
-	payload, err := json.Marshal(struct {
-		Access int    `json:"access"`
-		Path   string `json:"path"`
-		UserId int    `json:"user_id"`
-	}{
-		Access: access,
-		Path:   path,
-		UserId: userId,
-	})
+	pgcs, ok := config.Get("git.sr.ht", "connection-string")
+	if !ok {
+		logger.Fatalf("No connection string configured for git.sr.ht: %v", err)
+	}
+	db, err := sql.Open("postgres", pgcs)
 	if err != nil {
-		logger.Fatalf("json.Marshal: %v", err)
+		logger.Fatalf("Failed to open a database connection: %v", err)
 	}
-	logger.Println(string(payload))
+	if err := db.Ping(); err != nil {
+		logger.Fatalf("Failed to open a database connection: %v", err)
+	}
 
+	// Note: when updating push access logic, also update scm.sr.ht/access.py
 	var (
-		nonceSeed []byte
-		nonceHex  []byte
+		repoId              int
+		repoName            string
+		repoOwnerId         int
+		repoOwnerName       string
+		repoVisibility      string
+		pusherType          string
+		pusherSuspendNotice string
+		accessGrant         *string
 	)
-	_, err = rand.Read(nonceSeed)
-	if err != nil {
-		logger.Fatalf("generate nonce: %v", err)
-	}
-	hex.Encode(nonceHex, nonceSeed)
-	signature := ed25519.Sign(privkey, append(payload, nonceHex...))
+	row := db.QueryRow(`
+		SELECT
+			repo.id,
+			repo.name,
+			repo.owner_id,
+			repo.visibility,
+			owner.username,
+			pusher.user_type,
+			pusher.suspension_notice,
+			access.mode
+		FROM repository repo
+		JOIN "user" owner  ON owner.id  = repo.owner_id
+		JOIN "user" pusher ON pusher.id = $1
+		LEFT JOIN access
+			ON (access.repo_id = repo.id AND access.user_id = $1)
+		WHERE
+			repo.path = $2;
+	`, pusherId, path)
+	if err := row.Scan(&repoId, &repoName, &repoOwnerId, &repoOwnerName,
+		&repoVisibility, &pusherType, &pusherSuspendNotice, &accessGrant); err != nil {
 
-	headers := make(http.Header)
-	headers.Add("Content-Type", "application/json")
-	headers.Add("X-Payload-Nonce", string(nonceHex))
-	headers.Add("X-Payload-Signature",
-		base64.StdEncoding.EncodeToString(signature))
+		row = db.QueryRow(`
+			SELECT
+				repo.id,
+				repo.name,
+				repo.owner_id,
+				repo.visibility,
+				owner.username,
+				pusher.user_type,
+				pusher.suspension_notice,
+				access.mode
+			FROM repository repo
+			JOIN "user" owner  ON owner.id  = repo.owner_id
+			JOIN "user" pusher ON pusher.id = $1
+			JOIN redirect      ON redirect.new_repo_id = repo.id
+			LEFT JOIN access
+				ON (access.repo_id = repo.id AND access.user_id = $1)
+			WHERE
+				redirect.path = $2;
+		`, pusherId, path)
 
-	check, err := url.Parse(fmt.Sprintf("%s/internal/push-check", origin))
-	if err != nil {
-		logger.Fatalf("url.Parse: %v", err)
-	}
-	req := http.Request{
-		Body:          ioutil.NopCloser(bytes.NewBuffer(payload)),
-		ContentLength: int64(len(payload)),
-		Header:        headers,
-		Method:        "POST",
-		URL:           check,
-	}
-	resp, err := http.DefaultClient.Do(&req)
-	if err != nil {
-		logger.Fatalf("http.Client.Do: %v", err)
-	}
-	defer resp.Body.Close()
-	results, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		logger.Fatal("ReadAll(resp.Body): %v", err)
-	}
-	logger.Println(string(results))
+		if err := row.Scan(&repoId, &repoName, &repoOwnerId, &repoOwnerName,
+			&repoVisibility, &pusherType, &pusherSuspendNotice,
+			&accessGrant); err != nil {
 
-	switch resp.StatusCode {
-	case 302:
-		var redirect struct {
-			Redirect string `json:"redirect"`
+			repoName = gopath.Base(path)
+			repoOwnerName = gopath.Base(gopath.Dir(path))
+			if repoOwnerName != "" {
+				repoOwnerName = repoOwnerName[1:]
+			}
+
+			notFound := func(ctx string, err error) {
+				if err != nil {
+					logger.Printf("Error autocreating repo: %s: %v", ctx, err)
+				}
+				log.Println("Repository not found.")
+				log.Println()
+				os.Exit(128)
+			}
+
+			if needsAccess == ACCESS_READ || repoOwnerName != pusherName {
+				notFound("access", nil)
+			}
+
+			if needsAccess == ACCESS_WRITE {
+				repoOwnerId = pusherId
+				repoOwnerName = pusherName
+				repoVisibility = "autocreated"
+
+				createQuery, err := db.Prepare(`
+					INSERT INTO repository (
+						created,
+						updated,
+						name,
+						owner_id,
+						path,
+						visibility
+					) VALUES (
+						NOW() at time zone 'utc',
+						NOW() at time zone 'utc',
+						$1, $2, $3, 'autocreated'
+					) RETURNING id;
+				`)
+				if err != nil {
+					notFound("create query prepare", err)
+				}
+				defer createQuery.Close()
+
+				if createQuery.QueryRow(repoName, repoOwnerId, path).
+					Scan(&repoId); err != nil {
+
+					notFound("insert", err)
+				}
+
+				// Note: update gitsrht/repos.py when changing this
+				if err = exec.Command("mkdir", "-p", path).Run(); err != nil {
+					notFound("mkdir", err)
+				}
+				if err = exec.Command("git", "init",
+					"--bare", path).Run(); err != nil {
+
+					notFound("git init", err)
+				}
+				if err = exec.Command("ln", "-s", postUpdate,
+					gopath.Join(path, "hooks", "update")).Run(); err != nil {
+
+					notFound("ln update", err)
+				}
+				if err = exec.Command("ln", "-s", postUpdate,
+					gopath.Join(path, "hooks", "post-update")).Run(); err != nil {
+
+					notFound("ln post-update", err)
+				}
+
+				logger.Printf("Autocreated repo %s", path)
+			}
+		} else {
+			log.Printf("\033[93mNOTICE\033[0m: This repository has moved.")
+			log.Printf("Please update your remote to:")
+			log.Println()
+			log.Printf("\t%s/~%s/%s", origin, repoOwnerName, repoName)
+			log.Println()
 		}
-		json.Unmarshal(results, &redirect)
+	}
 
-		fmt.Printf("\n\t\033[93mNOTICE\033[0m\n\n")
-		fmt.Printf("\tThis repository has moved:\n\n")
-		fmt.Printf("\t%s\n\n", redirect.Redirect)
-		fmt.Printf("\tPlease update your remote.\n\n\n")
+	hasAccess := ACCESS_NONE
+	if pusherId == repoOwnerId {
+		hasAccess = ACCESS_READ | ACCESS_WRITE | ACCESS_MANAGE
+	} else {
+		if accessGrant == nil {
+			switch repoVisibility {
+			case "public":
+				fallthrough
+			case "unlisted":
+				hasAccess = ACCESS_READ
+			case "private":
+				hasAccess = ACCESS_NONE
+			default:
+				hasAccess = ACCESS_NONE
+			}
+		} else {
+			switch *accessGrant {
+			case "r":
+				hasAccess = ACCESS_READ
+			case "rw":
+				hasAccess = ACCESS_WRITE
+			default:
+				hasAccess = ACCESS_NONE
+			}
+		}
+	}
+
+	if needsAccess & hasAccess != needsAccess {
+		log.Println("Access denied.")
+		log.Println()
 		os.Exit(128)
-	case 200:
-		logger.Printf("Executing command: %v", cmd)
-		bin, err := exec.LookPath(cmd[0])
-		if err != nil {
-			logger.Fatalf("exec.LookPath: %v", err)
-		}
-		if err := syscall.Exec(bin, cmd,
-			append(os.Environ(), fmt.Sprintf(
-				"SRHT_PUSH_CTX=%s", string(results)))); err != nil {
-					logger.Fatalf("syscall.Exec: %v", err)
-		}
-	default:
-		var why struct {
-			Why string `json:"why"`
-		}
-		json.Unmarshal(results, &why)
-		fmt.Println(why.Why)
+	}
+
+	if pusherType == "suspended" {
+		log.Println("Your account has been suspended for the following reason:")
+		log.Println()
+		log.Println("\t" + pusherSuspendNotice)
+		log.Println()
+		log.Printf("Please contact support: %s <%s>",
+			siteOwnerName, siteOwnerEmail)
+		log.Println()
 		os.Exit(128)
+	}
+
+	type RepoContext struct {
+		Id         int    `json:"id"`
+		Name       string `json:"name"`
+		Path       string `json:"path"`
+		Visibility string `json:"visibility"`
+	}
+
+	type UserContext struct {
+		CanonicalName string `json:"canonical_name"`
+		Name          string `json:"name"`
+	}
+
+	pushContext, _ := json.Marshal(struct {
+		Repo RepoContext `json:"repo"`
+		User UserContext `json:"user"`
+	}{
+		Repo: RepoContext{
+			Id:         repoId,
+			Name:       repoName,
+			Path:       path,
+			Visibility: repoVisibility,
+		},
+		User: UserContext{
+			CanonicalName: "~" + pusherName,
+			Name:          pusherName,
+		},
+	})
+
+	logger.Printf("Executing command: %v", cmd)
+	bin, err := exec.LookPath(cmd[0])
+	if err != nil {
+		logger.Fatalf("exec.LookPath: %v", err)
+	}
+	if err := syscall.Exec(bin, cmd,
+		append(os.Environ(), fmt.Sprintf(
+			"SRHT_PUSH_CTX=%s", string(pushContext)))); err != nil {
+				logger.Fatalf("syscall.Exec: %v", err)
 	}
 }

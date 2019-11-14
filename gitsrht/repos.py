@@ -14,6 +14,7 @@ class GitRepoApi(SimpleRepoApi):
                 repository_class=Repository)
 
     def do_init_repo(self, owner, repo):
+        # Note: update gitsrht-shell when changing this
         subprocess.run(["mkdir", "-p", repo.path], check=True,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.run(["git", "init", "--bare"], cwd=repo.path, check=True,
