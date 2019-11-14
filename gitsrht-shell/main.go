@@ -319,10 +319,18 @@ func main() {
 		}
 	}
 
+	agrant := ""
+	snotice := ""
+	if accessGrant != nil {
+		agrant = *accessGrant
+	}
+	if pusherSuspendNotice != nil {
+		snotice = *pusherSuspendNotice
+	}
 	logger.Printf("repo ID %d; name '%s'; owner ID %d; owner name '%s'; " +
 		"visibility '%s'; pusher type '%s'; pusher suspension notice '%s'; " +
 		"access grant '%s'", repoId, repoName, repoOwnerId, repoOwnerName,
-		repoVisibility, pusherType, pusherSuspendNotice, accessGrant)
+		repoVisibility, pusherType, snotice, agrant)
 
 	// We have everything we need, now we find out if the user is allowed to do
 	// what they're trying to do.
@@ -337,7 +345,7 @@ func main() {
 			case "unlisted":
 				hasAccess = ACCESS_READ
 			case "private":
-				hasAccess = ACCESS_NONE
+				fallthrough
 			default:
 				hasAccess = ACCESS_NONE
 			}
@@ -346,7 +354,7 @@ func main() {
 			case "r":
 				hasAccess = ACCESS_READ
 			case "rw":
-				hasAccess = ACCESS_WRITE
+				hasAccess = ACCESS_READ | ACCESS_WRITE
 			default:
 				hasAccess = ACCESS_NONE
 			}
