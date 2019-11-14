@@ -36,6 +36,8 @@ type MetaSSHKey struct {
 
 // Stores the SSH key in the database and returns the user's ID.
 func storeKey(logger *log.Logger, db *sql.DB, key *MetaSSHKey) int {
+	logger.Println("Storing meta.sr.ht key in git.sr.ht database")
+
 	// Getting the user ID is really a separate concern, but this saves us a
 	// SQL roundtrip and this is a performance-critical section
 	query, err := db.Prepare(`
@@ -52,6 +54,9 @@ func storeKey(logger *log.Logger, db *sql.DB, key *MetaSSHKey) int {
 		)
 		SELECT user_id, $2, $3, $4
 		FROM key_owner
+		-- This no-ops on conflict, but we still need this query to complete so
+		-- that we can extract the user ID. DO NOTHING returns zero rows.
+		ON CONFLICT (meta_id) DO UPDATE SET meta_id = $2
 		RETURNING id, user_id;
 	`)
 	if err != nil {
@@ -67,7 +72,7 @@ func storeKey(logger *log.Logger, db *sql.DB, key *MetaSSHKey) int {
 	if err = query.QueryRow(key.Owner.Username,
 		key.Id, key.Key, key.Fingerprint).Scan(&keyId, &userId); err != nil {
 
-		logger.Fatalf("Error inserting key & looking up user: %v", err)
+		logger.Printf("Error inserting key: %v", err)
 	}
 
 	logger.Printf("Stored key %d for user %d", keyId, userId)
@@ -92,6 +97,7 @@ func fetchKeysFromMeta(logger *log.Logger, config ini.File,
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
+		logger.Printf("non-200 response from meta.sr.ht: %d", resp.StatusCode)
 		return "", 0
 	}
 
@@ -131,6 +137,9 @@ func fetchKeysFromMeta(logger *log.Logger, config ini.File,
 
 func main() {
 	// gitsrht-keys is run by sshd to generate an authorized_key file on stdout.
+	// In order to facilitate this, we do one of two things:
+	// - Attempt to fetch the cached key info from Redis (preferred)
+	// - Fetch the key from meta.sr.ht and store it in SQL and Redis (slower)
 
 	var (
 		config ini.File
@@ -176,6 +185,7 @@ func main() {
 	logger.Printf("Cache key for SSH key lookup: %s", cacheKey)
 	cacheBytes, err := redis.Get(cacheKey).Bytes()
 	if err != nil {
+		logger.Println("Cache miss, going to meta.sr.ht")
 		username, userId = fetchKeysFromMeta(logger, config, redis, b64key)
 	} else {
 		var cache KeyCache
@@ -184,6 +194,7 @@ func main() {
 		}
 		userId = cache.UserId
 		username = cache.Username
+		logger.Println("Cache hit: %d %s", userId, username)
 	}
 
 	if username == "" {
