@@ -295,7 +295,10 @@ def log(owner, repo, ref, path):
 
         from_id = request.args.get("from")
         if from_id:
-            commit = git_repo.get(from_id)
+            try:
+                commit = git_repo.get(from_id)
+            except ValueError:
+                abort(404)
 
         commits = get_log(git_repo, commit)
 
