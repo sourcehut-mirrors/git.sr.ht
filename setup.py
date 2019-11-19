@@ -63,6 +63,5 @@ setup(
   scripts = [
       'gitsrht-migrate',
       'gitsrht-periodic',
-      'gitsrht-update-hook',
   ]
 )

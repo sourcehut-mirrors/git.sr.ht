@@ -17,6 +17,7 @@ from srht.validation import Validation
 
 data = Blueprint("api.data", __name__)
 
+# See also gitsrht-update-hook/types.go
 def commit_to_dict(c):
     return {
         "id": str(c.id),

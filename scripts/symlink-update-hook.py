@@ -12,9 +12,14 @@ def migrate(path, link):
     if not os.path.exists(path) \
             or not os.path.islink(path) \
             or os.readlink(path) != link:
-        if os.path.exists(path):
+        try:
             os.remove(path)
-        os.symlink(link, path)
+        except:
+            pass
+        try:
+            os.symlink(link, path)
+        except:
+            pass
         return True
     return False
 

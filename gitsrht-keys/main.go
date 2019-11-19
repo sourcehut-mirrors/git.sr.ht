@@ -211,7 +211,7 @@ func main() {
 	push := uuid.New()
 	shellCommand := fmt.Sprintf("%s '%d' '%s' '%s'",
 		shell, userId, username, b64key)
-	fmt.Printf(`restrict,command="%s",environment="SRHT_UID=%d",`+
+	fmt.Printf(`restrict,command="%s",`+
 		`environment="SRHT_PUSH=%s" %s %s %s`+"\n",
-		shellCommand, userId, push.String(), keyType, b64key, username)
+		shellCommand, push.String(), keyType, b64key, username)
 }
