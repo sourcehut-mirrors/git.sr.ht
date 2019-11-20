@@ -108,6 +108,10 @@ func main() {
 		cmdstr = ""
 	}
 
+	if pushUuid, ok := os.LookupEnv("SRHT_PUSH"); ok {
+		logger.Printf("Running shell for push %s", pushUuid)
+	}
+
 	// Grab the command the user is trying to execute
 	cmd, err = shlex.Split(cmdstr)
 	if err != nil {

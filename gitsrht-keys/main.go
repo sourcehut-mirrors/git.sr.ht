@@ -209,6 +209,7 @@ func main() {
 	}
 
 	push := uuid.New()
+	logger.Printf("Assigned uuid %s to this push", push.String())
 	shellCommand := fmt.Sprintf("%s '%d' '%s' '%s'",
 		shell, userId, username, b64key)
 	fmt.Printf(`restrict,command="%s",`+

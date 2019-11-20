@@ -269,5 +269,7 @@ func postUpdate() {
 	// blocking the pusher's terminal.
 	stage3 := exec.Command(hook, string(deliveriesJson), string(payloadBytes))
 	stage3.Args[0] = "stage-3"
+	logger.Printf("Executing stage 3 to record %d sync deliveries and make " +
+		"%d async deliveries", len(deliveries), len(dbinfo.AsyncWebhooks))
 	stage3.Start()
 }

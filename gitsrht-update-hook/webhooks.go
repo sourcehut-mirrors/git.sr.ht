@@ -134,6 +134,8 @@ func deliverWebhooks(subs []WebhookSubscription,
 			continue
 		}
 		log.Println(runewidth.Truncate(string(respBody), 1024, "..."))
+		logger.Printf("Delivered webhook to %s (sub %d), got %d",
+			sub.Url, sub.Id, resp.StatusCode)
 
 		var responseHeaders bytes.Buffer
 		for name, values := range resp.Header {
@@ -141,6 +143,7 @@ func deliverWebhooks(subs []WebhookSubscription,
 				name, strings.Join(values, ", ")))
 		}
 
+		delivery.ResponseStatus = resp.StatusCode
 		delivery.ResponseHeaders = responseHeaders.String()
 		delivery.Response = string(respBody)[:65535]
 		deliveries = append(deliveries, delivery)
