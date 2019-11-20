@@ -54,19 +54,6 @@ type Commit struct {
 	Signature *CommitSignature `json:"signature"`
 }
 
-type UpdatedRef struct {
-	Tag  *AnnotatedTag `json:"annotated_tag",omitempty`
-	Name string        `json:"name"`
-	Old  *Commit       `json:"old"`
-	New  *Commit       `json:"commit"`
-}
-
-type WebhookPayload struct {
-	Push   string       `json:"push"`
-	Pusher UserContext  `json:"pusher"`
-	Refs   []UpdatedRef `json:"refs"`
-}
-
 func GitCommitToWebhookCommit(c *object.Commit) *Commit {
 	parents := make([]string, len(c.ParentHashes))
 	for i, p := range c.ParentHashes {

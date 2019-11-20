@@ -42,6 +42,19 @@ type WebhookDelivery struct {
 	Url             string
 }
 
+type UpdatedRef struct {
+	Tag  *AnnotatedTag `json:"annotated_tag",omitempty`
+	Name string        `json:"name"`
+	Old  *Commit       `json:"old"`
+	New  *Commit       `json:"new"`
+}
+
+type WebhookPayload struct {
+	Push   string       `json:"push"`
+	Pusher UserContext  `json:"pusher"`
+	Refs   []UpdatedRef `json:"refs"`
+}
+
 func initWebhookKey() {
 	b64key, ok := config.Get("webhooks", "private-key")
 	if !ok {
