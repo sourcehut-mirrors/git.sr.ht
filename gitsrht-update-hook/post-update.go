@@ -254,7 +254,7 @@ func postUpdate() {
 		logger.Fatalf("Failed to marshal webhook payload: %v", err)
 	}
 
-	deliveries := deliverWebhooks(dbinfo.SyncWebhooks, payloadBytes)
+	deliveries := deliverWebhooks(dbinfo.SyncWebhooks, payloadBytes, true)
 	deliveriesJson, err := json.Marshal(deliveries)
 	if err != nil {
 		logger.Fatalf("Failed to marshal webhook deliveries: %v", err)

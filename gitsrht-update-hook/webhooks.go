@@ -68,7 +68,7 @@ func initWebhookKey() {
 }
 
 func deliverWebhooks(subs []WebhookSubscription,
-	payload []byte) []WebhookDelivery {
+	payload []byte, printResponse bool) []WebhookDelivery {
 
 	var deliveries []WebhookDelivery
 	initWebhookKey()
@@ -133,7 +133,9 @@ func deliverWebhooks(subs []WebhookSubscription,
 			deliveries = append(deliveries, delivery)
 			continue
 		}
-		log.Println(runewidth.Truncate(string(respBody), 1024, "..."))
+		if printResponse {
+			log.Println(runewidth.Truncate(string(respBody), 1024, "..."))
+		}
 		logger.Printf("Delivered webhook to %s (sub %d), got %d",
 			sub.Url, sub.Id, resp.StatusCode)
 
