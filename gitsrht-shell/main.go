@@ -118,8 +118,6 @@ func main() {
 		logger.Fatalf("Unable to parse command: %v", err)
 	}
 
-	logger.Println("Running git.sr.ht shell")
-
 	// Make sure it's a git command that we're expecting
 	validCommands := []string{
 		"git-receive-pack", "git-upload-pack", "git-upload-archive",

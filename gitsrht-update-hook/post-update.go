@@ -272,4 +272,5 @@ func postUpdate() {
 	logger.Printf("Executing stage 3 to record %d sync deliveries and make " +
 		"%d async deliveries", len(deliveries), len(dbinfo.AsyncWebhooks))
 	stage3.Start()
+	stage3.Process.Release()
 }
