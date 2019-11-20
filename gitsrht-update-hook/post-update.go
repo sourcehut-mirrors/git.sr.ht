@@ -265,6 +265,11 @@ func postUpdate() {
 		logger.Fatal("No post-update script configured, cannot run stage 3")
 	}
 
+	if len(deliveries) == 0 && len(dbinfo.AsyncWebhooks) == 0 {
+		logger.Println("Skipping stage 3, no work")
+		return
+	}
+
 	// Run stage 3 asyncronously - the last few tasks can be done without
 	// blocking the pusher's terminal.
 	stage3 := exec.Command(hook, string(deliveriesJson), string(payloadBytes))
