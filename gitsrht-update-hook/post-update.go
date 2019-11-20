@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"strings"
+	"syscall"
 
 	goredis "github.com/go-redis/redis"
 	_ "github.com/lib/pq"
@@ -272,10 +272,27 @@ func postUpdate() {
 
 	// Run stage 3 asyncronously - the last few tasks can be done without
 	// blocking the pusher's terminal.
-	stage3 := exec.Command(hook, string(deliveriesJson), string(payloadBytes))
-	stage3.Args[0] = "stage-3"
+	wd, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("Failed to execute stage 3: %v", err)
+	}
+
+	procAttr := syscall.ProcAttr{
+        Dir:   wd,
+        Files: []uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd()},
+        Env:   os.Environ(),
+        Sys: &syscall.SysProcAttr{
+            Foreground: false,
+        },
+    }
+	pid, err := syscall.ForkExec(hook, []string{
+		"hooks/stage-3", string(deliveriesJson), string(payloadBytes),
+	}, &procAttr)
+	if err != nil {
+		log.Fatalf("Failed to execute stage 3: %v", err)
+	}
+
 	logger.Printf("Executing stage 3 to record %d sync deliveries and make " +
-		"%d async deliveries", len(deliveries), len(dbinfo.AsyncWebhooks))
-	stage3.Start()
-	stage3.Process.Release()
+		"%d async deliveries (pid %d)", len(deliveries),
+		len(dbinfo.AsyncWebhooks), pid)
 }

@@ -145,7 +145,11 @@ func deliverWebhooks(subs []WebhookSubscription,
 
 		delivery.ResponseStatus = resp.StatusCode
 		delivery.ResponseHeaders = responseHeaders.String()
-		delivery.Response = string(respBody)[:65535]
+		if len(respBody) > 65535 {
+			delivery.Response = string(respBody)[:65535]
+		} else {
+			delivery.Response = string(respBody)
+		}
 		deliveries = append(deliveries, delivery)
 	}
 

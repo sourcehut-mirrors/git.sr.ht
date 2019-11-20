@@ -73,7 +73,7 @@ func stage3() {
 				subscription_id
 			) VALUES (
 				$1, NOW() AT TIME ZONE 'UTC', 'repo:post-update',
-				$2, $3, $4, $5, $6, $7
+				$2, $3, $4, $5, $6, $7, $8
 			);
 		`, delivery.UUID, delivery.Url,
 			delivery.Payload, delivery.Headers,
