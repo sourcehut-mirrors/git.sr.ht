@@ -25,7 +25,7 @@ func main() {
 		update()
 	} else if os.Args[0] == "hooks/post-update" {
 		postUpdate()
-	} else if os.Args[0] == "stage-3" {
+	} else if os.Args[0] == "hooks/stage-3" {
 		stage3()
 	} else {
 		log.Fatalf("Unknown git hook %s", os.Args[0])

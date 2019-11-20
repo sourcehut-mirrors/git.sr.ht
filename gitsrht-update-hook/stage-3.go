@@ -54,6 +54,9 @@ func stage3() {
 		subscriptions = append(subscriptions, whs)
 	}
 
+	logger.Printf("Making %d deliveries and recording %d from stage 2",
+		len(subscriptions), len(deliveries))
+
 	deliveries = append(deliveries, deliverWebhooks(subscriptions, payload)...)
 	for _, delivery := range deliveries {
 		if _, err := db.Exec(`
@@ -80,4 +83,7 @@ func stage3() {
 			logger.Fatalf("Error inserting webhook delivery: %v", err)
 		}
 	}
+
+	logger.Printf("Delivered %d webhooks, recorded %d deliveries",
+		len(subscriptions), len(deliveries))
 }
