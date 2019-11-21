@@ -278,13 +278,13 @@ func postUpdate() {
 	}
 
 	procAttr := syscall.ProcAttr{
-        Dir:   wd,
-        Files: []uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd()},
-        Env:   os.Environ(),
-        Sys: &syscall.SysProcAttr{
-            Foreground: false,
-        },
-    }
+		Dir:   wd,
+		Files: []uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd()},
+		Env:   os.Environ(),
+		Sys: &syscall.SysProcAttr{
+			Foreground: false,
+		},
+	}
 	pid, err := syscall.ForkExec(hook, []string{
 		"hooks/stage-3", string(deliveriesJson), string(payloadBytes),
 	}, &procAttr)
@@ -292,7 +292,7 @@ func postUpdate() {
 		log.Fatalf("Failed to execute stage 3: %v", err)
 	}
 
-	logger.Printf("Executing stage 3 to record %d sync deliveries and make " +
+	logger.Printf("Executing stage 3 to record %d sync deliveries and make "+
 		"%d async deliveries (pid %d)", len(deliveries),
 		len(dbinfo.AsyncWebhooks), pid)
 }

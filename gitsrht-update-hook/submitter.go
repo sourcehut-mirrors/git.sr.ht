@@ -75,7 +75,7 @@ func (submitter GitBuildSubmitter) FindManifests() (map[string]string, error) {
 		for {
 			file, err = entries.Next()
 			if file == nil || err != nil {
-				break;
+				break
 			}
 			if strings.HasSuffix(file.Name, ".yml") {
 				files = append(files, file)
