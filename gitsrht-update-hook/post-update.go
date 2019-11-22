@@ -174,8 +174,7 @@ func postUpdate() {
 		}
 		oldobj, err = repo.Object(plumbing.AnyObject, plumbing.NewHash(oldref))
 		if err == plumbing.ErrObjectNotFound {
-			logger.Printf("old object %s not found", oldref)
-			continue
+			oldobj = nil
 		}
 		newobj, err = repo.Object(plumbing.AnyObject, plumbing.NewHash(newref))
 		if err == plumbing.ErrObjectNotFound {
@@ -196,11 +195,6 @@ func postUpdate() {
 			}
 		}
 
-		oldcommit, ok := oldobj.(*object.Commit)
-		if !ok {
-			logger.Println("Skipping non-commit old ref")
-			continue
-		}
 		commit, ok := newobj.(*object.Commit)
 		if !ok {
 			logger.Println("Skipping non-commit new ref")
@@ -210,8 +204,16 @@ func postUpdate() {
 		payload.Refs[i] = UpdatedRef{
 			Tag:  atag,
 			Name: refname,
-			Old:  GitCommitToWebhookCommit(oldcommit),
 			New:  GitCommitToWebhookCommit(commit),
+		}
+
+		if oldobj != nil {
+			oldcommit, ok := oldobj.(*object.Commit)
+			if !ok {
+				logger.Println("Skipping non-commit old ref")
+			} else {
+				payload.Refs[i].Old = GitCommitToWebhookCommit(oldcommit)
+			}
 		}
 
 		if _, ok := oids[commit.Hash.String()]; ok {
