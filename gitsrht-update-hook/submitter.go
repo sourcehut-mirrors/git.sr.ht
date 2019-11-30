@@ -12,11 +12,39 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/fernet/fernet-go"
 	"github.com/microcosm-cc/bluemonday"
 	"github.com/pkg/errors"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
 )
+
+var (
+	fernetKey *fernet.Key
+	clientId  string
+)
+
+// TODO: Consider moving Fernet code to a shared SourceHut Go module
+func initSubmitter() {
+	netkey, ok := config.Get("sr.ht", "network-key")
+	if !ok {
+		logger.Fatal("Configuration error: [sr.ht].network-key missing")
+	}
+	var err error
+	fernetKey, err = fernet.DecodeKey(netkey)
+	if err != nil {
+		logger.Fatalf("Error decoding [sr.ht].network-key: %v", err)
+	}
+	clientId, ok = config.Get("git.sr.ht", "oauth-client-id")
+	if !ok {
+		logger.Fatal("Configuration error: [git.sr.ht].oauth-client-id missing")
+	}
+}
+
+type InternalRequestAuthorization struct {
+	ClientId string `json:"client_id"`
+	Username string `json:"username"`
+}
 
 type BuildSubmitter interface {
 	// Return a list of build manifests and their names
@@ -24,7 +52,7 @@ type BuildSubmitter interface {
 	// Get builds.sr.ht origin
 	GetBuildsOrigin() string
 	// Get builds.sr.ht OAuth token
-	GetOauthToken() string
+	GetOauthToken() *string
 	// Get a checkout-able string to append to matching source URLs
 	GetCommitId() string
 	// Get the build note which corresponds to this commit
@@ -50,7 +78,7 @@ type GitBuildSubmitter struct {
 	Commit      *object.Commit
 	GitOrigin   string
 	OwnerName   string
-	OwnerToken  string
+	OwnerToken  *string
 	RepoName    string
 	Repository  *git.Repository
 	Visibility  string
@@ -110,7 +138,7 @@ func (submitter GitBuildSubmitter) GetBuildsOrigin() string {
 	return submitter.BuildOrigin
 }
 
-func (submitter GitBuildSubmitter) GetOauthToken() string {
+func (submitter GitBuildSubmitter) GetOauthToken() *string {
 	return submitter.OwnerToken
 }
 
@@ -167,6 +195,29 @@ type BuildSubmission struct {
 	Url  string
 }
 
+func configureRequestAuthorization(submitter BuildSubmitter,
+	req *http.Request) {
+
+	if submitter.GetOauthToken() != nil {
+		req.Header.Add("Authorization", fmt.Sprintf("token %s",
+			*submitter.GetOauthToken()))
+	} else {
+		auth := InternalRequestAuthorization{
+			ClientId: clientId,
+			Username: submitter.GetOwnerName(),
+		}
+		authPayload, err := json.Marshal(&auth)
+		if err != nil {
+			logger.Fatalf("Failed to marshal internal authorization: %v", err)
+		}
+		enc, err := fernet.EncryptAndSign(authPayload, fernetKey)
+		if err != nil {
+			logger.Fatalf("Failed to encrypt internal authorization: %v", err)
+		}
+		req.Header.Add("X-Srht-Authorization", string(enc))
+	}
+}
+
 // TODO: Move this to scm.sr.ht
 func SubmitBuild(submitter BuildSubmitter) ([]BuildSubmission, error) {
 	manifests, err := submitter.FindManifests()
@@ -204,8 +255,7 @@ func SubmitBuild(submitter BuildSubmitter) ([]BuildSubmission, error) {
 
 		req, err := http.NewRequest("POST", fmt.Sprintf("%s/api/jobs",
 			submitter.GetBuildsOrigin()), body)
-		req.Header.Add("Authorization", fmt.Sprintf("token %s",
-			submitter.GetOauthToken()))
+		configureRequestAuthorization(submitter, req)
 		req.Header.Add("Content-Type", "application/json")
 		resp, err := client.Do(req)
 		if err != nil {

@@ -13,7 +13,7 @@ from gitsrht.git import Repository as GitRepository, commit_time, diffstat
 from gitsrht.git import get_log
 from scmsrht.access import get_repo_or_redir
 from srht.config import cfg, cfgi, cfgb
-from srht.flask import loginrequired, current_user
+from srht.oauth import loginrequired, current_user
 from srht.validation import Validation
 from tempfile import NamedTemporaryFile
 from textwrap import TextWrapper

@@ -32,7 +32,7 @@ type DbInfo struct {
 	RepoName      string
 	Visibility    string
 	OwnerUsername string
-	OwnerToken    string
+	OwnerToken    *string
 	AsyncWebhooks []WebhookSubscription
 	SyncWebhooks  []WebhookSubscription
 }
@@ -135,6 +135,8 @@ func postUpdate() {
 	if context.Repo.Visibility == "autocreated" {
 		printAutocreateInfo(context)
 	}
+
+	initSubmitter()
 
 	payload := WebhookPayload{
 		Push:   pushUuid,

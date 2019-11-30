@@ -3,6 +3,7 @@ module git.sr.ht/~sircmpwn/git.sr.ht/gitsrht-update-hook
 go 1.13
 
 require (
+	github.com/fernet/fernet-go v0.0.0-20191111064656-eff2850e6001
 	github.com/go-redis/redis v6.15.6+incompatible
 	github.com/google/uuid v1.1.1
 	github.com/lib/pq v1.2.0
