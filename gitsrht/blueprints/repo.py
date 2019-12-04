@@ -143,6 +143,8 @@ def tree(owner, repo, ref, path):
             return render_empty_repo(owner, repo)
 
         commit, ref, path = lookup_ref(git_repo, ref, path)
+        if isinstance(commit, pygit2.Tag):
+            commit = git_repo.get(commit.target)
 
         tree = commit.tree
         if not tree:
