@@ -318,6 +318,7 @@ func main() {
 			log.Println()
 			log.Printf("\t%s/~%s/%s", origin, repoOwnerName, repoName)
 			log.Println()
+			os.Exit(128)
 		}
 	}
 
