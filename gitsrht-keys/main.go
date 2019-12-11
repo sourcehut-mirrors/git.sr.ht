@@ -122,7 +122,7 @@ func fetchKeysFromMeta(logger *log.Logger, config ini.File,
 	// Cache in Redis too
 	cacheKey := fmt.Sprintf("git.sr.ht.ssh-keys.%s", b64key)
 	cache := KeyCache{
-		UserId: userId,
+		UserId:   userId,
 		Username: key.Owner.Username,
 	}
 	cacheBytes, err := json.Marshal(&cache)
@@ -148,7 +148,12 @@ func main() {
 	)
 	// TODO: update key last used timestamp on meta.sr.ht
 
-	redis := goredis.NewClient(&goredis.Options{Addr: "localhost:6379"})
+	redisHost, ok := config.Get("sr.ht", "redis-host")
+	if !ok {
+		redisHost = "localhost"
+	}
+	redisHost += ":6379"
+	redis := goredis.NewClient(&goredis.Options{Addr: redisHost})
 
 	logf, err := os.OpenFile("/var/log/gitsrht-keys",
 		os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)

@@ -2,7 +2,7 @@ from collections import deque
 from datetime import datetime, timedelta, timezone
 from pygit2 import Repository as GitRepository, Tag
 from jinja2 import Markup, escape
-from scmsrht.redis import redis
+from srht.redis import redis
 from stat import filemode
 import pygit2
 import json

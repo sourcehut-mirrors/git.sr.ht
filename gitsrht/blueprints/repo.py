@@ -20,10 +20,10 @@ from pygments.formatters import HtmlFormatter
 from pygments.lexers import guess_lexer, guess_lexer_for_filename, TextLexer
 from scmsrht.access import get_repo, get_repo_or_redir
 from scmsrht.formatting import get_formatted_readme, get_highlighted_file
-from scmsrht.redis import redis
 from scmsrht.urls import get_clone_urls
 from srht.config import cfg
 from srht.markdown import markdown
+from srht.redis import redis
 
 repo = Blueprint('repo', __name__)
 

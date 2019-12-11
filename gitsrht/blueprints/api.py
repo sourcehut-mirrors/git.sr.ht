@@ -10,9 +10,9 @@ from gitsrht.webhooks import RepoWebhook
 from io import BytesIO
 from scmsrht.access import UserAccess
 from scmsrht.blueprints.api import get_user, get_repo
-from scmsrht.redis import redis
 from srht.api import paginated_response
 from srht.oauth import current_token, oauth
+from srht.redis import redis
 from srht.validation import Validation
 
 data = Blueprint("api.data", __name__)

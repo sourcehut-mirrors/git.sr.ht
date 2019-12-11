@@ -160,7 +160,12 @@ func postUpdate() {
 		logger.Fatalf("Failed to fetch info from database: %v", err)
 	}
 
-	redis := goredis.NewClient(&goredis.Options{Addr: "localhost:6379"})
+	redisHost, ok := config.Get("sr.ht", "redis-host")
+	if !ok {
+		redisHost = "localhost"
+	}
+	redisHost += ":6379"
+	redis := goredis.NewClient(&goredis.Options{Addr: redisHost})
 	for i, refname := range refs {
 		var oldref, newref string
 		var oldobj, newobj object.Object
