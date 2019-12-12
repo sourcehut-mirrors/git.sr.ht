@@ -354,7 +354,7 @@ func main() {
 			}
 		} else {
 			switch *accessGrant {
-			case "r":
+			case "ro":
 				hasAccess = ACCESS_READ
 			case "rw":
 				hasAccess = ACCESS_READ | ACCESS_WRITE
