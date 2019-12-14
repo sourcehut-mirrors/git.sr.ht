@@ -55,6 +55,7 @@ func main() {
 	}
 	if err != nil {
 		logger.Fatalf("Failed to load config file: %v", err)
+		os.Exit(0)
 	}
 
 	keyType, b64key, prefix, err = srhtkeys.ParseArgs(logger)
