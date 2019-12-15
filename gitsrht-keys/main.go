@@ -150,9 +150,8 @@ func main() {
 
 	redisHost, ok := config.Get("sr.ht", "redis-host")
 	if !ok {
-		redisHost = "localhost"
+		redisHost = "localhost:6379"
 	}
-	redisHost += ":6379"
 	redis := goredis.NewClient(&goredis.Options{Addr: redisHost})
 
 	logf, err := os.OpenFile("/var/log/gitsrht-keys",

@@ -24,9 +24,8 @@ func update() {
 
 	redisHost, ok := config.Get("sr.ht", "redis-host")
 	if !ok {
-		redisHost = "localhost"
+		redisHost = "localhost:6379"
 	}
-	redisHost += ":6379"
 	redis := goredis.NewClient(&goredis.Options{Addr: redisHost})
 	redis.Set(fmt.Sprintf("update.%s.%s", pushUuid, refname),
 		fmt.Sprintf("%s:%s", oldref, newref), 10*time.Minute)
