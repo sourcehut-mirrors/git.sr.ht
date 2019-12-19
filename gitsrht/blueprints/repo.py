@@ -21,9 +21,10 @@ from pygments.lexers import guess_lexer, guess_lexer_for_filename, TextLexer
 from scmsrht.access import get_repo, get_repo_or_redir
 from scmsrht.formatting import get_formatted_readme, get_highlighted_file
 from scmsrht.urls import get_clone_urls
-from srht.config import cfg
+from srht.config import cfg, get_origin
 from srht.markdown import markdown
 from srht.redis import redis
+from urllib.parse import urlparse
 
 repo = Blueprint('repo', __name__)
 
@@ -104,6 +105,22 @@ def summary(owner, repo):
                 latest_tag=latest_tag, default_branch=default_branch,
                 is_annotated=lambda t: isinstance(t, pygit2.Tag),
                 message=message)
+
+@repo.route("/<owner>/<repo>/<path:path>")
+def go_get(owner, repo, path):
+    if "go-get" not in request.args:
+        abort(404)
+    owner, repo = get_repo_or_redir(owner, repo)
+    root = get_origin("git.sr.ht", external=True)
+    origin = urlparse(root).netloc
+    return "".join(['<!doctype html>',
+        '<title>Placeholder page for Go import resolution</title>',
+        '<meta name="go-import" content="',
+            f'{origin}/{owner.canonical_name}/{repo.name} ',
+            f'git ',
+            f'{origin}/{owner.canonical_name}/{repo.name}',
+        '" />',
+    ])
 
 def lookup_ref(git_repo, ref, path):
     ref = ref or git_repo.default_branch().name[len("refs/heads/"):]
