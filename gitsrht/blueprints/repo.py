@@ -118,7 +118,7 @@ def go_get(owner, repo, path):
         '<meta name="go-import" content="',
             f'{origin}/{owner.canonical_name}/{repo.name} ',
             f'git ',
-            f'{origin}/{owner.canonical_name}/{repo.name}',
+            f'{root}/{owner.canonical_name}/{repo.name}',
         '" />',
     ])
 
