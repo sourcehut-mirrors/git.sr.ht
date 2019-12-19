@@ -31,12 +31,6 @@ func main() {
 	)
 	// TODO: update key last used timestamp on meta.sr.ht
 
-	redisHost, ok := config.Get("sr.ht", "redis-host")
-	if !ok {
-		redisHost = "localhost:6379"
-	}
-	redis := goredis.NewClient(&goredis.Options{Addr: redisHost})
-
 	logf, err := os.OpenFile(logFile,
 		os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
@@ -55,8 +49,17 @@ func main() {
 	}
 	if err != nil {
 		logger.Fatalf("Failed to load config file: %v", err)
-		os.Exit(0)
 	}
+
+	redisHost, ok := config.Get("sr.ht", "redis-host")
+	if !ok {
+		redisHost = "redis://localhost:6379"
+	}
+	ropts, err := goredis.ParseURL(redisHost)
+	if err != nil {
+		logger.Fatalf("Failed to parse redis host: %v", err)
+	}
+	redis := goredis.NewClient(ropts)
 
 	keyType, b64key, prefix, err = srhtkeys.ParseArgs(logger)
 	if err != nil {

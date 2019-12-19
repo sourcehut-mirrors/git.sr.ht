@@ -24,9 +24,13 @@ func update() {
 
 	redisHost, ok := config.Get("sr.ht", "redis-host")
 	if !ok {
-		redisHost = "localhost:6379"
+		redisHost = "redis://localhost:6379"
 	}
-	redis := goredis.NewClient(&goredis.Options{Addr: redisHost})
+	ropts, err := goredis.ParseURL(redisHost)
+	if err != nil {
+		logger.Fatalf("Failed to parse redis host: %v", err)
+	}
+	redis := goredis.NewClient(ropts)
 	redis.Set(fmt.Sprintf("update.%s.%s", pushUuid, refname),
 		fmt.Sprintf("%s:%s", oldref, newref), 10*time.Minute)
 }
