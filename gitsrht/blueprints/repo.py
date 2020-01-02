@@ -38,8 +38,11 @@ def get_readme(repo, tip, link_prefix=None):
         except KeyError:
             return None, None
 
-        if blob and blob.type == "blob":
-            return blob.id.hex, blob
+        if blob:
+            btype = (blob.type_str
+                    if hasattr(blob, "type_str") else blob.type)
+            if btype == "blob":
+                return blob.id.hex, blob
         return None, None
 
     def content_getter(blob):
