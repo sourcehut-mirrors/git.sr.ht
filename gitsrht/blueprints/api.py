@@ -48,7 +48,7 @@ def tree_to_dict(t):
             {
                 "name": e.name,
                 "id": str(e.id),
-                "type": e.type,
+                "type": (e.type_str if hasattr(e, "type_str") else e.type),
                 "mode": e.filemode,
             } for e in t
         ]
@@ -144,7 +144,9 @@ def repo_tree_GET(username, reponame, ref, path):
             if not tree or part not in tree:
                 abort(404)
             entry = tree[part]
-            if entry.type == "blob":
+            etype = (entry.type_str
+                    if hasattr(entry, "type_str") else entry.type)
+            if etype == "blob":
                 abort(404)
             tree = git_repo.get(entry.id)
         if not tree:
@@ -209,7 +211,9 @@ def repo_blob_GET(username, reponame, ref, path):
                 if part not in tree:
                     abort(404)
                 entry = tree[part]
-                if entry.type == "blob":
+                etype = (entry.type_str
+                        if hasattr(entry, "type_str") else entry.type)
+                if etype == "blob":
                     tree = annotate_tree(git_repo, tree, commit)
                     commit = next(e.commit for e in tree if e.name == entry.name)
                     blob = git_repo.get(entry.id)

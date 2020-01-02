@@ -20,7 +20,9 @@ class EditorConfig:
             if not directory in tree:
                 return None
             entry = tree[directory]
-            if entry.type != 'tree':
+            etype = (entry.type_str
+                    if hasattr(entry, "type_str") else entry.type)
+            if etype != 'tree':
                 return None
             tree = self.repo.get(entry.id)
             trees += [tree]
@@ -29,7 +31,9 @@ class EditorConfig:
             if ".editorconfig" not in tree:
                 continue
             entry = tree[".editorconfig"]
-            if entry.type != "blob":
+            etype = (entry.type_str
+                    if hasattr(entry, "type_str") else entry.type)
+            if etype != "blob":
                 continue
             blob = self.repo.get(entry.id)
             try:

@@ -71,7 +71,8 @@ class AnnotatedTreeEntry:
         if entry:
             self.id = entry.id.hex
             self.name = entry.name
-            self.type = entry.type
+            self.type = (entry.type_str
+                    if hasattr(entry, "type_str") else entry.type)
             self.filemode = entry.filemode
 
     def fetch_blob(self):

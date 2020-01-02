@@ -175,7 +175,9 @@ def tree(owner, repo, ref, path):
             if not tree or part not in tree:
                 abort(404)
             entry = tree[part]
-            if entry.type == "blob":
+            etype = (entry.type_str
+                    if hasattr(entry, "type_str") else entry.type)
+            if etype == "blob":
                 tree = annotate_tree(git_repo, tree, commit)
                 commit = next(
                         (e.commit for e in tree if e.name == entry.name), None)
@@ -217,7 +219,9 @@ def raw_blob(owner, repo, ref, path):
             if part not in tree:
                 abort(404)
             entry = tree[part]
-            if entry.type == "blob":
+            etype = (entry.type_str
+                    if hasattr(entry, "type_str") else entry.type)
+            if etype == "blob":
                 tree = annotate_tree(git_repo, tree, commit)
                 commit = next(e.commit for e in tree if e.name == entry.name)
                 blob = git_repo.get(entry.id)
