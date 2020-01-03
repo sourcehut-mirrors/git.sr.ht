@@ -480,5 +480,8 @@ def ref(owner, repo, ref):
             abort(404)
         except ValueError:
             abort(404)
+        if isinstance(tag, pygit2.Commit):
+            return redirect(url_for(".commit",
+                owner=owner, repo=repo, ref=tag.id.hex))
         return render_template("ref.html", view="refs",
                 owner=owner, repo=repo, git_repo=git_repo, tag=tag)

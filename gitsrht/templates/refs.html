@@ -36,8 +36,10 @@
         <div class="event">
           <h4 style="margin-bottom: 0.5rem">
             {% if isinstance(tag, pygit2.Commit) %}
-              {{ref[len("refs/tags/"):]}}
+            {% set ref = commit.id.hex %}
+            {{ref[len("refs/tags/"):]}}
             {% else %}
+            {% set ref = tag.name %}
             <a href="{{url_for("repo.ref",
                 owner=repo.owner.canonical_name,
                 repo=repo.name,
@@ -51,20 +53,20 @@
                 style="margin-left: 0.5rem"
                 href="{{url_for("repo.archive",
                   owner=repo.owner.canonical_name,
-                  repo=repo.name, ref=tag.name)}}"
+                  repo=repo.name, ref=ref)}}"
                 rel="nofollow"
               >.tar.gz {{icon("caret-right")}}</a>
               <a
                 style="margin-left: 0.5rem"
                 href="{{url_for("repo.tree",
                   owner=repo.owner.canonical_name,
-                  repo=repo.name, ref=tag.name)}}"
+                  repo=repo.name, ref=ref)}}"
               >browse {{icon("caret-right")}}</a>
               <a
                 style="margin-left: 0.5rem"
                 href="{{url_for("repo.log",
                   owner=repo.owner.canonical_name,
-                  repo=repo.name, ref=tag.name)}}"
+                  repo=repo.name, ref=ref)}}"
               >log {{icon("caret-right")}}</a>
             </small>
           </h4>
