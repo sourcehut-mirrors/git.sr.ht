@@ -7,7 +7,7 @@ import subprocess
 import sys
 from datetime import timedelta
 from flask import Blueprint, render_template, abort, send_file, request
-from flask import Response, url_for, session
+from flask import Response, url_for, session, redirect
 from gitsrht.annotations import AnnotatedFormatter
 from gitsrht.editorconfig import EditorConfig
 from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
