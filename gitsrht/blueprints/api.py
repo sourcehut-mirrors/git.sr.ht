@@ -225,7 +225,8 @@ def repo_blob_GET(username, reponame, ref, path):
         return send_file(BytesIO(blob.data),
                 as_attachment=blob.is_binary,
                 attachment_filename=entry.name if entry else None,
-                mimetype="text/plain" if not blob.is_binary else None)
+                mimetype="text/plain" if not blob.is_binary
+                    else "application/x-octet-stream")
 
 
 def _webhook_filters(query, username, reponame):
