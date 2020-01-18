@@ -171,7 +171,12 @@ func (submitter GitBuildSubmitter) GetCloneUrl() string {
 		origin := strings.ReplaceAll(submitter.GitOrigin, "http://", "")
 		origin = strings.ReplaceAll(origin, "https://", "")
 		// Use SSH URL
-		return fmt.Sprintf("git+ssh://git@%s/~%s/%s", origin,
+		git_user, ok := config.Get("git.sr.ht::dispatch", "/usr/bin/gitsrht-keys")
+		if !ok {
+			git_user = "git:git"
+		}
+		git_user = strings.Split(git_user, ":")[0]
+		return fmt.Sprintf("git+ssh://%s@%s/~%s/%s", git_user, origin,
 			submitter.OwnerName, submitter.RepoName)
 	} else {
 		// Use HTTP(s) URL

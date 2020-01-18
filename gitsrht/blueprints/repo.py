@@ -64,7 +64,8 @@ def _highlight_file(repo, ref, name, data, blob_id):
 
 def render_empty_repo(owner, repo):
     origin = cfg("git.sr.ht", "origin")
-    urls = get_clone_urls(origin, owner, repo, 'git@{origin}:{user}/{repo}')
+    git_user = cfg("git.sr.ht::dispatch", "/usr/bin/gitsrht-keys", "git:git").split(":")[0]
+    urls = get_clone_urls(origin, owner, repo, '{git_user}@{origin}:{user}/{repo}')
     return render_template("empty-repo.html", owner=owner, repo=repo,
             clone_urls=urls)
 

@@ -1,14 +1,15 @@
 from flask import url_for
-from srht.config import get_origin
+from srht.config import cfg, get_origin
 
 def clone_urls(repo):
     """Returns the readonly and read/write URL for a given repo."""
+    git_user = cfg("git.sr.ht::dispatch", "/usr/bin/gitsrht-keys", "git:git").split(":")[0]
     base = (get_origin("git.sr.ht", external=True)
         .replace("http://", "")
         .replace("https://", ""))
     return [
         url.format(base, repo.owner.canonical_name, repo.name)
-        for url in ["https://{}/{}/{}", "git@{}:{}/{}"]
+        for url in ["https://{}/{}/{}", git_user+"@{}:{}/{}"]
     ]
 
 def log_rss_url(repo, ref=None):
