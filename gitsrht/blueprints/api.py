@@ -224,7 +224,7 @@ def repo_blob_GET(username, reponame, ref, path):
 
         return send_file(BytesIO(blob.data),
                 as_attachment=blob.is_binary,
-                attachment_filename=entry.name if entry else None,
+                attachment_filename=entry.name if entry else blob.id.hex + ".bin",
                 mimetype="text/plain" if not blob.is_binary
                     else "application/x-octet-stream")
 
