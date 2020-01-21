@@ -128,7 +128,7 @@ def go_get(owner, repo, path):
 
 def lookup_ref(git_repo, ref, path):
     ref = ref or git_repo.default_branch().name[len("refs/heads/"):]
-    if path is None:
+    if not path:
         path = []
     else:
         path = path.split("/")

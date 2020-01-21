@@ -193,7 +193,12 @@ def repo_blob_GET(username, reponame, ref, path):
     user = get_user(username)
     repo = get_repo(user, reponame)
 
+    if "/" in ref:
+        ref, _, path = ref.partition("/")
+
     with GitRepository(repo.path) as git_repo:
+        # lookup_ref will cycle through the path to separate
+        # the actual ref from the actual path
         commit, ref, path = lookup_ref(git_repo, ref, path)
         if not commit:
             abort(404)
@@ -222,9 +227,16 @@ def repo_blob_GET(username, reponame, ref, path):
         if not blob:
             abort(404)
 
+        attachment_filename = entry.name if entry else None
+        if not attachment_filename:
+            if path:
+                attachment_filename = path.split("/")[-1]
+            else:
+                attachment_filename = blob.id.hex + ".bin"
+
         return send_file(BytesIO(blob.data),
                 as_attachment=blob.is_binary,
-                attachment_filename=entry.name if entry else blob.id.hex + ".bin",
+                attachment_filename=attachment_filename,
                 mimetype="text/plain" if not blob.is_binary
                     else "application/x-octet-stream")
 
