@@ -485,4 +485,4 @@ def ref(owner, repo, ref):
             return redirect(url_for(".commit",
                 owner=owner, repo=repo.name, ref=tag.id.hex))
         return render_template("ref.html", view="refs",
-                owner=owner, repo=repo.name, git_repo=git_repo, tag=tag)
+                owner=owner, repo=repo, git_repo=git_repo, tag=tag)
