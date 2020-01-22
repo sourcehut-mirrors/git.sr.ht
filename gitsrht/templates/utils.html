@@ -45,11 +45,12 @@ endif %}{% endfor %}
   {% else %}
   {{c.author.name}}
   {% endif %}
-  <a
-    id="log-{{c.id}}"
-    href="#log-{{c.id}}"
-    class="text-muted pull-right"
-  >{{ commit_time(c) | date }}</a>
+  <small class="pull-right">
+    <a
+      id="log-{{c.id}}"
+      href="#log-{{c.id}}"
+    >{{ commit_time(c) | date }}</a>
+  </small>
 
   {% if parents and any(c.parents) %}
   <span style="margin-left: 0.5rem">
