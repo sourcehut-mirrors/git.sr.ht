@@ -159,12 +159,16 @@ pre {
 }
 
 .diff {
-  .text-danger {
-    color: darken($danger, 10) !important;
+  .lineno {
+    text-decoration: none;
   }
 
   .text-success {
-    color: darken($success, 10) !important;
+    color: color_adjust_contrast_AERT(darken($success, 10), white) !important;
+  }
+
+  .text-danger {
+    color: color_adjust_contrast_AERT(darken($danger, 10), white) !important;
   }
 }
 

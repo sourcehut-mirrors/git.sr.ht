@@ -168,6 +168,8 @@ endif %}{% endfor %}
   }).get(line.origin) or ""}}"><a
     href="#{{anchor}}{{patch.delta.old_file.path}}-{{hunk_index}}-{{loop.index}}"
     id="{{anchor}}{{patch.delta.old_file.path}}-{{hunk_index}}-{{loop.index}}"
+    aria-hidden="true"
+    class="lineno"
     style="color: inherit"
 >{{line.origin}}</a>{{line.content}}{#
 #}</span>{% endfor %}
