@@ -119,6 +119,18 @@
       </div>
     </div>
   </div>
+  {% if current_user.id == repo.owner_id
+    and not license
+    and repo.visibility.value == 'public' %}
+  <div class="alert alert-danger">
+    <strong>Head's up!</strong> We couldn't find a license file for your
+    repository, which means that it may not be possible for others to use this
+    project. If you're unsure of how to choose a license, consult our wiki page,
+    <a
+      href="https://man.sr.ht/license.md" rel="noopener"
+    >choosing a software license</a>.
+  </div>
+  {% endif %}
   {% if readme %}
   <div class="row" id="readme">
     <div class="col-md-10">

@@ -103,12 +103,24 @@ def summary(owner, repo):
         tags = sorted(tags, key=lambda c: commit_time(c[1]), reverse=True)
         latest_tag = tags[0] if len(tags) else None
 
+        license = False
+        for path in [
+                "LICENSE", "COPYING",
+                "LICENSE.txt", "license.txt",
+                "COPYING.txt", "copying.txt",
+                "LICENSE.md", "license.md",
+                "COPYING.md", "copying.md",
+        ]:
+            if path in tip.tree:
+                license = True
+                break
+
         message = session.pop("message", None)
         return render_template("summary.html", view="summary",
                 owner=owner, repo=repo, readme=readme, commits=commits,
                 latest_tag=latest_tag, default_branch=default_branch,
                 is_annotated=lambda t: isinstance(t, pygit2.Tag),
-                message=message)
+                message=message, license=license)
 
 @repo.route("/<owner>/<repo>/<path:path>")
 def go_get(owner, repo, path):
