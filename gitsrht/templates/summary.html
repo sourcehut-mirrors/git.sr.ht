@@ -119,8 +119,7 @@
       </div>
     </div>
   </div>
-  {% if current_user.id == repo.owner_id
-    and not license
+  {% if current_user == repo.owner and not license
     and repo.visibility.value == 'public' %}
   <div class="alert alert-danger">
     <strong>Heads up!</strong> We couldn't find a license file for your
