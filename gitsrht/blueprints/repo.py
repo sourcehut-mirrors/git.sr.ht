@@ -110,6 +110,7 @@ def summary(owner, repo):
                 "COPYING.txt", "copying.txt",
                 "LICENSE.md", "license.md",
                 "COPYING.md", "copying.md",
+                "LICENSES", "licenses",
         ]:
             if path in tip.tree:
                 license = True
