@@ -105,12 +105,15 @@ def summary(owner, repo):
 
         license = False
         for path in [
-                "LICENSE", "COPYING",
+                "LICENSE", "LICENCE", "COPYING",
                 "LICENSE.txt", "license.txt",
+                "LICENCE.txt", "licence.txt",
                 "COPYING.txt", "copying.txt",
                 "LICENSE.md", "license.md",
+                "LICENCE.md", "licence.md",
                 "COPYING.md", "copying.md",
                 "LICENSES", "licenses",
+                "LICENCES", "licences",
         ]:
             if path in tip.tree:
                 license = True
