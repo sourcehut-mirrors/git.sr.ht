@@ -9,7 +9,7 @@
 
 {% block head %}
   <style type="text/css">
-    svg { background-color: WhiteSmoke }
+    svg.contributors { background-color: WhiteSmoke }
     rect { fill: #116bdd }
     rect:hover { fill: #dc3545 }
   </style>
@@ -40,6 +40,7 @@
         baseProfile="full"
         viewBox="0 0 520 100"
         xmlns="http://www.w3.org/2000/svg"
+	class="contributors"
       >
         {% for bar in bars %}
           <rect
