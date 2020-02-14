@@ -17,7 +17,6 @@ from werkzeug.utils import secure_filename
 
 artifacts = Blueprint('artifacts', __name__)
 
-# TODO: Make S3 support optional
 s3_upstream = cfg("objects", "s3-upstream", default=None)
 s3_access_key = cfg("objects", "s3-access-key", default=None)
 s3_secret_key = cfg("objects", "s3-secret-key", default=None)

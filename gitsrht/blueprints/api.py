@@ -4,10 +4,12 @@ import pygit2
 from flask import Blueprint, current_app, request, send_file, abort
 from gitsrht.annotations import validate_annotation
 from gitsrht.blueprints.repo import lookup_ref, collect_refs
+from gitsrht.types import Artifact
 from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
 from gitsrht.git import get_log
 from gitsrht.webhooks import RepoWebhook
 from io import BytesIO
+from itertools import groupby
 from scmsrht.access import UserAccess
 from scmsrht.blueprints.api import get_user, get_repo
 from srht.api import paginated_response
@@ -54,6 +56,14 @@ def tree_to_dict(t):
         ]
     }
 
+def ref_to_dict(artifacts, ref):
+    target = ref.target.hex
+    return {
+        "target": target,
+        "name": ref.name,
+        "artifacts": [a.to_dict() for a in artifacts.get(target, [])],
+    }
+
 @data.route("/api/repos/<reponame>/refs", defaults={"username": None})
 @data.route("/api/<username>/repos/<reponame>/refs")
 @oauth("data:read")
@@ -62,15 +72,21 @@ def repo_refs_GET(username, reponame):
     repo = get_repo(user, reponame)
 
     with GitRepository(repo.path) as git_repo:
-        refs = list(git_repo.references)
         # TODO: pagination
+        refs = list(git_repo.references)
+        targets = [git_repo.references[ref].target.hex for ref in refs]
+        artifacts = (Artifact.query
+                .filter(Artifact.user_id == repo.owner_id)
+                .filter(Artifact.repo_id == repo.id)
+                .filter(Artifact.commit.in_(targets))).all()
+        artifacts = {
+            key: list(value) for key, value in
+                groupby(artifacts, key=lambda a: a.commit)
+        }
         return {
             "next": None,
             "results": [
-                {
-                    "target": str(git_repo.references[ref].target),
-                    "name": ref,
-                } for ref in refs
+                ref_to_dict(artifacts, git_repo.references[ref]) for ref in refs
             ],
             "total": len(refs),
             "results_per_page": len(refs),

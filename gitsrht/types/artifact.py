@@ -1,5 +1,7 @@
+import os
 import sqlalchemy as sa
 import sqlalchemy_utils as sau
+from srht.config import cfg
 from srht.database import Base
 
 class Artifact(Base):
@@ -16,4 +18,19 @@ class Artifact(Base):
     size = sa.Column(sa.Integer, nullable=False)
 
     def __repr__(self):
-        return '<Artifact {} {}>'.format(self.id, self.fingerprint)
+        return '<Artifact {} {}>'.format(self.id, self.filename)
+
+    def to_dict(self):
+        s3_upstream = cfg("objects", "s3-upstream")
+        s3_bucket = cfg("git.sr.ht", "s3-bucket")
+        s3_prefix = cfg("git.sr.ht", "s3-prefix")
+        prefix = os.path.join(s3_prefix, "artifacts",
+                self.repo.owner.canonical_name, self.repo.name)
+        url = f"https://{s3_upstream}/{s3_bucket}/{prefix}/{self.filename}"
+        return {
+            "created": self.created,
+            "checksum": self.checksum,
+            "size": self.size,
+            "filename": self.filename,
+            "url": url,
+        }
