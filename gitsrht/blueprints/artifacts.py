@@ -8,7 +8,7 @@ from gitsrht.repos import delete_artifact, upload_artifact
 from gitsrht.types import Artifact
 from minio import Minio
 from minio.error import BucketAlreadyOwnedByYou, BucketAlreadyExists
-from scmsrht.access import check_access, UserAccess
+from scmsrht.access import check_access, get_repo_or_redir, UserAccess
 from srht.config import cfg
 from srht.database import db
 from srht.oauth import loginrequired
@@ -58,7 +58,7 @@ def ref_upload(owner, repo, ref):
 
 @artifacts.route("/<owner>/<repo>/refs/<ref>/<filename>")
 def ref_download(owner, repo, ref, filename):
-    owner, repo = check_access(owner, repo, UserAccess.read)
+    owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
         try:
             tag = git_repo.revparse_single(ref)
@@ -83,6 +83,7 @@ def ref_download(owner, repo, ref, filename):
     return redirect(url)
 
 @artifacts.route("/<owner>/<repo>/refs/<ref>/<filename>", methods=["POST"])
+@loginrequired
 def ref_delete(owner, repo, ref, filename):
     owner, repo = check_access(owner, repo, UserAccess.manage)
     with GitRepository(repo.path) as git_repo:
