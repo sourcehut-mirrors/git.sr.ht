@@ -60,6 +60,7 @@
         {% endfor %}
       </div>
       {% endif %}
+      {% if repo.owner == current_user %}
       <form
         method="POST"
         action="{{url_for('artifacts.ref_upload',
@@ -80,6 +81,7 @@
           Upload file {{icon('caret-right')}}
         </button>
       </form>
+      {% endif %}
       {% endif %}
     </div>
     <div class="col-md-8">
