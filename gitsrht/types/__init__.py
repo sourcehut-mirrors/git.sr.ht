@@ -19,4 +19,5 @@ class Redirect(Base, BaseRedirectMixin):
 class Repository(Base, BaseRepositoryMixin):
     pass
 
+from gitsrht.types.artifact import Artifact
 from gitsrht.types.sshkey import SSHKey

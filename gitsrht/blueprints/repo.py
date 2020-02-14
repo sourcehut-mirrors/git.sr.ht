@@ -13,6 +13,7 @@ from gitsrht.editorconfig import EditorConfig
 from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
 from gitsrht.git import diffstat, get_log
 from gitsrht.rss import generate_feed
+from gitsrht.types import Artifact
 from io import BytesIO
 from jinja2 import Markup
 from pygments import highlight
@@ -486,7 +487,6 @@ def refs_rss(owner, repo):
 
     return generate_feed(repo, references, title, link, description)
 
-
 @repo.route("/<owner>/<repo>/refs/<ref>")
 def ref(owner, repo, ref):
     owner, repo = get_repo_or_redir(owner, repo)
@@ -500,5 +500,9 @@ def ref(owner, repo, ref):
         if isinstance(tag, pygit2.Commit):
             return redirect(url_for(".commit",
                 owner=owner, repo=repo.name, ref=tag.id.hex))
+        artifacts = (Artifact.query
+                .filter(Artifact.user_id == repo.owner_id)
+                .filter(Artifact.repo_id == repo.id)).all()
         return render_template("ref.html", view="refs",
-                owner=owner, repo=repo, git_repo=git_repo, tag=tag)
+                owner=owner, repo=repo, git_repo=git_repo, tag=tag,
+                artifacts=artifacts)

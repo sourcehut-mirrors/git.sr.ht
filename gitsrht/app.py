@@ -23,6 +23,7 @@ class GitApp(ScmSrhtFlask):
                 repo_api=GitRepoApi(), oauth_service=oauth_service)
 
         from gitsrht.blueprints.api import data
+        from gitsrht.blueprints.artifacts import artifacts
         from gitsrht.blueprints.email import mail
         from gitsrht.blueprints.repo import repo
         from gitsrht.blueprints.stats import stats
@@ -32,6 +33,10 @@ class GitApp(ScmSrhtFlask):
         self.register_blueprint(repo)
         self.register_blueprint(stats)
         self.register_blueprint(webhooks_notify)
+
+        from gitsrht.repos import object_storage_enabled
+        if object_storage_enabled:
+            self.register_blueprint(artifacts)
 
         self.add_template_filter(urls.clone_urls)
         self.add_template_filter(urls.log_rss_url)
@@ -44,11 +49,12 @@ class GitApp(ScmSrhtFlask):
                 del session["notice"]
             return {
                 "commit_time": commit_time,
-                "trim_commit": trim_commit,
                 "humanize": humanize,
-                "stat": stat,
                 "notice": notice,
-                "path_join": os.path.join
+                "object_storage_enabled": object_storage_enabled,
+                "path_join": os.path.join,
+                "stat": stat,
+                "trim_commit": trim_commit,
             }
 
 app = GitApp()
