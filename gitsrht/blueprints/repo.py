@@ -93,9 +93,12 @@ def summary(owner, repo):
         commits = get_last_3_commits(tip)
         link_prefix = url_for(
             'repo.tree', owner=repo.owner, repo=repo.name,
-            ref=default_branch.name)
+            ref=f"{default_branch.name}/")  # Trailing slash needed
+        blob_prefix = url_for(
+            'repo.raw_blob', owner=repo.owner, repo=repo.name,
+            ref=f"{default_branch.name}/", path="")  # Trailing slash needed
         readme = get_readme(git_repo, tip,
-            link_prefix=link_prefix)
+            link_prefix=[link_prefix, blob_prefix])
         tags = [(ref, git_repo.get(git_repo.references[ref].target))
             for ref in git_repo.listall_references()
             if ref.startswith("refs/tags/")]
@@ -176,10 +179,16 @@ def lookup_ref(git_repo, ref, path):
 @repo.route("/<owner>/<repo>/tree/<ref>/<path:path>")
 def tree(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
+
+    if ref and "/" in ref:
+        ref, _, path = ref.partition("/")
+
     with GitRepository(repo.path) as git_repo:
         if git_repo.is_empty:
             return render_empty_repo(owner, repo)
 
+        # lookup_ref will cycle through the path to separate
+        # the actual ref from the actual path
         commit, ref, path = lookup_ref(git_repo, ref, path)
         if isinstance(commit, pygit2.Tag):
             commit = git_repo.get(commit.target)
