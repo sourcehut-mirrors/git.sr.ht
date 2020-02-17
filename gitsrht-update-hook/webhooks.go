@@ -50,9 +50,10 @@ type UpdatedRef struct {
 }
 
 type WebhookPayload struct {
-	Push   string       `json:"push"`
-	Pusher UserContext  `json:"pusher"`
-	Refs   []UpdatedRef `json:"refs"`
+	Push     string            `json:"push"`
+	PushOpts map[string]string `json:"push-options"`
+	Pusher   UserContext       `json:"pusher"`
+	Refs     []UpdatedRef      `json:"refs"`
 }
 
 func initWebhookKey() {

@@ -138,10 +138,12 @@ func postUpdate() {
 
 	initSubmitter()
 
+	loadOptions()
 	payload := WebhookPayload{
-		Push:   pushUuid,
-		Pusher: context.User,
-		Refs:   make([]UpdatedRef, len(refs)),
+		Push:     pushUuid,
+		PushOpts: options,
+		Pusher:   context.User,
+		Refs:     make([]UpdatedRef, len(refs)),
 	}
 
 	oids := make(map[string]interface{})

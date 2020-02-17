@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"path"
 	"strings"
@@ -228,6 +229,12 @@ func SubmitBuild(submitter BuildSubmitter) ([]BuildSubmission, error) {
 	manifests, err := submitter.FindManifests()
 	if err != nil || manifests == nil {
 		return nil, err
+	}
+
+	loadOptions()
+	if _, ok := options["skip-ci"]; ok {
+		log.Println("skip-ci was requested - not submitting build jobs")
+		return nil, nil
 	}
 
 	var results []BuildSubmission
