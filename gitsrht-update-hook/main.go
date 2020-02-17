@@ -17,11 +17,14 @@ var (
 
 func main() {
 	log.SetFlags(0)
+	logger.Printf("%v", os.Args)
 	// The update hook is run on the update and post-update git hooks, and also
 	// runs a third stage directly. The first two stages are performance
 	// critical and take place while the user is blocked at their terminal. The
 	// third stage is done in the background.
-	if os.Args[0] == "hooks/update" {
+	if os.Args[0] == "hooks/pre-receive" {
+		preReceive()
+	} else if os.Args[0] == "hooks/update" {
 		update()
 	} else if os.Args[0] == "hooks/post-update" {
 		postUpdate()

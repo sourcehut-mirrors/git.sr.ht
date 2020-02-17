@@ -93,6 +93,10 @@ class GitRepoApi(SimpleRepoApi):
             cwd=repo.path, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.run(["ln", "-s",
                 post_update,
+                os.path.join(repo.path, "hooks", "pre-receive")
+            ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(["ln", "-s",
+                post_update,
                 os.path.join(repo.path, "hooks", "update")
             ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.run(["ln", "-s",

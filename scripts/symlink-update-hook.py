@@ -25,5 +25,6 @@ def migrate(path, link):
 
 for repo in Repository.query.all():
     if migrate(os.path.join(repo.path, "hooks", "update"), post_update) \
-        and migrate(os.path.join(repo.path, "hooks", "post-update"), post_update):
+        and migrate(os.path.join(repo.path, "hooks", "post-update"), post_update) \
+        and migrate(os.path.join(repo.path, "hooks", "pre-receive"), post_update):
         print("Migrated {}".format(repo.name))
