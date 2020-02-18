@@ -59,12 +59,39 @@ pre, body {
     {% endif %}
   </div>
 </div>
+{% if markdown %}
+<div class="container-fluid markdown-nav">
+  <ul class="nav nav-tabs">
+    <li class="nav-item">
+      <a
+        class="nav-link {{"active" if not force_source else ""}}"
+        href="?view-rendered"
+      >View Rendered</a>
+    </li>
+    <li class="nav-item">
+      <a
+        class="nav-link {{"active" if force_source else ""}}"
+        href="?view-source"
+      >View Source</a>
+    </li>
+  </ul>
+</div>
+{% endif %}
+{% if markdown and not force_source %}
+<div class="container">
+{% else %}
 <div class="container-fluid" style="padding-left: 0; padding-right: 0;">
+{% endif %}
   {#
     This row has some weird styles going on. This prevents the page from
     scrolling horizontally
   #}
   <div class="row" style="margin-right: 0;">
+    {% if markdown and not force_source %}
+    <div class="col-md-10 offset-md-1" style="margin-top: 1rem">
+      {{ data | extended_md }}
+    </div>
+    {% else %}
     {% if not blob.is_binary %}
     <div class="col-md-12 code-view">
       <pre class="ruler"><span>{% for i in range(
@@ -96,6 +123,7 @@ pre, body {
         </p>
       </div>
     </div>
+    {% endif %}
     {% endif %}
 </div>
 {% endblock %}

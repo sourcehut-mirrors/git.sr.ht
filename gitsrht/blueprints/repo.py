@@ -218,11 +218,14 @@ def tree(owner, repo, ref, path):
                         data = blob.data.decode()
                     except:
                         data = '[unable to decode]'
+                markdown = not blob.is_binary and entry.name.endswith(".md")
+                force_source = "view-source" in request.args
                 return render_template("blob.html", view="blob",
                         owner=owner, repo=repo, ref=ref, path=path, entry=entry,
                         blob=blob, data=data, commit=commit,
                         highlight_file=_highlight_file,
-                        editorconfig=editorconfig)
+                        editorconfig=editorconfig,
+                        markdown=markdown, force_source=force_source)
             tree = git_repo.get(entry.id)
 
         if not tree:

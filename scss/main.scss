@@ -303,3 +303,14 @@ img {
     }
   }
 }
+
+.markdown-nav {
+  padding-left: 0;
+  padding-right: 0;
+
+  .nav-tabs {
+    padding-left: 0;
+    margin-bottom: 0;
+    border-left: 1rem #ddd solid;
+  }
+}
