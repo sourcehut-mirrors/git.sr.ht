@@ -55,6 +55,8 @@ class Repository(GitRepository):
     def default_branch(self):
         branch = self.branches.get("master")
         if not branch:
+            if not any(self.branches.local):
+                return None
             branch = list(self.branches.local)[0]
             branch = self.branches.get(branch)
         return branch
