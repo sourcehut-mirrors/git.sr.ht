@@ -182,6 +182,7 @@ img {
     color: inherit;
     background: lighten($primary, 45);
     border-bottom: 1px dotted $gray-800;
+    text-decoration: none;
 
     &:hover {
       text-decoration: none;

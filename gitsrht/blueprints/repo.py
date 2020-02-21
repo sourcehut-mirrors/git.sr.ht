@@ -52,9 +52,10 @@ def get_readme(repo, tip, link_prefix=None):
     return get_formatted_readme("git.sr.ht:git", file_finder, content_getter,
             link_prefix=link_prefix)
 
-def _highlight_file(repo, ref, name, data, blob_id):
+def _highlight_file(repo, ref, name, data, blob_id, commit_id):
     def get_annos():
-        annotations = redis.get(f"git.sr.ht:git:annotations:{repo.id}:{blob_id}")
+        annotations = redis.get("git.sr.ht:git:annotations:" +
+            f"{repo.id}:{blob_id}:{commit_id}")
         if annotations:
             return json.loads(annotations.decode())
         return None
@@ -195,6 +196,7 @@ def tree(owner, repo, ref, path):
         commit, ref, path = lookup_ref(git_repo, ref, path)
         if isinstance(commit, pygit2.Tag):
             commit = git_repo.get(commit.target)
+        orig_commit = commit
 
         tree = commit.tree
         if not tree:
@@ -225,7 +227,7 @@ def tree(owner, repo, ref, path):
                 force_source = "view-source" in request.args
                 return render_template("blob.html", view="blob",
                         owner=owner, repo=repo, ref=ref, path=path, entry=entry,
-                        blob=blob, data=data, commit=commit,
+                        blob=blob, data=data, commit=orig_commit,
                         highlight_file=_highlight_file,
                         editorconfig=editorconfig,
                         markdown=markdown, force_source=force_source)

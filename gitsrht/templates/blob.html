@@ -101,7 +101,8 @@ pre, body {
         id="L{{loop.index}}"
         >{{loop.index}}</a>{% if not loop.last %}
 {% endif %}{% endfor %}</pre>
-      {{ highlight_file(repo, ref, entry.name, data, blob.id.hex) }}
+      {{ highlight_file(repo, ref, entry.name,
+        data, blob.id.hex, commit.id.hex) }}
     </div>
     {% else %}
     <div class="col-md-12">

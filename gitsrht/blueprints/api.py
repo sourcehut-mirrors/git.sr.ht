@@ -200,14 +200,31 @@ def repo_tree_GET(username, reponame, ref, path):
             abort(404)
         return tree_to_dict(tree)
 
-@data.route("/api/repos/<reponame>/annotate", methods=["PUT"])
-@data.route("/api/<username>/repos/<reponame>/annotate", methods=["PUT"])
+# TODO: remove fallback routes
+@data.route("/api/repos/<reponame>/annotate", methods=["PUT"],
+        defaults={"username": None, "commit": "master"})
+@data.route("/api/<username>/repos/<reponame>/annotate", methods=["PUT"],
+        defaults={"commit": "master"})
+@data.route("/api/repos/<reponame>/<commit>/annotate", methods=["PUT"],
+        defaults={"username": None})
+@data.route("/api/<username>/repos/<reponame>/<commit>/annotate", methods=["PUT"])
 @oauth("repo:write")
-def repo_annotate_PUT(username, reponame):
+def repo_annotate_PUT(username, reponame, commit):
     user = get_user(username)
     repo = get_repo(user, reponame, needs=UserAccess.manage)
 
     valid = Validation(request)
+
+    with GitRepository(repo.path) as git_repo:
+        try:
+            commit = git_repo.revparse_single(commit)
+        except KeyError:
+            abort(404)
+        except ValueError:
+            abort(404)
+        if not isinstance(commit, pygit2.Commit):
+            abort(400)
+        commit = commit.id.hex
 
     nblobs = 0
     for oid, annotations in valid.source.items():
@@ -220,7 +237,7 @@ def repo_annotate_PUT(username, reponame):
             validate_annotation(valid, anno)
         if not valid.ok:
             return valid.response
-        redis.set(f"git.sr.ht:git:annotations:{repo.id}:{oid}",
+        redis.set(f"git.sr.ht:git:annotations:{repo.id}:{oid}:{commit}",
                 json.dumps(annotations))
         # Invalidate rendered markup cache
         redis.delete(f"git.sr.ht:git:highlight:{oid}")
