@@ -117,9 +117,10 @@ pre, body {
           <a href="{{url_for("repo.raw_blob",
               owner=repo.owner.canonical_name,
               repo=repo.name, ref=ref,
-              path=path_join(*path))}}" class="btn btn-primary">
-            Download {{icon("caret-right")}}
-          </a>
+              path=path_join(*path))}}"
+              class="btn btn-primary"
+              rel="nofollow"
+          >Download {{icon("caret-right")}}</a>
         </p>
       </div>
     </div>
