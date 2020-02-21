@@ -518,7 +518,7 @@ def ref(owner, repo, ref):
         artifacts = (Artifact.query
                 .filter(Artifact.user_id == repo.owner_id)
                 .filter(Artifact.repo_id == repo.id)
-                .filter(Artifact.commit == tag.id.hex)).all()
+                .filter(Artifact.commit == tag.target.hex)).all()
         return render_template("ref.html", view="refs",
                 owner=owner, repo=repo, git_repo=git_repo, tag=tag,
                 artifacts=artifacts)
