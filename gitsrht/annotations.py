@@ -1,6 +1,5 @@
 from pygments.formatter import Formatter
 from pygments.token import Token, STANDARD_TYPES
-from pygments.util import string_types, iteritems
 from srht.markdown import markdown
 from urllib.parse import urlparse
 
@@ -43,7 +42,7 @@ class _BaseFormatter(Formatter):
         """
         if arg is None:
             arg = ".highlight"
-        if isinstance(arg, string_types):
+        if isinstance(arg, str):
             args = [arg]
         else:
             args = list(arg)
@@ -57,7 +56,7 @@ class _BaseFormatter(Formatter):
             return ', '.join(tmp)
 
         styles = [(level, ttype, cls, style)
-                  for cls, (style, ttype, level) in iteritems(self.class2style)
+                  for cls, (style, ttype, level) in self.class2style.items()
                   if cls and style]
         styles.sort()
         lines = ['%s { %s } /* %s */' % (prefix(cls), style, repr(ttype)[6:])
