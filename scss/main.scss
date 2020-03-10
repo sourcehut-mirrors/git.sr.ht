@@ -315,3 +315,20 @@ img {
     border-left: 1rem #ddd solid;
   }
 }
+
+dl {
+  dd {
+    text-overflow: ellipsis;
+    overflow-x: hidden;
+  }
+}
+
+@include media-breakpoint-up(md) {
+  .blob {
+    padding-left: 2rem;
+
+    .commit {
+      float: right;
+    }
+  }
+}

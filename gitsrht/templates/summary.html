@@ -34,11 +34,11 @@
             <dt>{{default_branch.name[len("refs/heads/"):]}}</dt>
             <dd>
               <a href="{{url_for("repo.tree",
-                owner=repo.owner.canonical_name, repo=repo.name)}}"
-              >browse {{icon("caret-right")}}</a>
+                  owner=repo.owner.canonical_name, repo=repo.name)}}"
+              >browse&nbsp;{{icon("caret-right")}}</a>
               <a href="{{url_for("repo.log",
                 owner=repo.owner.canonical_name, repo=repo.name)}}"
-              >log {{icon("caret-right")}}</a>
+              >log&nbsp;{{icon("caret-right")}}</a>
             </dd>
             {% endif %}
             {% if latest_tag %}
@@ -48,15 +48,15 @@
                 <a href="{{url_for("repo.ref",
                     owner=repo.owner.canonical_name,
                     repo=repo.name, ref=latest_tag[1].name)}}"
-                >release notes {{icon("caret-right")}}</a>
+                >release notes&nbsp;{{icon("caret-right")}}</a>
               {% else %}
                 <a href="{{url_for("repo.tree", owner=repo.owner.canonical_name,
                     repo=repo.name, ref=latest_tag[0][len("refs/tags/"):])}}"
-                >browse {{icon("caret-right")}}</a>
+                >browse&nbsp;{{icon("caret-right")}}</a>
                 <a href="{{url_for("repo.archive", owner=repo.owner.canonical_name,
                     repo=repo.name, ref=latest_tag[0][len("refs/tags/"):])}}"
                    rel="nofollow"
-                >.tar.gz {{icon("caret-right")}}</a>
+                >.tar.gz&nbsp;{{icon("caret-right")}}</a>
               {% endif %}
             </dd>
             {% endif %}
