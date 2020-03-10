@@ -8,6 +8,7 @@ import (
 
 type Manifest struct {
 	Arch         *string                  `yaml:"arch",omitempty`
+	Artifacts    []string                 `yaml:"artifacts",omitempty`
 	Environment  map[string]interface{}   `yaml:"environment",omitempty`
 	Image        string                   `yaml:"image"`
 	Packages     []string                 `yaml:"packages",omitempty`
