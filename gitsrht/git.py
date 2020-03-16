@@ -28,7 +28,7 @@ def _get_ref(repo, ref):
 
 def get_log(git_repo, commit, commits_per_page=20, until=None):
     commits = list()
-    for commit in git_repo.walk(commit.id, pygit2.GIT_SORT_TIME):
+    for commit in git_repo.walk(commit.id, pygit2.GIT_SORT_TOPOLOGICAL):
         commits.append(commit)
         if until is not None and commit == until:
             break
