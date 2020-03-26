@@ -61,6 +61,7 @@ setup(
       ]
   },
   scripts = [
+      'gitsrht-initdb',
       'gitsrht-migrate',
       'gitsrht-periodic',
   ]
