@@ -89,7 +89,7 @@ pre, body {
   <div class="row" style="margin-right: 0;">
     {% if markdown and not force_source %}
     <div class="col-md-10 offset-md-1" style="margin-top: 1rem">
-      {{ data | extended_md }}
+      {{ markdown }}
     </div>
     {% else %}
     {% if not blob.is_binary %}
