@@ -170,7 +170,7 @@ func indent(indent, s string) string {
 
 func (submitter GitBuildSubmitter) GetCommitNote() string {
 	policy := bluemonday.StrictPolicy()
-	commitUrl := fmt.Sprintf("%s/%s/%s/commit/%s", submitter.GitOrigin,
+	commitUrl := fmt.Sprintf("%s/~%s/%s/commit/%s", submitter.GitOrigin,
 		submitter.OwnerName, submitter.RepoName,
 		submitter.GetCommitId())
 	return fmt.Sprintf("[%s][0] — [%s][1]\n\n%s\n\n[0]: %s\n[1]: mailto:%s",
