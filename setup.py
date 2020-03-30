@@ -42,6 +42,7 @@ setup(
       'gitsrht',
       'gitsrht.types',
       'gitsrht.blueprints',
+      'gitsrht.blueprints.api',
       'gitsrht.alembic',
       'gitsrht.alembic.versions'
   ],
