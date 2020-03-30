@@ -156,15 +156,28 @@ func firstLine(text string) string {
 	return scanner.Text()
 }
 
+// via https://github.com/openconfig/goyang, Apache 2.0
+func indent(indent, s string) string {
+	if indent == "" || s == "" {
+		return s
+	}
+	lines := strings.SplitAfter(s, "\n")
+	if len(lines[len(lines)-1]) == 0 {
+		lines = lines[:len(lines)-1]
+	}
+	return strings.Join(append([]string{""}, lines...), indent)
+}
+
 func (submitter GitBuildSubmitter) GetCommitNote() string {
 	policy := bluemonday.StrictPolicy()
 	commitUrl := fmt.Sprintf("%s/%s/%s/commit/%s", submitter.GitOrigin,
 		submitter.OwnerName, submitter.RepoName,
 		submitter.GetCommitId())
-	return fmt.Sprintf(`[%s](%s) &mdash; [%s](mailto:%s)\n\n<pre>%s</pre>`,
-		submitter.GetCommitId()[:7], commitUrl,
-		submitter.Commit.Author.Name, submitter.Commit.Author.Email,
-		policy.Sanitize(firstLine(submitter.Commit.Message)))
+	return fmt.Sprintf("[%s][0] — [%s][1]\n\n%s\n\n[0]: %s\n[1]: mailto:%s",
+		submitter.GetCommitId()[:7],
+		submitter.Commit.Author.Name,
+		indent("    ", policy.Sanitize(firstLine(submitter.Commit.Message))),
+		commitUrl, submitter.Commit.Author.Email)
 }
 
 func (submitter GitBuildSubmitter) GetCloneUrl() string {
@@ -254,10 +267,12 @@ func SubmitBuild(submitter BuildSubmitter) ([]BuildSubmission, error) {
 
 		submission := struct {
 			Manifest string   `json:"manifest"`
+			Note     string   `json:"note"`
 			Tags     []string `json:"tags"`
 		}{
 			Manifest: yaml,
 			Tags:     []string{submitter.GetRepoName(), name},
+			Note:     submitter.GetCommitNote(),
 		}
 		bodyBytes, err := json.Marshal(&submission)
 		if err != nil {
