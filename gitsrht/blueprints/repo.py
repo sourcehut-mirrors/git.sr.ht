@@ -59,8 +59,8 @@ def _highlight_file(repo, ref, name, data, blob_id, commit_id):
         if annotations:
             return json.loads(annotations.decode())
         return None
-    link_prefix = url_for(
-        'repo.tree', owner=repo.owner, repo=repo.name, ref=ref)
+    link_prefix = url_for('repo.tree', owner=repo.owner,
+            repo=repo.name, ref=ref)
     return get_highlighted_file("git.sr.ht:git", name, blob_id, data,
             formatter=AnnotatedFormatter(get_annos, link_prefix))
 
