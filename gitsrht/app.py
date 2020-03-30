@@ -22,13 +22,14 @@ class GitApp(ScmSrhtFlask):
                 repository_class=Repository, user_class=User,
                 repo_api=GitRepoApi(), oauth_service=oauth_service)
 
-        from gitsrht.blueprints.api import data
+        from gitsrht.blueprints.api import plumbing, porcelain
         from gitsrht.blueprints.artifacts import artifacts
         from gitsrht.blueprints.email import mail
         from gitsrht.blueprints.repo import repo
         from gitsrht.blueprints.stats import stats
 
-        self.register_blueprint(data)
+        self.register_blueprint(plumbing)
+        self.register_blueprint(porcelain)
         self.register_blueprint(mail)
         self.register_blueprint(repo)
         self.register_blueprint(stats)

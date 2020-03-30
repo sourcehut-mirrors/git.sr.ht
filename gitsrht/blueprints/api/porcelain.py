@@ -19,7 +19,7 @@ from srht.oauth import current_token, oauth
 from srht.redis import redis
 from srht.validation import Validation
 
-data = Blueprint("api.data", __name__)
+porcelain = Blueprint("api.porcelain", __name__)
 
 # See also gitsrht-update-hook/types.go
 def commit_to_dict(c):
@@ -66,8 +66,8 @@ def ref_to_dict(artifacts, ref):
         "artifacts": [a.to_dict() for a in artifacts.get(target, [])],
     }
 
-@data.route("/api/repos/<reponame>/refs", defaults={"username": None})
-@data.route("/api/<username>/repos/<reponame>/refs")
+@porcelain.route("/api/repos/<reponame>/refs", defaults={"username": None})
+@porcelain.route("/api/<username>/repos/<reponame>/refs")
 @oauth("data:read")
 def repo_refs_GET(username, reponame):
     user = get_user(username)
@@ -94,8 +94,8 @@ def repo_refs_GET(username, reponame):
             "results_per_page": len(refs),
         }
 
-@data.route("/api/repos/<reponame>/artifacts/<path:refname>", defaults={"username": None}, methods=["POST"])
-@data.route("/api/<username>/repos/<reponame>/artifacts/<path:refname>", methods=["POST"])
+@porcelain.route("/api/repos/<reponame>/artifacts/<path:refname>", defaults={"username": None}, methods=["POST"])
+@porcelain.route("/api/<username>/repos/<reponame>/artifacts/<path:refname>", methods=["POST"])
 @oauth("data:write")
 def repo_refs_by_name_POST(username, reponame, refname):
     user = get_user(username)
@@ -124,17 +124,17 @@ def repo_refs_by_name_POST(username, reponame, refname):
         return artifact.to_dict()
 
 # dear god, this routing
-@data.route("/api/repos/<reponame>/log",
+@porcelain.route("/api/repos/<reponame>/log",
         defaults={"username": None, "ref": None, "path": ""})
-@data.route("/api/repos/<reponame>/log/<path:ref>",
+@porcelain.route("/api/repos/<reponame>/log/<path:ref>",
         defaults={"username": None, "path": ""})
-@data.route("/api/repos/<reponame>/log/<ref>/<path:path>",
+@porcelain.route("/api/repos/<reponame>/log/<ref>/<path:path>",
         defaults={"username": None})
-@data.route("/api/<username>/repos/<reponame>/log",
+@porcelain.route("/api/<username>/repos/<reponame>/log",
         defaults={"ref": None, "path": ""})
-@data.route("/api/<username>/repos/<reponame>/log/<path:ref>",
+@porcelain.route("/api/<username>/repos/<reponame>/log/<path:ref>",
         defaults={"path": ""})
-@data.route("/api/<username>/repos/<reponame>/log/<ref>/<path:path>")
+@porcelain.route("/api/<username>/repos/<reponame>/log/<ref>/<path:path>")
 @oauth("data:read")
 def repo_commits_GET(username, reponame, ref, path):
     user = get_user(username)
@@ -161,17 +161,17 @@ def repo_commits_GET(username, reponame, ref, path):
             "results_per_page": commits_per_page
         }
 
-@data.route("/api/repos/<reponame>/tree",
+@porcelain.route("/api/repos/<reponame>/tree",
         defaults={"username": None, "ref": None, "path": ""})
-@data.route("/api/repos/<reponame>/tree/<path:ref>",
+@porcelain.route("/api/repos/<reponame>/tree/<path:ref>",
         defaults={"username": None, "path": ""})
-@data.route("/api/repos/<reponame>/tree/<ref>/<path:path>",
+@porcelain.route("/api/repos/<reponame>/tree/<ref>/<path:path>",
         defaults={"username": None})
-@data.route("/api/<username>/repos/<reponame>/tree",
+@porcelain.route("/api/<username>/repos/<reponame>/tree",
         defaults={"ref": None, "path": ""})
-@data.route("/api/<username>/repos/<reponame>/tree/<path:ref>",
+@porcelain.route("/api/<username>/repos/<reponame>/tree/<path:ref>",
         defaults={"path": ""})
-@data.route("/api/<username>/repos/<reponame>/tree/<ref>/<path:path>")
+@porcelain.route("/api/<username>/repos/<reponame>/tree/<ref>/<path:path>")
 @oauth("data:read")
 def repo_tree_GET(username, reponame, ref, path):
     user = get_user(username)
@@ -201,13 +201,13 @@ def repo_tree_GET(username, reponame, ref, path):
         return tree_to_dict(tree)
 
 # TODO: remove fallback routes
-@data.route("/api/repos/<reponame>/annotate", methods=["PUT"],
+@porcelain.route("/api/repos/<reponame>/annotate", methods=["PUT"],
         defaults={"username": None, "commit": "master"})
-@data.route("/api/<username>/repos/<reponame>/annotate", methods=["PUT"],
+@porcelain.route("/api/<username>/repos/<reponame>/annotate", methods=["PUT"],
         defaults={"commit": "master"})
-@data.route("/api/repos/<reponame>/<commit>/annotate", methods=["PUT"],
+@porcelain.route("/api/repos/<reponame>/<commit>/annotate", methods=["PUT"],
         defaults={"username": None})
-@data.route("/api/<username>/repos/<reponame>/<commit>/annotate", methods=["PUT"])
+@porcelain.route("/api/<username>/repos/<reponame>/<commit>/annotate", methods=["PUT"])
 @oauth("repo:write")
 def repo_annotate_PUT(username, reponame, commit):
     user = get_user(username)
@@ -245,13 +245,13 @@ def repo_annotate_PUT(username, reponame, commit):
 
     return { "updated": nblobs }, 200
 
-@data.route("/api/repos/<reponame>/blob/<path:ref>",
+@porcelain.route("/api/repos/<reponame>/blob/<path:ref>",
         defaults={"username": None, "path": ""})
-@data.route("/api/repos/<reponame>/blob/<ref>/<path:path>",
+@porcelain.route("/api/repos/<reponame>/blob/<ref>/<path:path>",
         defaults={"username": None})
-@data.route("/api/<username>/blob/<reponame>/blob/<path:ref>",
+@porcelain.route("/api/<username>/blob/<reponame>/blob/<path:ref>",
         defaults={"path": ""})
-@data.route("/api/<username>/repos/<reponame>/blob/<ref>/<path:path>")
+@porcelain.route("/api/<username>/repos/<reponame>/blob/<ref>/<path:path>")
 @oauth("data:read")
 def repo_blob_GET(username, reponame, ref, path):
     user = get_user(username)
@@ -317,5 +317,5 @@ def _webhook_create(sub, valid, username, reponame):
     sub.sync = valid.optional("sync", cls=bool, default=False)
     return sub
 
-RepoWebhook.api_routes(data, "/api/<username>/repos/<reponame>",
+RepoWebhook.api_routes(porcelain, "/api/<username>/repos/<reponame>",
         filters=_webhook_filters, create=_webhook_create)
