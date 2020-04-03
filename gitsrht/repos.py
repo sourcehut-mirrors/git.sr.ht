@@ -42,7 +42,6 @@ def upload_artifact(valid, repo, commit, f, filename):
     artifact = (Artifact.query
             .filter(Artifact.user_id == repo.owner_id)
             .filter(Artifact.repo_id == repo.id)
-            .filter(Artifact.commit == commit)
             .filter(Artifact.filename == fn)).one_or_none()
     valid.expect(not artifact, "A file by this name was already uploaded.",
             field="file")
