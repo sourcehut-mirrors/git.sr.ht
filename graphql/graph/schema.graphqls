@@ -82,7 +82,7 @@ type Repository {
   # 
   # glob: an optional string to filter the list of references, e.g. for tags
   # use "refs/tags/*", or leave null to enumerate all references
-  references(count: Int = 10, glob: String): [Reference]!
+  references(count: Int = 10, next: String, glob: String): [Reference]!
 
   # Returns a list of objects for this repository by their IDs (using fully
   # qualified git object IDs, 40 character hex strings)
@@ -136,6 +136,7 @@ type Artifact {
 type Reference {
   name: String!
   target: String!
+  follow: Object
 }
 
 enum ObjectType {
@@ -156,7 +157,7 @@ interface Object {
 type Signature {
   name: String!
   email: String!
-  time: Time
+  time: Time!
 }
 
 type Commit implements Object {
@@ -166,7 +167,6 @@ type Commit implements Object {
   raw: String!
   author: Signature!
   committer: Signature!
-  timestamp: Time!
   message: String!
   tree: Tree!
   parents: [Commit!]!

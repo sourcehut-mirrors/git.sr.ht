@@ -7,12 +7,14 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"sort"
 
 	"git.sr.ht/~sircmpwn/git.sr.ht/graphql/auth"
 	"git.sr.ht/~sircmpwn/git.sr.ht/graphql/graph/generated"
 	"git.sr.ht/~sircmpwn/git.sr.ht/graphql/graph/model"
 	"git.sr.ht/~sircmpwn/git.sr.ht/graphql/loaders"
 	"git.sr.ht/~sircmpwn/gqlgen/graphql"
+	"github.com/go-git/go-git/v5/plumbing"
 )
 
 func (r *mutationResolver) CreateRepository(ctx context.Context, params *model.RepoInput) (*model.Repository, error) {
@@ -80,6 +82,37 @@ func (r *queryResolver) Repository(ctx context.Context, id *model.RepoID) (*mode
 
 func (r *repositoryResolver) Owner(ctx context.Context, obj *model.Repository) (model.Entity, error) {
 	return loaders.ForContext(ctx).UsersById.Load(obj.OwnerID)
+}
+
+func (r *repositoryResolver) References(ctx context.Context, obj *model.Repository, count *int, next *string, glob *string) ([]*model.Reference, error) {
+	iter, err := obj.Repo().References()
+	if err != nil {
+		return nil, err
+	}
+	defer iter.Close()
+	var refs []*model.Reference
+	iter.ForEach(func(ref *plumbing.Reference) error {
+		refs = append(refs, &model.Reference{obj.Repo(), ref})
+		return nil
+	})
+	sort.SliceStable(refs, func(i, j int) bool {
+		return refs[i].Name() < refs[j].Name()
+	})
+	if next != nil {
+		for i, ref := range refs {
+			if ref.Name() == *next {
+				refs = refs[i+1:]
+				if len(refs) > *count {
+					refs = refs[:*count]
+				}
+				return refs, nil
+			}
+		}
+	}
+	if len(refs) > *count {
+		refs = refs[:*count]
+	}
+	return refs, nil
 }
 
 func (r *userResolver) Repositories(ctx context.Context, obj *model.User, count *int, next *int, filter *model.FilterBy) ([]*model.Repository, error) {

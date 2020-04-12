@@ -82,7 +82,6 @@ type ComplexityRoot struct {
 		Parents   func(childComplexity int) int
 		Raw       func(childComplexity int) int
 		ShortID   func(childComplexity int) int
-		Timestamp func(childComplexity int) int
 		Tree      func(childComplexity int) int
 		Type      func(childComplexity int) int
 	}
@@ -106,6 +105,7 @@ type ComplexityRoot struct {
 	}
 
 	Reference struct {
+		Follow func(childComplexity int) int
 		Name   func(childComplexity int) int
 		Target func(childComplexity int) int
 	}
@@ -121,7 +121,7 @@ type ComplexityRoot struct {
 		Name              func(childComplexity int) int
 		Objects           func(childComplexity int, ids []*string) int
 		Owner             func(childComplexity int) int
-		References        func(childComplexity int, count *int, glob *string) int
+		References        func(childComplexity int, count *int, next *string, glob *string) int
 		RevparseSingle    func(childComplexity int, revspec string) int
 		Tree              func(childComplexity int, revspec *string, path *string) int
 		Updated           func(childComplexity int) int
@@ -199,6 +199,8 @@ type QueryResolver interface {
 }
 type RepositoryResolver interface {
 	Owner(ctx context.Context, obj *model.Repository) (model.Entity, error)
+
+	References(ctx context.Context, obj *model.Repository, count *int, next *string, glob *string) ([]*model.Reference, error)
 }
 type UserResolver interface {
 	Repositories(ctx context.Context, obj *model.User, count *int, next *int, filter *model.FilterBy) ([]*model.Repository, error)
@@ -394,13 +396,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Commit.ShortID(childComplexity), true
 
-	case "Commit.timestamp":
-		if e.complexity.Commit.Timestamp == nil {
-			break
-		}
-
-		return e.complexity.Commit.Timestamp(childComplexity), true
-
 	case "Commit.tree":
 		if e.complexity.Commit.Tree == nil {
 			break
@@ -549,6 +544,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Version(childComplexity), true
 
+	case "Reference.follow":
+		if e.complexity.Reference.Follow == nil {
+			break
+		}
+
+		return e.complexity.Reference.Follow(childComplexity), true
+
 	case "Reference.name":
 		if e.complexity.Reference.Name == nil {
 			break
@@ -663,7 +665,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Repository.References(childComplexity, args["count"].(*int), args["glob"].(*string)), true
+		return e.complexity.Repository.References(childComplexity, args["count"].(*int), args["next"].(*string), args["glob"].(*string)), true
 
 	case "Repository.revparse_single":
 		if e.complexity.Repository.RevparseSingle == nil {
@@ -1094,7 +1096,7 @@ type Repository {
   # 
   # glob: an optional string to filter the list of references, e.g. for tags
   # use "refs/tags/*", or leave null to enumerate all references
-  references(count: Int = 10, glob: String): [Reference]!
+  references(count: Int = 10, next: String, glob: String): [Reference]!
 
   # Returns a list of objects for this repository by their IDs (using fully
   # qualified git object IDs, 40 character hex strings)
@@ -1148,6 +1150,7 @@ type Artifact {
 type Reference {
   name: String!
   target: String!
+  follow: Object
 }
 
 enum ObjectType {
@@ -1168,7 +1171,7 @@ interface Object {
 type Signature {
   name: String!
   email: String!
-  time: Time
+  time: Time!
 }
 
 type Commit implements Object {
@@ -1178,7 +1181,6 @@ type Commit implements Object {
   raw: String!
   author: Signature!
   committer: Signature!
-  timestamp: Time!
   message: String!
   tree: Tree!
   parents: [Commit!]!
@@ -1618,13 +1620,21 @@ func (ec *executionContext) field_Repository_references_args(ctx context.Context
 	}
 	args["count"] = arg0
 	var arg1 *string
-	if tmp, ok := rawArgs["glob"]; ok {
+	if tmp, ok := rawArgs["next"]; ok {
 		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["glob"] = arg1
+	args["next"] = arg1
+	var arg2 *string
+	if tmp, ok := rawArgs["glob"]; ok {
+		arg2, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["glob"] = arg2
 	return args, nil
 }
 
@@ -2483,13 +2493,13 @@ func (ec *executionContext) _Commit_author(ctx context.Context, field graphql.Co
 		Object:   "Commit",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Author, nil
+		return obj.Author(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2517,13 +2527,13 @@ func (ec *executionContext) _Commit_committer(ctx context.Context, field graphql
 		Object:   "Commit",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Committer, nil
+		return obj.Committer(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2540,40 +2550,6 @@ func (ec *executionContext) _Commit_committer(ctx context.Context, field graphql
 	return ec.marshalNSignature2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐSignature(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Commit_timestamp(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Commit",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Timestamp, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(time.Time)
-	fc.Result = res
-	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Commit_message(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2585,13 +2561,13 @@ func (ec *executionContext) _Commit_message(ctx context.Context, field graphql.C
 		Object:   "Commit",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Message, nil
+		return obj.Message(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3228,13 +3204,13 @@ func (ec *executionContext) _Reference_name(ctx context.Context, field graphql.C
 		Object:   "Reference",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Name, nil
+		return obj.Name(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3262,13 +3238,13 @@ func (ec *executionContext) _Reference_target(ctx context.Context, field graphql
 		Object:   "Reference",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Target, nil
+		return obj.Target(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3283,6 +3259,37 @@ func (ec *executionContext) _Reference_target(ctx context.Context, field graphql
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Reference_follow(ctx context.Context, field graphql.CollectedField, obj *model.Reference) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Reference",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Follow(), nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(model.Object)
+	fc.Result = res
+	return ec.marshalOObject2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐObject(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Repository_id(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
@@ -3603,7 +3610,7 @@ func (ec *executionContext) _Repository_references(ctx context.Context, field gr
 		Object:   "Repository",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3616,7 +3623,7 @@ func (ec *executionContext) _Repository_references(ctx context.Context, field gr
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.References, nil
+		return ec.resolvers.Repository().References(rctx, obj, args["count"].(*int), args["next"].(*string), args["glob"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3685,13 +3692,13 @@ func (ec *executionContext) _Repository_head(ctx context.Context, field graphql.
 		Object:   "Repository",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Head, nil
+		return obj.Head(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3952,11 +3959,14 @@ func (ec *executionContext) _Signature_time(ctx context.Context, field graphql.C
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
-	res := resTmp.(*time.Time)
+	res := resTmp.(time.Time)
 	fc.Result = res
-	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Tag_type(ctx context.Context, field graphql.CollectedField, obj *model.Tag) (ret graphql.Marshaler) {
@@ -6398,11 +6408,6 @@ func (ec *executionContext) _Commit(ctx context.Context, sel ast.SelectionSet, o
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "timestamp":
-			out.Values[i] = ec._Commit_timestamp(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "message":
 			out.Values[i] = ec._Commit_message(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -6605,6 +6610,8 @@ func (ec *executionContext) _Reference(ctx context.Context, sel ast.SelectionSet
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "follow":
+			out.Values[i] = ec._Reference_follow(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -6676,10 +6683,19 @@ func (ec *executionContext) _Repository(ctx context.Context, sel ast.SelectionSe
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "references":
-			out.Values[i] = ec._Repository_references(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Repository_references(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "objects":
 			out.Values[i] = ec._Repository_objects(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -6732,6 +6748,9 @@ func (ec *executionContext) _Signature(ctx context.Context, sel ast.SelectionSet
 			}
 		case "time":
 			out.Values[i] = ec._Signature_time(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

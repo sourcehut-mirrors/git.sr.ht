@@ -13,10 +13,6 @@ type Entity interface {
 	IsEntity()
 }
 
-type Object interface {
-	IsObject()
-}
-
 type ACL struct {
 	ID         int         `json:"id"`
 	Created    time.Time   `json:"created"`
@@ -46,21 +42,6 @@ type Blob struct {
 
 func (Blob) IsObject() {}
 
-type Commit struct {
-	Type      ObjectType `json:"type"`
-	ID        string     `json:"id"`
-	ShortID   string     `json:"shortId"`
-	Raw       string     `json:"raw"`
-	Author    *Signature `json:"author"`
-	Committer *Signature `json:"committer"`
-	Timestamp time.Time  `json:"timestamp"`
-	Message   string     `json:"message"`
-	Tree      *Tree      `json:"tree"`
-	Parents   []*Commit  `json:"parents"`
-}
-
-func (Commit) IsObject() {}
-
 type EntityID struct {
 	ID            *int    `json:"id"`
 	CanonicalName *string `json:"canonicalName"`
@@ -75,11 +56,6 @@ type OwnerRepo struct {
 	RepoName *string   `json:"repoName"`
 }
 
-type Reference struct {
-	Name   string `json:"name"`
-	Target string `json:"target"`
-}
-
 type RepoID struct {
 	ID        *int       `json:"id"`
 	OwnerRepo *OwnerRepo `json:"ownerRepo"`
@@ -92,9 +68,9 @@ type RepoInput struct {
 }
 
 type Signature struct {
-	Name  string     `json:"name"`
-	Email string     `json:"email"`
-	Time  *time.Time `json:"time"`
+	Name  string    `json:"name"`
+	Email string    `json:"email"`
+	Time  time.Time `json:"time"`
 }
 
 type Tag struct {

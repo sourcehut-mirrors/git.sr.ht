@@ -6,6 +6,7 @@ require (
 	git.sr.ht/~sircmpwn/gqlgen v0.0.0-20200412134447-57d7234737d4
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/go-chi/chi v3.3.2+incompatible
+	github.com/go-git/go-git/v5 v5.0.0
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/lib/pq v1.3.0

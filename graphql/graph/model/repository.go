@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"time"
+
+	"github.com/go-git/go-git/v5"
+)
 
 type Repository struct {
 	ID                int          `json:"id"`
@@ -11,9 +15,7 @@ type Repository struct {
 	Visibility        Visibility   `json:"visibility"`
 	UpstreamURL       *string      `json:"upstreamUrl"`
 	AccessControlList []*ACL       `json:"accessControlList"`
-	References        []*Reference `json:"references"`
 	Objects           []Object     `json:"objects"`
-	Head              *Reference   `json:"head"`
 	Log               []*Commit    `json:"log"`
 	Tree              *Tree        `json:"tree"`
 	File              *Blob        `json:"file"`
@@ -21,4 +23,26 @@ type Repository struct {
 
 	Path    string
 	OwnerID int
+
+	repo    *git.Repository
+}
+
+func (r *Repository) Repo() *git.Repository {
+	if r.repo != nil {
+		return r.repo
+	}
+	var err error
+	r.repo, err = git.PlainOpen(r.Path)
+	if err != nil {
+		panic(err)
+	}
+	return r.repo
+}
+
+func (r *Repository) Head() *Reference {
+	ref, err := r.Repo().Head()
+	if err != nil {
+		panic(err)
+	}
+	return &Reference{Ref: ref, Repo: r.repo}
 }
