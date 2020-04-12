@@ -1286,10 +1286,12 @@ enum BlobType {
 }
 
 type BinaryBlob {
+  # TODO: Consdier adding a range specifier
   base64: String!
 }
 
 type TextBlob {
+  # TODO: Consdier adding a range specifier
   text: String!
 }
 
@@ -2467,13 +2469,13 @@ func (ec *executionContext) _Blob_blobType(ctx context.Context, field graphql.Co
 		Object:   "Blob",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.BlobType, nil
+		return obj.BlobType(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2501,13 +2503,13 @@ func (ec *executionContext) _Blob_data(ctx context.Context, field graphql.Collec
 		Object:   "Blob",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Data, nil
+		return obj.Data(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)

@@ -196,10 +196,12 @@ enum BlobType {
 }
 
 type BinaryBlob {
+  # TODO: Consdier adding a range specifier
   base64: String!
 }
 
 type TextBlob {
+  # TODO: Consdier adding a range specifier
   text: String!
 }
 
