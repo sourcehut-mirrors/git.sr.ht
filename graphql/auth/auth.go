@@ -3,11 +3,12 @@ package auth
 import (
 	"context"
 	"crypto/sha512"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"database/sql"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -18,6 +19,8 @@ var userCtxKey = &contextKey{"user"}
 type contextKey struct {
 	name string
 }
+
+var bearerRegex = regexp.MustCompile(`^[0-9a-f]{32}$`)
 
 const (
     USER_UNCONFIRMED = "unconfirmed"
@@ -89,7 +92,12 @@ Expected 'Authentication: Bearer <token>'`, http.StatusForbidden)
 			var bearer string
 			switch (z[0]) {
 			case "Bearer":
-				hash := sha512.Sum512([]byte(z[1]))
+				token := []byte(z[1])
+				if !bearerRegex.Match(token) {
+					authError(w, "Invalid bearer token, expected 32-character haxadecimal string", http.StatusBadRequest)
+					return
+				}
+				hash := sha512.Sum512(token)
 				bearer = hex.EncodeToString(hash[:])
 			case "Internal":
 				panic(errors.New("TODO"))
