@@ -1267,6 +1267,7 @@ type Tree implements Object {
   id: String!
   shortId: String!
   raw: String!
+  # TODO: add globbing
   entries(count: Int = 100, next: String): [TreeEntry!]!
 
   entry(path: String): TreeEntry
@@ -2806,13 +2807,13 @@ func (ec *executionContext) _Commit_parents(ctx context.Context, field graphql.C
 		Object:   "Commit",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Parents, nil
+		return obj.Parents(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)

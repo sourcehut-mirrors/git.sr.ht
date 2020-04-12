@@ -10,7 +10,6 @@ type Commit struct {
 	ID        string     `json:"id"`
 	ShortID   string     `json:"shortId"`
 	Raw       string     `json:"raw"`
-	Parents   []*Commit  `json:"parents"`
 
 	commit *object.Commit
 	repo   *git.Repository
@@ -45,4 +44,17 @@ func (c *Commit) Tree() *Tree {
 	}
 	tree, _ := obj.(*Tree)
 	return tree
+}
+
+func (c *Commit) Parents() []*Commit {
+	var parents []*Commit
+	for _, p := range c.commit.ParentHashes {
+		obj, err := LookupObject(c.repo, p)
+		if err != nil {
+			panic(err)
+		}
+		parent, _ := obj.(*Commit)
+		parents = append(parents, parent)
+	}
+	return parents
 }

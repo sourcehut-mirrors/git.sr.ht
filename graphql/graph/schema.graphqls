@@ -177,6 +177,7 @@ type Tree implements Object {
   id: String!
   shortId: String!
   raw: String!
+  # TODO: add globbing
   entries(count: Int = 100, next: String): [TreeEntry!]!
 
   entry(path: String): TreeEntry
