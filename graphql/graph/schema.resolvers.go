@@ -95,6 +95,7 @@ func (r *repositoryResolver) References(ctx context.Context, obj *model.Reposito
 		refs = append(refs, &model.Reference{obj.Repo(), ref})
 		return nil
 	})
+	// TODO: Implement globbing
 	sort.SliceStable(refs, func(i, j int) bool {
 		return refs[i].Name() < refs[j].Name()
 	})
