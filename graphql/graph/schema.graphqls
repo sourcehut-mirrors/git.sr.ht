@@ -95,7 +95,7 @@ type Repository {
   # SHA in the log
   
   # The HEAD reference for this repository (equivalent to the default branch)
-  head: Reference
+  HEAD: Reference
 
   # Returns a list of comments, starting from revspec
   log(revspec: String = "HEAD", count: Int = 10): [Commit]!

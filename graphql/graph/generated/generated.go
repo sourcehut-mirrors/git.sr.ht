@@ -603,7 +603,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Repository.File(childComplexity, args["revspec"].(*string), args["path"].(string)), true
 
-	case "Repository.head":
+	case "Repository.HEAD":
 		if e.complexity.Repository.Head == nil {
 			break
 		}
@@ -1109,7 +1109,7 @@ type Repository {
   # SHA in the log
   
   # The HEAD reference for this repository (equivalent to the default branch)
-  head: Reference
+  HEAD: Reference
 
   # Returns a list of comments, starting from revspec
   log(revspec: String = "HEAD", count: Int = 10): [Commit]!
@@ -3681,7 +3681,7 @@ func (ec *executionContext) _Repository_objects(ctx context.Context, field graph
 	return ec.marshalNObject2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐObject(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Repository_head(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
+func (ec *executionContext) _Repository_HEAD(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -6701,8 +6701,8 @@ func (ec *executionContext) _Repository(ctx context.Context, sel ast.SelectionSe
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "head":
-			out.Values[i] = ec._Repository_head(ctx, field, obj)
+		case "HEAD":
+			out.Values[i] = ec._Repository_HEAD(ctx, field, obj)
 		case "log":
 			out.Values[i] = ec._Repository_log(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
