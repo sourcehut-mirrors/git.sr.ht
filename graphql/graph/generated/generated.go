@@ -97,11 +97,13 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Me           func(childComplexity int) int
-		Repositories func(childComplexity int, next *int, filter *model.FilterBy) int
-		Repository   func(childComplexity int, id int) int
-		User         func(childComplexity int, username string) int
-		Version      func(childComplexity int) int
+		Me                func(childComplexity int) int
+		Repositories      func(childComplexity int, next *int, filter *model.FilterBy) int
+		Repository        func(childComplexity int, id int) int
+		RepositoryByName  func(childComplexity int, name string) int
+		RepositoryByOwner func(childComplexity int, owner string, repo string) int
+		User              func(childComplexity int, username string) int
+		Version           func(childComplexity int) int
 	}
 
 	Reference struct {
@@ -196,6 +198,8 @@ type QueryResolver interface {
 	User(ctx context.Context, username string) (*model.User, error)
 	Repositories(ctx context.Context, next *int, filter *model.FilterBy) ([]*model.Repository, error)
 	Repository(ctx context.Context, id int) (*model.Repository, error)
+	RepositoryByName(ctx context.Context, name string) (*model.Repository, error)
+	RepositoryByOwner(ctx context.Context, owner string, repo string) (*model.Repository, error)
 }
 type RepositoryResolver interface {
 	Owner(ctx context.Context, obj *model.Repository) (model.Entity, error)
@@ -524,6 +528,30 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Repository(childComplexity, args["id"].(int)), true
+
+	case "Query.repositoryByName":
+		if e.complexity.Query.RepositoryByName == nil {
+			break
+		}
+
+		args, err := ec.field_Query_repositoryByName_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.RepositoryByName(childComplexity, args["name"].(string)), true
+
+	case "Query.repositoryByOwner":
+		if e.complexity.Query.RepositoryByOwner == nil {
+			break
+		}
+
+		args, err := ec.field_Query_repositoryByOwner_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.RepositoryByOwner(childComplexity, args["owner"].(string), args["repo"].(string)), true
 
 	case "Query.user":
 		if e.complexity.Query.User == nil {
@@ -1254,6 +1282,13 @@ type Query {
 
   # Returns a specific repository
   repository(id: Int!): Repository
+
+  # Returns a specific repository, owned by the authenticated user.
+  repositoryByName(name: String!): Repository
+
+  # Returns a specific repository, owned by the given canonical name (e.g.
+  # "~sircmpwn").
+  repositoryByOwner(owner: String!, repo: String!): Repository
 }
 
 # Details for repository creation or updates
@@ -1472,6 +1507,42 @@ func (ec *executionContext) field_Query_repositories_args(ctx context.Context, r
 		}
 	}
 	args["filter"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_repositoryByName_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["name"]; ok {
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_repositoryByOwner_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["owner"]; ok {
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["owner"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["repo"]; ok {
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["repo"] = arg1
 	return args, nil
 }
 
@@ -3086,6 +3157,82 @@ func (ec *executionContext) _Query_repository(ctx context.Context, field graphql
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return ec.resolvers.Query().Repository(rctx, args["id"].(int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Repository)
+	fc.Result = res
+	return ec.marshalORepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_repositoryByName(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_repositoryByName_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().RepositoryByName(rctx, args["name"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Repository)
+	fc.Result = res
+	return ec.marshalORepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_repositoryByOwner(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Query",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_repositoryByOwner_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().RepositoryByOwner(rctx, args["owner"].(string), args["repo"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6475,6 +6622,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_repository(ctx, field)
+				return res
+			})
+		case "repositoryByName":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_repositoryByName(ctx, field)
+				return res
+			})
+		case "repositoryByOwner":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_repositoryByOwner(ctx, field)
 				return res
 			})
 		case "__type":

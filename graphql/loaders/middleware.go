@@ -18,10 +18,11 @@ type contextKey struct {
 }
 
 type Loaders struct {
-	UsersById UserLoader
+	UsersByID        UserLoader
+	RepositoriesByID RepositoriesByIDLoader
 }
 
-func fetchUsersById(ctx context.Context,
+func fetchUsersByID(ctx context.Context,
 	db *sql.DB) func (ids []int) ([]*model.User, []error) {
 
 	return func (ids []int) ([]*model.User, []error) {
@@ -59,14 +60,64 @@ func fetchUsersById(ctx context.Context,
 	}
 }
 
+func fetchRepositoriesByID(ctx context.Context,
+	db *sql.DB) func (ids []int) ([]*model.Repository, []error) {
+
+	return func (ids []int) ([]*model.Repository, []error) {
+		var (
+			err  error
+			rows *sql.Rows
+			repo model.Repository
+		)
+		if rows, err = db.QueryContext(ctx, `
+			SELECT DISTINCT `+repo.Rows()+`
+			FROM repository repo
+			FULL OUTER JOIN
+				access ON repo.id = access.repo_id
+			WHERE
+				repo.id = ANY($1)
+				AND (access.user_id = 1
+					OR repo.owner_id = 1
+					OR repo.visibility != 'private')
+			`, pq.Array(ids)); err != nil {
+			panic(err)
+		}
+		defer rows.Close()
+
+		reposById := map[int]*model.Repository{}
+		for rows.Next() {
+			repo := model.Repository{}
+			if err := rows.Scan(repo.Fields()...); err != nil {
+				panic(err)
+			}
+			reposById[repo.ID] = &repo
+		}
+		if err = rows.Err(); err != nil {
+			panic(err)
+		}
+
+		repos := make([]*model.Repository, len(ids))
+		for i, id := range ids {
+			repos[i] = reposById[id]
+		}
+
+		return repos, nil
+	}
+}
+
 func Middleware(db *sql.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := context.WithValue(r.Context(), loadersCtxKey, &Loaders{
-				UsersById: UserLoader{
+				UsersByID: UserLoader{
 					maxBatch: 100,
 					wait: 1 * time.Millisecond,
-					fetch: fetchUsersById(r.Context(), db),
+					fetch: fetchUsersByID(r.Context(), db),
+				},
+				RepositoriesByID: RepositoriesByIDLoader{
+					maxBatch: 100,
+					wait: 1 * time.Millisecond,
+					fetch: fetchRepositoriesByID(r.Context(), db),
 				},
 			})
 			r = r.WithContext(ctx)

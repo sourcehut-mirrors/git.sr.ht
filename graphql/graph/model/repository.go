@@ -27,6 +27,30 @@ type Repository struct {
 	repo    *git.Repository
 }
 
+func (r *Repository) Rows() string {
+	return `
+		repo.id,
+		repo.created, repo.updated,
+		repo.name, repo.description,
+		repo.visibility,
+		repo.upstream_uri,
+		repo.path,
+		repo.owner_id
+	`
+}
+
+func (r *Repository) Fields() []interface{} {
+	return []interface{}{
+		&r.ID,
+		&r.Created, &r.Updated,
+		&r.Name, &r.Description,
+		&r.Visibility,
+		&r.UpstreamURL,
+		&r.Path,
+		&r.OwnerID,
+	}
+}
+
 func (r *Repository) Repo() *git.Repository {
 	if r.repo != nil {
 		return r.repo

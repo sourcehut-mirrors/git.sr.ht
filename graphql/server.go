@@ -51,6 +51,9 @@ func main() {
 	}
 
 	router := chi.NewRouter()
+	// TODO: Add middleware to:
+	// - Gracefully handle panics
+	// - Log queries in debug mode
 	router.Use(auth.Middleware(db))
 	router.Use(loaders.Middleware(db))
 

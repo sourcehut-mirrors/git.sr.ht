@@ -77,11 +77,19 @@ func (r *queryResolver) Repositories(ctx context.Context, next *int, filter *mod
 }
 
 func (r *queryResolver) Repository(ctx context.Context, id int) (*model.Repository, error) {
+	return loaders.ForContext(ctx).RepositoriesByID.Load(id)
+}
+
+func (r *queryResolver) RepositoryByName(ctx context.Context, name string) (*model.Repository, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *queryResolver) RepositoryByOwner(ctx context.Context, owner string, repo string) (*model.Repository, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *repositoryResolver) Owner(ctx context.Context, obj *model.Repository) (model.Entity, error) {
-	return loaders.ForContext(ctx).UsersById.Load(obj.OwnerID)
+	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
 }
 
 func (r *repositoryResolver) References(ctx context.Context, obj *model.Repository, count *int, next *string, glob *string) ([]*model.Reference, error) {

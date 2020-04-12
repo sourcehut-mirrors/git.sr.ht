@@ -240,6 +240,13 @@ type Query {
 
   # Returns a specific repository
   repository(id: Int!): Repository
+
+  # Returns a specific repository, owned by the authenticated user.
+  repositoryByName(name: String!): Repository
+
+  # Returns a specific repository, owned by the given canonical name (e.g.
+  # "~sircmpwn").
+  repositoryByOwner(owner: String!, repo: String!): Repository
 }
 
 # Details for repository creation or updates
