@@ -42,23 +42,8 @@ type Blob struct {
 
 func (Blob) IsObject() {}
 
-type EntityID struct {
-	ID            *int    `json:"id"`
-	CanonicalName *string `json:"canonicalName"`
-}
-
 type FilterBy struct {
 	Terms string `json:"terms"`
-}
-
-type OwnerRepo struct {
-	Owner    *EntityID `json:"owner"`
-	RepoName *string   `json:"repoName"`
-}
-
-type RepoID struct {
-	ID        *int       `json:"id"`
-	OwnerRepo *OwnerRepo `json:"ownerRepo"`
 }
 
 type RepoInput struct {

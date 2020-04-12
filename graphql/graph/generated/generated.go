@@ -88,18 +88,18 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		CreateRepository func(childComplexity int, params *model.RepoInput) int
-		DeleteACL        func(childComplexity int, id model.RepoID, entity model.EntityID) int
+		DeleteACL        func(childComplexity int, repoID int, entity string) int
 		DeleteArtifact   func(childComplexity int, id int) int
-		DeleteRepository func(childComplexity int, id model.RepoID) int
-		UpdateACL        func(childComplexity int, id model.RepoID, mode model.AccessMode, entity model.EntityID) int
-		UpdateRepository func(childComplexity int, id model.RepoID, params *model.RepoInput) int
-		UploadArtifact   func(childComplexity int, id model.RepoID, revspec string, file graphql.Upload) int
+		DeleteRepository func(childComplexity int, id string) int
+		UpdateACL        func(childComplexity int, repoID string, mode model.AccessMode, entity string) int
+		UpdateRepository func(childComplexity int, id string, params *model.RepoInput) int
+		UploadArtifact   func(childComplexity int, repoID int, revspec string, file graphql.Upload) int
 	}
 
 	Query struct {
 		Me           func(childComplexity int) int
 		Repositories func(childComplexity int, next *int, filter *model.FilterBy) int
-		Repository   func(childComplexity int, id *model.RepoID) int
+		Repository   func(childComplexity int, id int) int
 		User         func(childComplexity int, username string) int
 		Version      func(childComplexity int) int
 	}
@@ -183,11 +183,11 @@ type ComplexityRoot struct {
 
 type MutationResolver interface {
 	CreateRepository(ctx context.Context, params *model.RepoInput) (*model.Repository, error)
-	UpdateRepository(ctx context.Context, id model.RepoID, params *model.RepoInput) (*model.Repository, error)
-	DeleteRepository(ctx context.Context, id model.RepoID) (*model.Repository, error)
-	UpdateACL(ctx context.Context, id model.RepoID, mode model.AccessMode, entity model.EntityID) (*model.ACL, error)
-	DeleteACL(ctx context.Context, id model.RepoID, entity model.EntityID) (*model.ACL, error)
-	UploadArtifact(ctx context.Context, id model.RepoID, revspec string, file graphql.Upload) (*model.Artifact, error)
+	UpdateRepository(ctx context.Context, id string, params *model.RepoInput) (*model.Repository, error)
+	DeleteRepository(ctx context.Context, id string) (*model.Repository, error)
+	UpdateACL(ctx context.Context, repoID string, mode model.AccessMode, entity string) (*model.ACL, error)
+	DeleteACL(ctx context.Context, repoID int, entity string) (*model.ACL, error)
+	UploadArtifact(ctx context.Context, repoID int, revspec string, file graphql.Upload) (*model.Artifact, error)
 	DeleteArtifact(ctx context.Context, id int) (*model.Artifact, error)
 }
 type QueryResolver interface {
@@ -195,7 +195,7 @@ type QueryResolver interface {
 	Me(ctx context.Context) (*model.User, error)
 	User(ctx context.Context, username string) (*model.User, error)
 	Repositories(ctx context.Context, next *int, filter *model.FilterBy) ([]*model.Repository, error)
-	Repository(ctx context.Context, id *model.RepoID) (*model.Repository, error)
+	Repository(ctx context.Context, id int) (*model.Repository, error)
 }
 type RepositoryResolver interface {
 	Owner(ctx context.Context, obj *model.Repository) (model.Entity, error)
@@ -432,7 +432,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.DeleteACL(childComplexity, args["id"].(model.RepoID), args["entity"].(model.EntityID)), true
+		return e.complexity.Mutation.DeleteACL(childComplexity, args["repoId"].(int), args["entity"].(string)), true
 
 	case "Mutation.deleteArtifact":
 		if e.complexity.Mutation.DeleteArtifact == nil {
@@ -456,7 +456,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.DeleteRepository(childComplexity, args["id"].(model.RepoID)), true
+		return e.complexity.Mutation.DeleteRepository(childComplexity, args["id"].(string)), true
 
 	case "Mutation.updateACL":
 		if e.complexity.Mutation.UpdateACL == nil {
@@ -468,7 +468,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateACL(childComplexity, args["id"].(model.RepoID), args["mode"].(model.AccessMode), args["entity"].(model.EntityID)), true
+		return e.complexity.Mutation.UpdateACL(childComplexity, args["repoId"].(string), args["mode"].(model.AccessMode), args["entity"].(string)), true
 
 	case "Mutation.updateRepository":
 		if e.complexity.Mutation.UpdateRepository == nil {
@@ -480,7 +480,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateRepository(childComplexity, args["id"].(model.RepoID), args["params"].(*model.RepoInput)), true
+		return e.complexity.Mutation.UpdateRepository(childComplexity, args["id"].(string), args["params"].(*model.RepoInput)), true
 
 	case "Mutation.uploadArtifact":
 		if e.complexity.Mutation.UploadArtifact == nil {
@@ -492,7 +492,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UploadArtifact(childComplexity, args["id"].(model.RepoID), args["revspec"].(string), args["file"].(graphql.Upload)), true
+		return e.complexity.Mutation.UploadArtifact(childComplexity, args["repoId"].(int), args["revspec"].(string), args["file"].(graphql.Upload)), true
 
 	case "Query.me":
 		if e.complexity.Query.Me == nil {
@@ -523,7 +523,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Repository(childComplexity, args["id"].(*model.RepoID)), true
+		return e.complexity.Query.Repository(childComplexity, args["id"].(int)), true
 
 	case "Query.user":
 		if e.complexity.Query.User == nil {
@@ -1228,31 +1228,6 @@ type Tag implements Object {
   message: String
 }
 
-# Entity canonical name (e.g. "~sircmpwn") or integral ID, either uniquely
-# identifies an entity.
-# One of these fields must be non-null or an error will be returned.
-# (Note: this is basically a workaround for the lack of input unions until
-# https://github.com/graphql/graphql-spec/issues/627 is resolved)
-input EntityID {
-  id: Int
-  canonicalName: String
-}
-
-# A combination of a repository's owner entity ID and its name.
-input OwnerRepo {
-  owner: EntityID
-  repoName: String
-}
-
-# An OwnerRepo or an integral ID, either uniquely identifies a repository.
-# One of these fields must be non-null or an error will be returned.
-# (Note: this is basically a workaround for the lack of input unions until
-# https://github.com/graphql/graphql-spec/issues/627 is resolved)
-input RepoID {
-  id: Int
-  ownerRepo: OwnerRepo
-}
-
 # Specifies filtering criteria for a listing query
 input FilterBy {
   # Same search syntax as searching on the web UI
@@ -1278,7 +1253,7 @@ type Query {
   repositories(next: Int, filter: FilterBy): [Repository]!
 
   # Returns a specific repository
-  repository(id: RepoID): Repository
+  repository(id: Int!): Repository
 }
 
 # Details for repository creation or updates
@@ -1293,19 +1268,19 @@ type Mutation {
   createRepository(params: RepoInput): Repository!
 
   # Updates repository information
-  updateRepository(id: RepoID!, params: RepoInput): Repository!
+  updateRepository(id: ID!, params: RepoInput): Repository!
 
   # Deletes a repository and returns the deleted repository
-  deleteRepository(id: RepoID!): Repository!
+  deleteRepository(id: ID!): Repository!
 
   # Creates a new ACL or updates an existing ACL for the given entity ID
-  updateACL(id: RepoID!, mode: AccessMode!, entity: EntityID!): ACL!
+  updateACL(repoId: ID!, mode: AccessMode!, entity: ID!): ACL!
 
   # Deletes the ACL for the given entity ID and returns the deleted ACL
-  deleteACL(id: RepoID!, entity: EntityID!): ACL!
+  deleteACL(repoId: Int!, entity: ID!): ACL!
 
   # Uploads a new artifact, attaching it to the given revspec
-  uploadArtifact(id: RepoID!, revspec: String!, file: Upload!): Artifact!
+  uploadArtifact(repoId: Int!, revspec: String!, file: Upload!): Artifact!
 
   # Deletes an artifact
   deleteArtifact(id: Int!): Artifact!
@@ -1335,17 +1310,17 @@ func (ec *executionContext) field_Mutation_createRepository_args(ctx context.Con
 func (ec *executionContext) field_Mutation_deleteACL_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.RepoID
-	if tmp, ok := rawArgs["id"]; ok {
-		arg0, err = ec.unmarshalNRepoID2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepoID(ctx, tmp)
+	var arg0 int
+	if tmp, ok := rawArgs["repoId"]; ok {
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["id"] = arg0
-	var arg1 model.EntityID
+	args["repoId"] = arg0
+	var arg1 string
 	if tmp, ok := rawArgs["entity"]; ok {
-		arg1, err = ec.unmarshalNEntityID2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐEntityID(ctx, tmp)
+		arg1, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1371,9 +1346,9 @@ func (ec *executionContext) field_Mutation_deleteArtifact_args(ctx context.Conte
 func (ec *executionContext) field_Mutation_deleteRepository_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.RepoID
+	var arg0 string
 	if tmp, ok := rawArgs["id"]; ok {
-		arg0, err = ec.unmarshalNRepoID2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepoID(ctx, tmp)
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1385,14 +1360,14 @@ func (ec *executionContext) field_Mutation_deleteRepository_args(ctx context.Con
 func (ec *executionContext) field_Mutation_updateACL_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.RepoID
-	if tmp, ok := rawArgs["id"]; ok {
-		arg0, err = ec.unmarshalNRepoID2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepoID(ctx, tmp)
+	var arg0 string
+	if tmp, ok := rawArgs["repoId"]; ok {
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["id"] = arg0
+	args["repoId"] = arg0
 	var arg1 model.AccessMode
 	if tmp, ok := rawArgs["mode"]; ok {
 		arg1, err = ec.unmarshalNAccessMode2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐAccessMode(ctx, tmp)
@@ -1401,9 +1376,9 @@ func (ec *executionContext) field_Mutation_updateACL_args(ctx context.Context, r
 		}
 	}
 	args["mode"] = arg1
-	var arg2 model.EntityID
+	var arg2 string
 	if tmp, ok := rawArgs["entity"]; ok {
-		arg2, err = ec.unmarshalNEntityID2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐEntityID(ctx, tmp)
+		arg2, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1415,9 +1390,9 @@ func (ec *executionContext) field_Mutation_updateACL_args(ctx context.Context, r
 func (ec *executionContext) field_Mutation_updateRepository_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.RepoID
+	var arg0 string
 	if tmp, ok := rawArgs["id"]; ok {
-		arg0, err = ec.unmarshalNRepoID2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepoID(ctx, tmp)
+		arg0, err = ec.unmarshalNID2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1437,14 +1412,14 @@ func (ec *executionContext) field_Mutation_updateRepository_args(ctx context.Con
 func (ec *executionContext) field_Mutation_uploadArtifact_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 model.RepoID
-	if tmp, ok := rawArgs["id"]; ok {
-		arg0, err = ec.unmarshalNRepoID2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepoID(ctx, tmp)
+	var arg0 int
+	if tmp, ok := rawArgs["repoId"]; ok {
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["id"] = arg0
+	args["repoId"] = arg0
 	var arg1 string
 	if tmp, ok := rawArgs["revspec"]; ok {
 		arg1, err = ec.unmarshalNString2string(ctx, tmp)
@@ -1503,9 +1478,9 @@ func (ec *executionContext) field_Query_repositories_args(ctx context.Context, r
 func (ec *executionContext) field_Query_repository_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *model.RepoID
+	var arg0 int
 	if tmp, ok := rawArgs["id"]; ok {
-		arg0, err = ec.unmarshalORepoID2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepoID(ctx, tmp)
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2717,7 +2692,7 @@ func (ec *executionContext) _Mutation_updateRepository(ctx context.Context, fiel
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateRepository(rctx, args["id"].(model.RepoID), args["params"].(*model.RepoInput))
+		return ec.resolvers.Mutation().UpdateRepository(rctx, args["id"].(string), args["params"].(*model.RepoInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2758,7 +2733,7 @@ func (ec *executionContext) _Mutation_deleteRepository(ctx context.Context, fiel
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteRepository(rctx, args["id"].(model.RepoID))
+		return ec.resolvers.Mutation().DeleteRepository(rctx, args["id"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2799,7 +2774,7 @@ func (ec *executionContext) _Mutation_updateACL(ctx context.Context, field graph
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateACL(rctx, args["id"].(model.RepoID), args["mode"].(model.AccessMode), args["entity"].(model.EntityID))
+		return ec.resolvers.Mutation().UpdateACL(rctx, args["repoId"].(string), args["mode"].(model.AccessMode), args["entity"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2840,7 +2815,7 @@ func (ec *executionContext) _Mutation_deleteACL(ctx context.Context, field graph
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().DeleteACL(rctx, args["id"].(model.RepoID), args["entity"].(model.EntityID))
+		return ec.resolvers.Mutation().DeleteACL(rctx, args["repoId"].(int), args["entity"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2881,7 +2856,7 @@ func (ec *executionContext) _Mutation_uploadArtifact(ctx context.Context, field 
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UploadArtifact(rctx, args["id"].(model.RepoID), args["revspec"].(string), args["file"].(graphql.Upload))
+		return ec.resolvers.Mutation().UploadArtifact(rctx, args["repoId"].(int), args["revspec"].(string), args["file"].(graphql.Upload))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3110,7 +3085,7 @@ func (ec *executionContext) _Query_repository(ctx context.Context, field graphql
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Repository(rctx, args["id"].(*model.RepoID))
+		return ec.resolvers.Query().Repository(rctx, args["id"].(int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6036,30 +6011,6 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputEntityID(ctx context.Context, obj interface{}) (model.EntityID, error) {
-	var it model.EntityID
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "id":
-			var err error
-			it.ID, err = ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "canonicalName":
-			var err error
-			it.CanonicalName, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputFilterBy(ctx context.Context, obj interface{}) (model.FilterBy, error) {
 	var it model.FilterBy
 	var asMap = obj.(map[string]interface{})
@@ -6069,54 +6020,6 @@ func (ec *executionContext) unmarshalInputFilterBy(ctx context.Context, obj inte
 		case "terms":
 			var err error
 			it.Terms, err = ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputOwnerRepo(ctx context.Context, obj interface{}) (model.OwnerRepo, error) {
-	var it model.OwnerRepo
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "owner":
-			var err error
-			it.Owner, err = ec.unmarshalOEntityID2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐEntityID(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "repoName":
-			var err error
-			it.RepoName, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputRepoID(ctx context.Context, obj interface{}) (model.RepoID, error) {
-	var it model.RepoID
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "id":
-			var err error
-			it.ID, err = ec.unmarshalOInt2ᚖint(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "ownerRepo":
-			var err error
-			it.OwnerRepo, err = ec.unmarshalOOwnerRepo2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐOwnerRepo(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -7456,8 +7359,18 @@ func (ec *executionContext) marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsr
 	return ec._Entity(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNEntityID2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐEntityID(ctx context.Context, v interface{}) (model.EntityID, error) {
-	return ec.unmarshalInputEntityID(ctx, v)
+func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {
+	return graphql.UnmarshalID(v)
+}
+
+func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	res := graphql.MarshalID(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
 }
 
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
@@ -7565,10 +7478,6 @@ func (ec *executionContext) marshalNReference2ᚕᚖgitᚗsrᚗhtᚋאsircmpwn�
 	}
 	wg.Wait()
 	return ret
-}
-
-func (ec *executionContext) unmarshalNRepoID2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepoID(ctx context.Context, v interface{}) (model.RepoID, error) {
-	return ec.unmarshalInputRepoID(ctx, v)
 }
 
 func (ec *executionContext) marshalNRepository2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepository(ctx context.Context, sel ast.SelectionSet, v model.Repository) graphql.Marshaler {
@@ -8086,18 +7995,6 @@ func (ec *executionContext) marshalOCommit2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgit�
 	return ec._Commit(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOEntityID2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐEntityID(ctx context.Context, v interface{}) (model.EntityID, error) {
-	return ec.unmarshalInputEntityID(ctx, v)
-}
-
-func (ec *executionContext) unmarshalOEntityID2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐEntityID(ctx context.Context, v interface{}) (*model.EntityID, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalOEntityID2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐEntityID(ctx, v)
-	return &res, err
-}
-
 func (ec *executionContext) unmarshalOFilterBy2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐFilterBy(ctx context.Context, v interface{}) (model.FilterBy, error) {
 	return ec.unmarshalInputFilterBy(ctx, v)
 }
@@ -8140,18 +8037,6 @@ func (ec *executionContext) marshalOObject2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsr
 	return ec._Object(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOOwnerRepo2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐOwnerRepo(ctx context.Context, v interface{}) (model.OwnerRepo, error) {
-	return ec.unmarshalInputOwnerRepo(ctx, v)
-}
-
-func (ec *executionContext) unmarshalOOwnerRepo2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐOwnerRepo(ctx context.Context, v interface{}) (*model.OwnerRepo, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalOOwnerRepo2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐOwnerRepo(ctx, v)
-	return &res, err
-}
-
 func (ec *executionContext) marshalOReference2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐReference(ctx context.Context, sel ast.SelectionSet, v model.Reference) graphql.Marshaler {
 	return ec._Reference(ctx, sel, &v)
 }
@@ -8161,18 +8046,6 @@ func (ec *executionContext) marshalOReference2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgi
 		return graphql.Null
 	}
 	return ec._Reference(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalORepoID2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepoID(ctx context.Context, v interface{}) (model.RepoID, error) {
-	return ec.unmarshalInputRepoID(ctx, v)
-}
-
-func (ec *executionContext) unmarshalORepoID2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepoID(ctx context.Context, v interface{}) (*model.RepoID, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalORepoID2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepoID(ctx, v)
-	return &res, err
 }
 
 func (ec *executionContext) unmarshalORepoInput2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepoInput(ctx context.Context, v interface{}) (model.RepoInput, error) {

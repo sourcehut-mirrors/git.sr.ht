@@ -214,31 +214,6 @@ type Tag implements Object {
   message: String
 }
 
-# Entity canonical name (e.g. "~sircmpwn") or integral ID, either uniquely
-# identifies an entity.
-# One of these fields must be non-null or an error will be returned.
-# (Note: this is basically a workaround for the lack of input unions until
-# https://github.com/graphql/graphql-spec/issues/627 is resolved)
-input EntityID {
-  id: Int
-  canonicalName: String
-}
-
-# A combination of a repository's owner entity ID and its name.
-input OwnerRepo {
-  owner: EntityID
-  repoName: String
-}
-
-# An OwnerRepo or an integral ID, either uniquely identifies a repository.
-# One of these fields must be non-null or an error will be returned.
-# (Note: this is basically a workaround for the lack of input unions until
-# https://github.com/graphql/graphql-spec/issues/627 is resolved)
-input RepoID {
-  id: Int
-  ownerRepo: OwnerRepo
-}
-
 # Specifies filtering criteria for a listing query
 input FilterBy {
   # Same search syntax as searching on the web UI
@@ -264,7 +239,7 @@ type Query {
   repositories(next: Int, filter: FilterBy): [Repository]!
 
   # Returns a specific repository
-  repository(id: RepoID): Repository
+  repository(id: Int!): Repository
 }
 
 # Details for repository creation or updates
@@ -279,19 +254,19 @@ type Mutation {
   createRepository(params: RepoInput): Repository!
 
   # Updates repository information
-  updateRepository(id: RepoID!, params: RepoInput): Repository!
+  updateRepository(id: ID!, params: RepoInput): Repository!
 
   # Deletes a repository and returns the deleted repository
-  deleteRepository(id: RepoID!): Repository!
+  deleteRepository(id: ID!): Repository!
 
   # Creates a new ACL or updates an existing ACL for the given entity ID
-  updateACL(id: RepoID!, mode: AccessMode!, entity: EntityID!): ACL!
+  updateACL(repoId: ID!, mode: AccessMode!, entity: ID!): ACL!
 
   # Deletes the ACL for the given entity ID and returns the deleted ACL
-  deleteACL(id: RepoID!, entity: EntityID!): ACL!
+  deleteACL(repoId: Int!, entity: ID!): ACL!
 
   # Uploads a new artifact, attaching it to the given revspec
-  uploadArtifact(id: RepoID!, revspec: String!, file: Upload!): Artifact!
+  uploadArtifact(repoId: Int!, revspec: String!, file: Upload!): Artifact!
 
   # Deletes an artifact
   deleteArtifact(id: Int!): Artifact!

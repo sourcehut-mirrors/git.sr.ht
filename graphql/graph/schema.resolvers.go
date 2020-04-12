@@ -21,23 +21,23 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, params *model.R
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) UpdateRepository(ctx context.Context, id model.RepoID, params *model.RepoInput) (*model.Repository, error) {
+func (r *mutationResolver) UpdateRepository(ctx context.Context, id string, params *model.RepoInput) (*model.Repository, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) DeleteRepository(ctx context.Context, id model.RepoID) (*model.Repository, error) {
+func (r *mutationResolver) DeleteRepository(ctx context.Context, id string) (*model.Repository, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) UpdateACL(ctx context.Context, id model.RepoID, mode model.AccessMode, entity model.EntityID) (*model.ACL, error) {
+func (r *mutationResolver) UpdateACL(ctx context.Context, repoID string, mode model.AccessMode, entity string) (*model.ACL, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) DeleteACL(ctx context.Context, id model.RepoID, entity model.EntityID) (*model.ACL, error) {
+func (r *mutationResolver) DeleteACL(ctx context.Context, repoID int, entity string) (*model.ACL, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) UploadArtifact(ctx context.Context, id model.RepoID, revspec string, file graphql.Upload) (*model.Artifact, error) {
+func (r *mutationResolver) UploadArtifact(ctx context.Context, repoID int, revspec string, file graphql.Upload) (*model.Artifact, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
@@ -76,7 +76,7 @@ func (r *queryResolver) Repositories(ctx context.Context, next *int, filter *mod
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *queryResolver) Repository(ctx context.Context, id *model.RepoID) (*model.Repository, error) {
+func (r *queryResolver) Repository(ctx context.Context, id int) (*model.Repository, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
