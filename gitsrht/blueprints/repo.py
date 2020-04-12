@@ -114,9 +114,12 @@ def summary(owner, repo):
                 "LICENSE.txt", "license.txt",
                 "LICENCE.txt", "licence.txt",
                 "COPYING.txt", "copying.txt",
+                "COPYRIGHT.txt", "copyright.txt",
                 "LICENSE.md", "license.md",
                 "LICENCE.md", "licence.md",
                 "COPYING.md", "copying.md",
+                "COPYRIGHT.md", "copyright.md",
+                "COPYRIGHT", "copyright",
                 "LICENSES", "licenses",
                 "LICENCES", "licences",
         ]:
