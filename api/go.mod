@@ -1,4 +1,4 @@
-module git.sr.ht/~sircmpwn/git.sr.ht/graphql
+module git.sr.ht/~sircmpwn/git.sr.ht/api
 
 go 1.14
 

@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"sort"
 
-	"git.sr.ht/~sircmpwn/git.sr.ht/graphql/auth"
-	"git.sr.ht/~sircmpwn/git.sr.ht/graphql/graph/generated"
-	"git.sr.ht/~sircmpwn/git.sr.ht/graphql/graph/model"
-	"git.sr.ht/~sircmpwn/git.sr.ht/graphql/loaders"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/auth"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/generated"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
 	"git.sr.ht/~sircmpwn/gqlgen/graphql"
 	"github.com/go-git/go-git/v5/plumbing"
 )

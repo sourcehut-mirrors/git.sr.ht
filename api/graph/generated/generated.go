@@ -12,7 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"git.sr.ht/~sircmpwn/git.sr.ht/graphql/graph/model"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/gqlgen/graphql"
 	"git.sr.ht/~sircmpwn/gqlgen/graphql/introspection"
 	gqlparser "github.com/vektah/gqlparser/v2"

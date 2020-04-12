@@ -8,10 +8,10 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/vaughan0/go-ini"
-	"git.sr.ht/~sircmpwn/git.sr.ht/graphql/auth"
-	"git.sr.ht/~sircmpwn/git.sr.ht/graphql/loaders"
-	"git.sr.ht/~sircmpwn/git.sr.ht/graphql/graph"
-	"git.sr.ht/~sircmpwn/git.sr.ht/graphql/graph/generated"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/auth"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/generated"
 	"git.sr.ht/~sircmpwn/gqlgen/graphql/handler"
 	"git.sr.ht/~sircmpwn/gqlgen/graphql/playground"
 

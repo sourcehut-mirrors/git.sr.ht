@@ -6,13 +6,13 @@ import (
 	"sync"
 	"time"
 
-	"git.sr.ht/~sircmpwn/git.sr.ht/graphql/graph/model"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 )
 
-// RepositoriesByIDLoaderConfig captures the config to create a new RepositoriesByIDLoader
-type RepositoriesByIDLoaderConfig struct {
+// UserLoaderConfig captures the config to create a new UserLoader
+type UserLoaderConfig struct {
 	// Fetch is a method that provides the data for the loader
-	Fetch func(keys []int) ([]*model.Repository, []error)
+	Fetch func(keys []int) ([]*model.User, []error)
 
 	// Wait is how long wait before sending a batch
 	Wait time.Duration
@@ -21,19 +21,19 @@ type RepositoriesByIDLoaderConfig struct {
 	MaxBatch int
 }
 
-// NewRepositoriesByIDLoader creates a new RepositoriesByIDLoader given a fetch, wait, and maxBatch
-func NewRepositoriesByIDLoader(config RepositoriesByIDLoaderConfig) *RepositoriesByIDLoader {
-	return &RepositoriesByIDLoader{
+// NewUserLoader creates a new UserLoader given a fetch, wait, and maxBatch
+func NewUserLoader(config UserLoaderConfig) *UserLoader {
+	return &UserLoader{
 		fetch:    config.Fetch,
 		wait:     config.Wait,
 		maxBatch: config.MaxBatch,
 	}
 }
 
-// RepositoriesByIDLoader batches and caches requests
-type RepositoriesByIDLoader struct {
+// UserLoader batches and caches requests
+type UserLoader struct {
 	// this method provides the data for the loader
-	fetch func(keys []int) ([]*model.Repository, []error)
+	fetch func(keys []int) ([]*model.User, []error)
 
 	// how long to done before sending a batch
 	wait time.Duration
@@ -44,51 +44,51 @@ type RepositoriesByIDLoader struct {
 	// INTERNAL
 
 	// lazily created cache
-	cache map[int]*model.Repository
+	cache map[int]*model.User
 
 	// the current batch. keys will continue to be collected until timeout is hit,
 	// then everything will be sent to the fetch method and out to the listeners
-	batch *repositoriesByIDLoaderBatch
+	batch *userLoaderBatch
 
 	// mutex to prevent races
 	mu sync.Mutex
 }
 
-type repositoriesByIDLoaderBatch struct {
+type userLoaderBatch struct {
 	keys    []int
-	data    []*model.Repository
+	data    []*model.User
 	error   []error
 	closing bool
 	done    chan struct{}
 }
 
-// Load a Repository by key, batching and caching will be applied automatically
-func (l *RepositoriesByIDLoader) Load(key int) (*model.Repository, error) {
+// Load a User by key, batching and caching will be applied automatically
+func (l *UserLoader) Load(key int) (*model.User, error) {
 	return l.LoadThunk(key)()
 }
 
-// LoadThunk returns a function that when called will block waiting for a Repository.
+// LoadThunk returns a function that when called will block waiting for a User.
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
-func (l *RepositoriesByIDLoader) LoadThunk(key int) func() (*model.Repository, error) {
+func (l *UserLoader) LoadThunk(key int) func() (*model.User, error) {
 	l.mu.Lock()
 	if it, ok := l.cache[key]; ok {
 		l.mu.Unlock()
-		return func() (*model.Repository, error) {
+		return func() (*model.User, error) {
 			return it, nil
 		}
 	}
 	if l.batch == nil {
-		l.batch = &repositoriesByIDLoaderBatch{done: make(chan struct{})}
+		l.batch = &userLoaderBatch{done: make(chan struct{})}
 	}
 	batch := l.batch
 	pos := batch.keyIndex(l, key)
 	l.mu.Unlock()
 
-	return func() (*model.Repository, error) {
+	return func() (*model.User, error) {
 		<-batch.done
 
-		var data *model.Repository
+		var data *model.User
 		if pos < len(batch.data) {
 			data = batch.data[pos]
 		}
@@ -113,43 +113,43 @@ func (l *RepositoriesByIDLoader) LoadThunk(key int) func() (*model.Repository, e
 
 // LoadAll fetches many keys at once. It will be broken into appropriate sized
 // sub batches depending on how the loader is configured
-func (l *RepositoriesByIDLoader) LoadAll(keys []int) ([]*model.Repository, []error) {
-	results := make([]func() (*model.Repository, error), len(keys))
+func (l *UserLoader) LoadAll(keys []int) ([]*model.User, []error) {
+	results := make([]func() (*model.User, error), len(keys))
 
 	for i, key := range keys {
 		results[i] = l.LoadThunk(key)
 	}
 
-	repositorys := make([]*model.Repository, len(keys))
+	users := make([]*model.User, len(keys))
 	errors := make([]error, len(keys))
 	for i, thunk := range results {
-		repositorys[i], errors[i] = thunk()
+		users[i], errors[i] = thunk()
 	}
-	return repositorys, errors
+	return users, errors
 }
 
-// LoadAllThunk returns a function that when called will block waiting for a Repositorys.
+// LoadAllThunk returns a function that when called will block waiting for a Users.
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
-func (l *RepositoriesByIDLoader) LoadAllThunk(keys []int) func() ([]*model.Repository, []error) {
-	results := make([]func() (*model.Repository, error), len(keys))
+func (l *UserLoader) LoadAllThunk(keys []int) func() ([]*model.User, []error) {
+	results := make([]func() (*model.User, error), len(keys))
 	for i, key := range keys {
 		results[i] = l.LoadThunk(key)
 	}
-	return func() ([]*model.Repository, []error) {
-		repositorys := make([]*model.Repository, len(keys))
+	return func() ([]*model.User, []error) {
+		users := make([]*model.User, len(keys))
 		errors := make([]error, len(keys))
 		for i, thunk := range results {
-			repositorys[i], errors[i] = thunk()
+			users[i], errors[i] = thunk()
 		}
-		return repositorys, errors
+		return users, errors
 	}
 }
 
 // Prime the cache with the provided key and value. If the key already exists, no change is made
 // and false is returned.
 // (To forcefully prime the cache, clear the key first with loader.clear(key).prime(key, value).)
-func (l *RepositoriesByIDLoader) Prime(key int, value *model.Repository) bool {
+func (l *UserLoader) Prime(key int, value *model.User) bool {
 	l.mu.Lock()
 	var found bool
 	if _, found = l.cache[key]; !found {
@@ -163,22 +163,22 @@ func (l *RepositoriesByIDLoader) Prime(key int, value *model.Repository) bool {
 }
 
 // Clear the value at key from the cache, if it exists
-func (l *RepositoriesByIDLoader) Clear(key int) {
+func (l *UserLoader) Clear(key int) {
 	l.mu.Lock()
 	delete(l.cache, key)
 	l.mu.Unlock()
 }
 
-func (l *RepositoriesByIDLoader) unsafeSet(key int, value *model.Repository) {
+func (l *UserLoader) unsafeSet(key int, value *model.User) {
 	if l.cache == nil {
-		l.cache = map[int]*model.Repository{}
+		l.cache = map[int]*model.User{}
 	}
 	l.cache[key] = value
 }
 
 // keyIndex will return the location of the key in the batch, if its not found
 // it will add the key to the batch
-func (b *repositoriesByIDLoaderBatch) keyIndex(l *RepositoriesByIDLoader, key int) int {
+func (b *userLoaderBatch) keyIndex(l *UserLoader, key int) int {
 	for i, existingKey := range b.keys {
 		if key == existingKey {
 			return i
@@ -202,7 +202,7 @@ func (b *repositoriesByIDLoaderBatch) keyIndex(l *RepositoriesByIDLoader, key in
 	return pos
 }
 
-func (b *repositoriesByIDLoaderBatch) startTimer(l *RepositoriesByIDLoader) {
+func (b *userLoaderBatch) startTimer(l *UserLoader) {
 	time.Sleep(l.wait)
 	l.mu.Lock()
 
@@ -218,7 +218,7 @@ func (b *repositoriesByIDLoaderBatch) startTimer(l *RepositoriesByIDLoader) {
 	b.end(l)
 }
 
-func (b *repositoriesByIDLoaderBatch) end(l *RepositoriesByIDLoader) {
+func (b *userLoaderBatch) end(l *UserLoader) {
 	b.data, b.error = l.fetch(b.keys)
 	close(b.done)
 }

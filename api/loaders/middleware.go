@@ -9,7 +9,7 @@ import (
 
 	"github.com/lib/pq"
 
-	"git.sr.ht/~sircmpwn/git.sr.ht/graphql/graph/model"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 )
 
 var loadersCtxKey = &contextKey{"user"}
