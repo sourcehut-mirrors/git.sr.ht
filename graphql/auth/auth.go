@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
@@ -168,6 +169,12 @@ Expected 'Authentication: Bearer <token>'`, http.StatusForbidden)
 
 			if time.Now().UTC().After(token.Expires) {
 				authError(w, "Invalid or expired OAuth token", http.StatusForbidden)
+				return
+			}
+
+			if user.UserType == USER_SUSPENDED {
+				authError(w, fmt.Sprintf("Account suspended with the following notice: %s\nContact support",
+					user.SuspensionNotice), http.StatusForbidden)
 				return
 			}
 
