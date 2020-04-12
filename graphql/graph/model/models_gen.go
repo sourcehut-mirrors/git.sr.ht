@@ -9,6 +9,10 @@ import (
 	"time"
 )
 
+type BlobData interface {
+	IsBlobData()
+}
+
 type Entity interface {
 	IsEntity()
 }
@@ -31,13 +35,19 @@ type Artifact struct {
 	URL        string      `json:"url"`
 }
 
+type BinaryBlob struct {
+	Base64 string `json:"base64"`
+}
+
+func (BinaryBlob) IsBlobData() {}
+
 type Blob struct {
 	Type     ObjectType `json:"type"`
 	ID       string     `json:"id"`
 	ShortID  string     `json:"shortId"`
 	Raw      string     `json:"raw"`
 	BlobType BlobType   `json:"blobType"`
-	Data     *string    `json:"data"`
+	Data     BlobData   `json:"data"`
 }
 
 func (Blob) IsObject() {}
@@ -71,21 +81,11 @@ type Tag struct {
 
 func (Tag) IsObject() {}
 
-type Tree struct {
-	Type    ObjectType   `json:"type"`
-	ID      string       `json:"id"`
-	ShortID string       `json:"shortId"`
-	Raw     string       `json:"raw"`
-	Entries []*TreeEntry `json:"entries"`
+type TextBlob struct {
+	Text string `json:"text"`
 }
 
-func (Tree) IsObject() {}
-
-type TreeEntry struct {
-	Name   string `json:"name"`
-	Object Object `json:"object"`
-	Mode   int    `json:"mode"`
-}
+func (TextBlob) IsBlobData() {}
 
 type Version struct {
 	Major           int        `json:"major"`

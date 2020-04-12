@@ -18,6 +18,7 @@ func LookupObject(repo *git.Repository, hash plumbing.Hash) (Object, error) {
 	if err != nil {
 		return nil, fmt.Errorf("lookup object %s: %w", hash.String(), err)
 	}
+	// TODO: Add raw object data, if requested
 	switch obj := obj.(type) {
 	case *object.Commit:
 		return &Commit{
@@ -25,42 +26,20 @@ func LookupObject(repo *git.Repository, hash plumbing.Hash) (Object, error) {
 			ID:      obj.ID().String(),
 			ShortID: obj.ID().String()[:7],
 
-			commit:  obj,
+			commit: obj,
+			repo:   repo,
+		}, nil
+	case *object.Tree:
+		return &Tree{
+			Type:    ObjectTypeTree,
+			ID:      obj.ID().String(),
+			ShortID: obj.ID().String()[:7],
+
+			tree: obj,
+			repo: repo,
 		}, nil
 	default:
 		return nil, errors.New("Unknown object type")
 	}
 }
 
-type Commit struct {
-	Type      ObjectType `json:"type"`
-	ID        string     `json:"id"`
-	ShortID   string     `json:"shortId"`
-	Raw       string     `json:"raw"`
-	Tree      *Tree      `json:"tree"`
-	Parents   []*Commit  `json:"parents"`
-
-	commit *object.Commit
-}
-
-func (Commit) IsObject() {}
-
-func (c *Commit) Message() string {
-	return c.commit.Message
-}
-
-func (c *Commit) Author() *Signature {
-	return &Signature{
-		Name: c.commit.Author.Name,
-		Email: c.commit.Author.Email,
-		Time: c.commit.Author.When,
-	}
-}
-
-func (c *Commit) Committer() *Signature {
-	return &Signature{
-		Name: c.commit.Committer.Name,
-		Email: c.commit.Committer.Email,
-		Time: c.commit.Committer.When,
-	}
-}

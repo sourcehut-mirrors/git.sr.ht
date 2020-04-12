@@ -65,6 +65,10 @@ type ComplexityRoot struct {
 		URL        func(childComplexity int) int
 	}
 
+	BinaryBlob struct {
+		Base64 func(childComplexity int) int
+	}
+
 	Blob struct {
 		BlobType func(childComplexity int) int
 		Data     func(childComplexity int) int
@@ -148,8 +152,13 @@ type ComplexityRoot struct {
 		Type    func(childComplexity int) int
 	}
 
+	TextBlob struct {
+		Text func(childComplexity int) int
+	}
+
 	Tree struct {
-		Entries func(childComplexity int) int
+		Entries func(childComplexity int, count *int, next *string) int
+		Entry   func(childComplexity int, path string) int
 		ID      func(childComplexity int) int
 		Raw     func(childComplexity int) int
 		ShortID func(childComplexity int) int
@@ -157,6 +166,7 @@ type ComplexityRoot struct {
 	}
 
 	TreeEntry struct {
+		ID     func(childComplexity int) int
 		Mode   func(childComplexity int) int
 		Name   func(childComplexity int) int
 		Object func(childComplexity int) int
@@ -308,6 +318,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Artifact.URL(childComplexity), true
+
+	case "BinaryBlob.base64":
+		if e.complexity.BinaryBlob.Base64 == nil {
+			break
+		}
+
+		return e.complexity.BinaryBlob.Base64(childComplexity), true
 
 	case "Blob.blobType":
 		if e.complexity.Blob.BlobType == nil {
@@ -817,12 +834,36 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Tag.Type(childComplexity), true
 
+	case "TextBlob.text":
+		if e.complexity.TextBlob.Text == nil {
+			break
+		}
+
+		return e.complexity.TextBlob.Text(childComplexity), true
+
 	case "Tree.entries":
 		if e.complexity.Tree.Entries == nil {
 			break
 		}
 
-		return e.complexity.Tree.Entries(childComplexity), true
+		args, err := ec.field_Tree_entries_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Tree.Entries(childComplexity, args["count"].(*int), args["next"].(*string)), true
+
+	case "Tree.entry":
+		if e.complexity.Tree.Entry == nil {
+			break
+		}
+
+		args, err := ec.field_Tree_entry_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Tree.Entry(childComplexity, args["path"].(string)), true
 
 	case "Tree.id":
 		if e.complexity.Tree.ID == nil {
@@ -851,6 +892,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Tree.Type(childComplexity), true
+
+	case "TreeEntry.id":
+		if e.complexity.TreeEntry.ID == nil {
+			break
+		}
+
+		return e.complexity.TreeEntry.ID(childComplexity), true
 
 	case "TreeEntry.mode":
 		if e.complexity.TreeEntry.Mode == nil {
@@ -1219,10 +1267,13 @@ type Tree implements Object {
   id: String!
   shortId: String!
   raw: String!
-  entries: [TreeEntry!]!
+  entries(count: Int = 100, next: String): [TreeEntry!]!
+
+  entry(path: String): TreeEntry
 }
 
 type TreeEntry {
+  id: String!
   name: String!
   object: Object!
   # Unix-style file mode, i.e. 0755 or 0644 (octal)
@@ -1234,15 +1285,23 @@ enum BlobType {
   TEXT
 }
 
+type BinaryBlob {
+  base64: String!
+}
+
+type TextBlob {
+  text: String!
+}
+
+union BlobData = BinaryBlob | TextBlob
+
 type Blob implements Object {
   type: ObjectType!
   id: String!
   shortId: String!
   raw: String!
   blobType: BlobType!
-  # If blobType is BINARY, this will be base64 encoded; otherwise it will be
-  # the blob's text contents verbatim
-  data: String
+  data: BlobData
 }
 
 type Tag implements Object {
@@ -1720,6 +1779,42 @@ func (ec *executionContext) field_Repository_tree_args(ctx context.Context, rawA
 	return args, nil
 }
 
+func (ec *executionContext) field_Tree_entries_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *int
+	if tmp, ok := rawArgs["count"]; ok {
+		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["count"] = arg0
+	var arg1 *string
+	if tmp, ok := rawArgs["next"]; ok {
+		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["next"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Tree_entry_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["path"]; ok {
+		arg0, err = ec.unmarshalOString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["path"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_User_repositories_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -2191,6 +2286,40 @@ func (ec *executionContext) _Artifact_url(ctx context.Context, field graphql.Col
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _BinaryBlob_base64(ctx context.Context, field graphql.CollectedField, obj *model.BinaryBlob) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "BinaryBlob",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Base64, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Blob_type(ctx context.Context, field graphql.CollectedField, obj *model.Blob) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2387,9 +2516,9 @@ func (ec *executionContext) _Blob_data(ctx context.Context, field graphql.Collec
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*string)
+	res := resTmp.(model.BlobData)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalOBlobData2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐBlobData(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Commit_type(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
@@ -2641,13 +2770,13 @@ func (ec *executionContext) _Commit_tree(ctx context.Context, field graphql.Coll
 		Object:   "Commit",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Tree, nil
+		return obj.Tree(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4360,6 +4489,40 @@ func (ec *executionContext) _Tag_message(ctx context.Context, field graphql.Coll
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _TextBlob_text(ctx context.Context, field graphql.CollectedField, obj *model.TextBlob) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "TextBlob",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Text, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Tree_type(ctx context.Context, field graphql.CollectedField, obj *model.Tree) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4507,13 +4670,20 @@ func (ec *executionContext) _Tree_entries(ctx context.Context, field graphql.Col
 		Object:   "Tree",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Tree_entries_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Entries, nil
+		return obj.Entries(args["count"].(*int), args["next"].(*string)), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4528,6 +4698,78 @@ func (ec *executionContext) _Tree_entries(ctx context.Context, field graphql.Col
 	res := resTmp.([]*model.TreeEntry)
 	fc.Result = res
 	return ec.marshalNTreeEntry2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐTreeEntryᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Tree_entry(ctx context.Context, field graphql.CollectedField, obj *model.Tree) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Tree",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Tree_entry_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Entry(args["path"].(string)), nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.TreeEntry)
+	fc.Result = res
+	return ec.marshalOTreeEntry2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐTreeEntry(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TreeEntry_id(ctx context.Context, field graphql.CollectedField, obj *model.TreeEntry) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "TreeEntry",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID(), nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TreeEntry_name(ctx context.Context, field graphql.CollectedField, obj *model.TreeEntry) (ret graphql.Marshaler) {
@@ -4575,13 +4817,13 @@ func (ec *executionContext) _TreeEntry_object(ctx context.Context, field graphql
 		Object:   "TreeEntry",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Object, nil
+		return obj.Object(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6210,6 +6452,29 @@ func (ec *executionContext) unmarshalInputRepoInput(ctx context.Context, obj int
 
 // region    ************************** interface.gotpl ***************************
 
+func (ec *executionContext) _BlobData(ctx context.Context, sel ast.SelectionSet, obj model.BlobData) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case model.BinaryBlob:
+		return ec._BinaryBlob(ctx, sel, &obj)
+	case *model.BinaryBlob:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._BinaryBlob(ctx, sel, obj)
+	case model.TextBlob:
+		return ec._TextBlob(ctx, sel, &obj)
+	case *model.TextBlob:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._TextBlob(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
 func (ec *executionContext) _Entity(ctx context.Context, sel ast.SelectionSet, obj model.Entity) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
@@ -6354,6 +6619,33 @@ func (ec *executionContext) _Artifact(ctx context.Context, sel ast.SelectionSet,
 			}
 		case "url":
 			out.Values[i] = ec._Artifact_url(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var binaryBlobImplementors = []string{"BinaryBlob", "BlobData"}
+
+func (ec *executionContext) _BinaryBlob(ctx context.Context, sel ast.SelectionSet, obj *model.BinaryBlob) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, binaryBlobImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BinaryBlob")
+		case "base64":
+			out.Values[i] = ec._BinaryBlob_base64(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -6893,6 +7185,33 @@ func (ec *executionContext) _Tag(ctx context.Context, sel ast.SelectionSet, obj 
 	return out
 }
 
+var textBlobImplementors = []string{"TextBlob", "BlobData"}
+
+func (ec *executionContext) _TextBlob(ctx context.Context, sel ast.SelectionSet, obj *model.TextBlob) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, textBlobImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TextBlob")
+		case "text":
+			out.Values[i] = ec._TextBlob_text(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var treeImplementors = []string{"Tree", "Object"}
 
 func (ec *executionContext) _Tree(ctx context.Context, sel ast.SelectionSet, obj *model.Tree) graphql.Marshaler {
@@ -6929,6 +7248,8 @@ func (ec *executionContext) _Tree(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "entry":
+			out.Values[i] = ec._Tree_entry(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -6951,6 +7272,11 @@ func (ec *executionContext) _TreeEntry(ctx context.Context, sel ast.SelectionSet
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("TreeEntry")
+		case "id":
+			out.Values[i] = ec._TreeEntry_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "name":
 			out.Values[i] = ec._TreeEntry_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -8130,6 +8456,13 @@ func (ec *executionContext) marshalOBlob2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗs
 	return ec._Blob(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalOBlobData2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐBlobData(ctx context.Context, sel ast.SelectionSet, v model.BlobData) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._BlobData(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	return graphql.UnmarshalBoolean(v)
 }
@@ -8327,6 +8660,17 @@ func (ec *executionContext) marshalOTree2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗs
 		return graphql.Null
 	}
 	return ec._Tree(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOTreeEntry2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐTreeEntry(ctx context.Context, sel ast.SelectionSet, v model.TreeEntry) graphql.Marshaler {
+	return ec._TreeEntry(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOTreeEntry2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐTreeEntry(ctx context.Context, sel ast.SelectionSet, v *model.TreeEntry) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._TreeEntry(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOUser2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {

@@ -177,10 +177,13 @@ type Tree implements Object {
   id: String!
   shortId: String!
   raw: String!
-  entries: [TreeEntry!]!
+  entries(count: Int = 100, next: String): [TreeEntry!]!
+
+  entry(path: String): TreeEntry
 }
 
 type TreeEntry {
+  id: String!
   name: String!
   object: Object!
   # Unix-style file mode, i.e. 0755 or 0644 (octal)
@@ -192,15 +195,23 @@ enum BlobType {
   TEXT
 }
 
+type BinaryBlob {
+  base64: String!
+}
+
+type TextBlob {
+  text: String!
+}
+
+union BlobData = BinaryBlob | TextBlob
+
 type Blob implements Object {
   type: ObjectType!
   id: String!
   shortId: String!
   raw: String!
   blobType: BlobType!
-  # If blobType is BINARY, this will be base64 encoded; otherwise it will be
-  # the blob's text contents verbatim
-  data: String
+  data: BlobData
 }
 
 type Tag implements Object {
