@@ -1,8 +1,10 @@
 package loaders
 
 //go:generate ./gen RepositoriesByIDLoader int api/graph/model.Repository
-//go:generate ./gen UsersByNameLoader string api/graph/model.User
+//go:generate ./gen RepositoriesByNameLoader string api/graph/model.Repository
+//go:generate ./gen RepositoriesByOwnerRepoNameLoader [2]string api/graph/model.Repository
 //go:generate ./gen UsersByIDLoader int api/graph/model.User
+//go:generate ./gen UsersByNameLoader string api/graph/model.User
 
 import (
 	"context"
@@ -23,9 +25,11 @@ type contextKey struct {
 }
 
 type Loaders struct {
-	UsersByID        UsersByIDLoader
-	UsersByName      UsersByNameLoader
-	RepositoriesByID RepositoriesByIDLoader
+	UsersByID                   UsersByIDLoader
+	UsersByName                 UsersByNameLoader
+	RepositoriesByID            RepositoriesByIDLoader
+	RepositoriesByName          RepositoriesByNameLoader
+	RepositoriesByOwnerRepoName RepositoriesByOwnerRepoNameLoader
 }
 
 func fetchUsersByID(ctx context.Context,
@@ -143,6 +147,98 @@ func fetchRepositoriesByID(ctx context.Context,
 	}
 }
 
+func fetchRepositoriesByName(ctx context.Context,
+	db *sql.DB) func (names []string) ([]*model.Repository, []error) {
+	return func (names []string) ([]*model.Repository, []error) {
+		var (
+			err  error
+			rows *sql.Rows
+		)
+		if rows, err = db.QueryContext(ctx, `
+			SELECT DISTINCT `+(&model.Repository{}).Columns(ctx, "repo")+`
+			FROM repository repo
+			WHERE repo.name = ANY($2) AND repo.owner_id = $1
+			`, auth.ForContext(ctx).ID, pq.Array(names)); err != nil {
+			panic(err)
+		}
+		defer rows.Close()
+
+		reposByName := map[string]*model.Repository{}
+		for rows.Next() {
+			repo := model.Repository{}
+			if err := rows.Scan(repo.Fields(ctx)...); err != nil {
+				panic(err)
+			}
+			reposByName[repo.Name] = &repo
+		}
+		if err = rows.Err(); err != nil {
+			panic(err)
+		}
+
+		repos := make([]*model.Repository, len(names))
+		for i, name := range names {
+			repos[i] = reposByName[name]
+		}
+
+		return repos, nil
+	}
+}
+
+func fetchRepositoriesByOwnerRepoName(ctx context.Context,
+	db *sql.DB) func (names [][2]string) ([]*model.Repository, []error) {
+	return func (names [][2]string) ([]*model.Repository, []error) {
+		var (
+			err    error
+			rows   *sql.Rows
+			_names []string = make([]string, len(names))
+		)
+		for i, name := range names {
+			// This is a hack, but it works around limitations with PostgreSQL
+			// and is guaranteed to work because / is invalid in both usernames
+			// and repo names
+			_names[i] = name[0] + "/" + name[1]
+		}
+		if rows, err = db.QueryContext(ctx, `
+			SELECT DISTINCT `+(&model.Repository{}).Columns(ctx, "repo")+`,
+				u.username
+			FROM repository repo
+			JOIN
+				"user" u ON repo.owner_id = u.id
+			FULL OUTER JOIN
+				access ON repo.id = access.repo_id
+			WHERE
+				u.username || '/' || repo.name = ANY($2)
+				AND (access.user_id = $1
+					OR repo.owner_id = $1
+					OR repo.visibility != 'private')
+			`, auth.ForContext(ctx).ID, pq.Array(_names)); err != nil {
+			panic(err)
+		}
+		defer rows.Close()
+
+		reposByOwnerRepoName := map[[2]string]*model.Repository{}
+		for rows.Next() {
+			var ownerName string
+			repo := model.Repository{}
+			if err := rows.Scan(append(
+				repo.Fields(ctx), &ownerName)...); err != nil {
+				panic(err)
+			}
+			reposByOwnerRepoName[[2]string{ownerName, repo.Name}] = &repo
+		}
+		if err = rows.Err(); err != nil {
+			panic(err)
+		}
+
+		repos := make([]*model.Repository, len(names))
+		for i, name := range names {
+			repos[i] = reposByOwnerRepoName[name]
+		}
+
+		return repos, nil
+	}
+}
+
 func Middleware(db *sql.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -161,6 +257,16 @@ func Middleware(db *sql.DB) func(http.Handler) http.Handler {
 					maxBatch: 100,
 					wait: 1 * time.Millisecond,
 					fetch: fetchRepositoriesByID(r.Context(), db),
+				},
+				RepositoriesByName: RepositoriesByNameLoader{
+					maxBatch: 100,
+					wait: 1 * time.Millisecond,
+					fetch: fetchRepositoriesByName(r.Context(), db),
+				},
+				RepositoriesByOwnerRepoName: RepositoriesByOwnerRepoNameLoader{
+					maxBatch: 100,
+					wait: 1 * time.Millisecond,
+					fetch: fetchRepositoriesByOwnerRepoName(r.Context(), db),
 				},
 			})
 			r = r.WithContext(ctx)

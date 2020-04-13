@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"fmt"
 	"sort"
+	"strings"
 
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/auth"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/generated"
@@ -81,11 +82,17 @@ func (r *queryResolver) Repository(ctx context.Context, id int) (*model.Reposito
 }
 
 func (r *queryResolver) RepositoryByName(ctx context.Context, name string) (*model.Repository, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).RepositoriesByName.Load(name)
 }
 
 func (r *queryResolver) RepositoryByOwner(ctx context.Context, owner string, repo string) (*model.Repository, error) {
-	panic(fmt.Errorf("not implemented"))
+	if strings.HasPrefix(owner, "~") {
+		owner = owner[1:]
+	} else {
+		return nil, fmt.Errorf("Expected owner to be a canonical name")
+	}
+	return loaders.ForContext(ctx).
+		RepositoriesByOwnerRepoName.Load([2]string{owner, repo})
 }
 
 func (r *repositoryResolver) Owner(ctx context.Context, obj *model.Repository) (model.Entity, error) {
