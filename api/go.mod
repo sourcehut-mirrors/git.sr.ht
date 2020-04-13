@@ -3,6 +3,7 @@ module git.sr.ht/~sircmpwn/git.sr.ht/api
 go 1.14
 
 require (
+	git.sr.ht/~sircmpwn/getopt v0.0.0-20191230200459-23622cc906b3 // indirect
 	git.sr.ht/~sircmpwn/gqlgen v0.0.0-20200412134447-57d7234737d4
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/go-chi/chi v3.3.2+incompatible
