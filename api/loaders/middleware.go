@@ -24,12 +24,12 @@ type contextKey struct {
 
 type Loaders struct {
 	UsersByID        UsersByIDLoader
+	UsersByName      UsersByNameLoader
 	RepositoriesByID RepositoriesByIDLoader
 }
 
 func fetchUsersByID(ctx context.Context,
 	db *sql.DB) func (ids []int) ([]*model.User, []error) {
-
 	return func (ids []int) ([]*model.User, []error) {
 		var (
 			err  error
@@ -64,9 +64,44 @@ func fetchUsersByID(ctx context.Context,
 	}
 }
 
+func fetchUsersByName(ctx context.Context,
+	db *sql.DB) func (names []string) ([]*model.User, []error) {
+	return func (names []string) ([]*model.User, []error) {
+		var (
+			err  error
+			rows *sql.Rows
+		)
+		if rows, err = db.QueryContext(ctx,`
+			SELECT `+(&model.User{}).Columns(ctx, "u")+`
+			FROM "user" u
+			WHERE u.username = ANY($1)`, pq.Array(names)); err != nil {
+			panic(err)
+		}
+		defer rows.Close()
+
+		usersByName := map[string]*model.User{}
+		for rows.Next() {
+			user := model.User{}
+			if err := rows.Scan(user.Fields(ctx)...); err != nil {
+				panic(err)
+			}
+			usersByName[user.Username] = &user
+		}
+		if err = rows.Err(); err != nil {
+			panic(err)
+		}
+
+		users := make([]*model.User, len(names))
+		for i, name := range names {
+			users[i] = usersByName[name]
+		}
+
+		return users, nil
+	}
+}
+
 func fetchRepositoriesByID(ctx context.Context,
 	db *sql.DB) func (ids []int) ([]*model.Repository, []error) {
-
 	return func (ids []int) ([]*model.Repository, []error) {
 		var (
 			err  error
@@ -116,6 +151,11 @@ func Middleware(db *sql.DB) func(http.Handler) http.Handler {
 					maxBatch: 100,
 					wait: 1 * time.Millisecond,
 					fetch: fetchUsersByID(r.Context(), db),
+				},
+				UsersByName: UsersByNameLoader{
+					maxBatch: 100,
+					wait: 1 * time.Millisecond,
+					fetch: fetchUsersByName(r.Context(), db),
 				},
 				RepositoriesByID: RepositoriesByIDLoader{
 					maxBatch: 100,

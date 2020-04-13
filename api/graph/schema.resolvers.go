@@ -69,7 +69,7 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 }
 
 func (r *queryResolver) User(ctx context.Context, username string) (*model.User, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).UsersByName.Load(username)
 }
 
 func (r *queryResolver) Repositories(ctx context.Context, next *int, filter *model.FilterBy) ([]*model.Repository, error) {
