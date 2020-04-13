@@ -199,19 +199,24 @@ func fetchRepositoriesByOwnerRepoName(ctx context.Context,
 			_names[i] = name[0] + "/" + name[1]
 		}
 		if rows, err = db.QueryContext(ctx, `
-			SELECT DISTINCT `+(&model.Repository{}).Columns(ctx, "repo")+`,
+			WITH user_repo AS (
+				SELECT
+					substring(un for position('/' in un)-1) AS owner,
+					substring(un from position('/' in un)+1) AS repo
+				FROM unnest($2::text[]) un
+			)
+			SELECT DISTINCT
+				`+(&model.Repository{}).Columns(ctx, "repo")+`,
 				u.username
-			FROM repository repo
-			JOIN
-				"user" u ON repo.owner_id = u.id
-			FULL OUTER JOIN
-				access ON repo.id = access.repo_id
+			FROM user_repo ur
+			JOIN "user" u ON ur.owner = u.username
+			JOIN repository repo ON ur.repo = repo.name AND u.id = repo.owner_id
+			LEFT JOIN access ON repo.id = access.repo_id
 			WHERE
-				u.username || '/' || repo.name = ANY($2)
-				AND (access.user_id = $1
-					OR repo.owner_id = $1
-					OR repo.visibility != 'private')
-			`, auth.ForContext(ctx).ID, pq.Array(_names)); err != nil {
+				access.user_id = $1
+				OR repo.owner_id = $1
+				OR repo.visibility != 'private'`,
+			auth.ForContext(ctx).ID, pq.Array(_names)); err != nil {
 			panic(err)
 		}
 		defer rows.Close()
