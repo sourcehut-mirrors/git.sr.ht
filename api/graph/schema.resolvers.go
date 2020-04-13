@@ -92,6 +92,10 @@ func (r *repositoryResolver) Owner(ctx context.Context, obj *model.Repository) (
 	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
 }
 
+func (r *repositoryResolver) AccessControlList(ctx context.Context, obj *model.Repository, count *int, next *int) ([]*model.ACL, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *repositoryResolver) References(ctx context.Context, obj *model.Repository, count *int, next *string, glob *string) ([]*model.Reference, error) {
 	iter, err := obj.Repo().References()
 	if err != nil {
@@ -130,14 +134,7 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, count 
 		rows *sql.Rows
 	)
 	if rows, err = r.DB.QueryContext(ctx, `
-			SELECT
-				repo.id,
-				repo.created, repo.updated,
-				repo.name, repo.description,
-				repo.owner_id,
-				repo.path,
-				repo.visibility,
-				repo.upstream_uri
+			SELECT `+(&model.Repository{}).Columns(ctx, "repo")+`
 			FROM repository repo
 			WHERE
 				repo.owner_id = $1
@@ -151,13 +148,7 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, count 
 	var repos []*model.Repository
 	for rows.Next() {
 		var repo model.Repository
-		if err := rows.Scan(&repo.ID,
-			&repo.Created, &repo.Updated,
-			&repo.Name, &repo.Description,
-			&repo.OwnerID,
-			&repo.Path,
-			&repo.Visibility,
-			&repo.UpstreamURL); err != nil {
+		if err := rows.Scan(repo.Fields(ctx)...); err != nil {
 			panic(err)
 		}
 		repos = append(repos, &repo)

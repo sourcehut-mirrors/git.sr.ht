@@ -47,17 +47,6 @@ type User struct {
 	SuspensionNotice *string
 }
 
-type OAuthToken struct {
-	Id           int
-	Created      time.Time
-	Updated      time.Time
-	Expires      time.Time
-	UserId       int
-	TokenHash    string
-	TokenPartial string
-	Scopes       string
-}
-
 func authError(w http.ResponseWriter, reason string, code int) {
 	gqlerr := gqlerror.Errorf("Authentication error: %s", reason)
 	b, err := json.Marshal(gqlerr)
@@ -108,20 +97,15 @@ Expected 'Authentication: Bearer <token>'`, http.StatusForbidden)
 			}
 
 			var (
-				token  OAuthToken
-				user   User
-			)
-
-			var (
-				err  error
-				rows *sql.Rows
+				err     error
+				expires time.Time
+				rows    *sql.Rows
+				scopes  string
+				user    User
 			)
 			if rows, err = db.Query(`
 					SELECT
-						ot.id,
-						ot.created, ot.updated, ot.expires,
-						ot.user_id,
-						ot.token_hash, ot.token_partial,
+						ot.expires,
 						ot.scopes,
 						u.id, u.username,
 						u.created, u.updated,
@@ -145,11 +129,7 @@ Expected 'Authentication: Bearer <token>'`, http.StatusForbidden)
 				authError(w, "Invalid or expired OAuth token", http.StatusForbidden)
 				return
 			}
-			if err := rows.Scan(&token.Id,
-				&token.Created, &token.Updated, &token.Expires,
-				&token.UserId,
-				&token.TokenHash, &token.TokenPartial,
-				&token.Scopes,
+			if err := rows.Scan(&expires, &scopes,
 				&user.Id, &user.Username,
 				&user.Created, &user.Updated,
 				&user.Email,
@@ -167,7 +147,7 @@ Expected 'Authentication: Bearer <token>'`, http.StatusForbidden)
 				panic(errors.New("Multiple matching OAuth tokens; invariant broken"))
 			}
 
-			if time.Now().UTC().After(token.Expires) {
+			if time.Now().UTC().After(expires) {
 				authError(w, "Invalid or expired OAuth token", http.StatusForbidden)
 				return
 			}
@@ -178,6 +158,7 @@ Expected 'Authentication: Bearer <token>'`, http.StatusForbidden)
 				return
 			}
 
+			// TODO: Validate scopes
 			ctx := context.WithValue(r.Context(), userCtxKey, &user)
 
 			r = r.WithContext(ctx)

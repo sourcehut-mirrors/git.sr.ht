@@ -1,6 +1,8 @@
 package model
 
 import (
+	"context"
+	"strings"
 	"time"
 
 	"github.com/go-git/go-git/v5"
@@ -14,7 +16,6 @@ type Repository struct {
 	Description       *string      `json:"description"`
 	Visibility        Visibility   `json:"visibility"`
 	UpstreamURL       *string      `json:"upstreamUrl"`
-	AccessControlList []*ACL       `json:"accessControlList"`
 	Objects           []Object     `json:"objects"`
 	Log               []*Commit    `json:"log"`
 	Tree              *Tree        `json:"tree"`
@@ -27,28 +28,30 @@ type Repository struct {
 	repo    *git.Repository
 }
 
-func (r *Repository) Rows() string {
-	return `
-		repo.id,
-		repo.created, repo.updated,
-		repo.name, repo.description,
-		repo.visibility,
-		repo.upstream_uri,
-		repo.path,
-		repo.owner_id
-	`
+func (r *Repository) Columns(ctx context.Context, tbl string) string {
+	columns := ColumnsFor(ctx, map[string]string{
+		"id": "id",
+		"created": "created",
+		"updated": "updated",
+		"name": "name",
+		"description": "description",
+		"visibility": "visibility",
+		"upstreamUrl": "upstream_uri",
+	}, tbl)
+	return strings.Join(append(columns, tbl + ".path", tbl + ".owner_id"), ", ")
 }
 
-func (r *Repository) Fields() []interface{} {
-	return []interface{}{
-		&r.ID,
-		&r.Created, &r.Updated,
-		&r.Name, &r.Description,
-		&r.Visibility,
-		&r.UpstreamURL,
-		&r.Path,
-		&r.OwnerID,
-	}
+func (r *Repository) Fields(ctx context.Context) []interface{} {
+	fields := FieldsFor(ctx, map[string]interface{}{
+		"id": &r.ID,
+		"created": &r.Created,
+		"updated": &r.Updated,
+		"name": &r.Name,
+		"description": &r.Description,
+		"visibility": &r.Visibility,
+		"upstream_url": &r.UpstreamURL,
+	})
+	return append(fields, &r.Path, &r.OwnerID)
 }
 
 func (r *Repository) Repo() *git.Repository {

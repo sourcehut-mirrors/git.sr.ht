@@ -74,7 +74,7 @@ type Repository {
   upstreamUrl: String
 
   # Returns access control list entries for this repository
-  accessControlList(count: Int = 10, from: Int): [ACL]!
+  accessControlList(count: Int = 10, next: Int): [ACL]!
 
   ## Plumbing API:
 

@@ -117,7 +117,7 @@ type ComplexityRoot struct {
 	}
 
 	Repository struct {
-		AccessControlList func(childComplexity int, count *int, from *int) int
+		AccessControlList func(childComplexity int, count *int, next *int) int
 		Created           func(childComplexity int) int
 		Description       func(childComplexity int) int
 		File              func(childComplexity int, revspec *string, path string) int
@@ -214,6 +214,7 @@ type QueryResolver interface {
 type RepositoryResolver interface {
 	Owner(ctx context.Context, obj *model.Repository) (model.Entity, error)
 
+	AccessControlList(ctx context.Context, obj *model.Repository, count *int, next *int) ([]*model.ACL, error)
 	References(ctx context.Context, obj *model.Repository, count *int, next *string, glob *string) ([]*model.Reference, error)
 }
 type UserResolver interface {
@@ -620,7 +621,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Repository.AccessControlList(childComplexity, args["count"].(*int), args["from"].(*int)), true
+		return e.complexity.Repository.AccessControlList(childComplexity, args["count"].(*int), args["next"].(*int)), true
 
 	case "Repository.created":
 		if e.complexity.Repository.Created == nil {
@@ -1164,7 +1165,7 @@ type Repository {
   upstreamUrl: String
 
   # Returns access control list entries for this repository
-  accessControlList(count: Int = 10, from: Int): [ACL]!
+  accessControlList(count: Int = 10, next: Int): [ACL]!
 
   ## Plumbing API:
 
@@ -1395,7 +1396,7 @@ func (ec *executionContext) field_Mutation_createRepository_args(ctx context.Con
 	args := map[string]interface{}{}
 	var arg0 *model.RepoInput
 	if tmp, ok := rawArgs["params"]; ok {
-		arg0, err = ec.unmarshalORepoInput2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepoInput(ctx, tmp)
+		arg0, err = ec.unmarshalORepoInput2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepoInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1467,7 +1468,7 @@ func (ec *executionContext) field_Mutation_updateACL_args(ctx context.Context, r
 	args["repoId"] = arg0
 	var arg1 model.AccessMode
 	if tmp, ok := rawArgs["mode"]; ok {
-		arg1, err = ec.unmarshalNAccessMode2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐAccessMode(ctx, tmp)
+		arg1, err = ec.unmarshalNAccessMode2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessMode(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1497,7 +1498,7 @@ func (ec *executionContext) field_Mutation_updateRepository_args(ctx context.Con
 	args["id"] = arg0
 	var arg1 *model.RepoInput
 	if tmp, ok := rawArgs["params"]; ok {
-		arg1, err = ec.unmarshalORepoInput2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepoInput(ctx, tmp)
+		arg1, err = ec.unmarshalORepoInput2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepoInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1563,7 +1564,7 @@ func (ec *executionContext) field_Query_repositories_args(ctx context.Context, r
 	args["next"] = arg0
 	var arg1 *model.FilterBy
 	if tmp, ok := rawArgs["filter"]; ok {
-		arg1, err = ec.unmarshalOFilterBy2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐFilterBy(ctx, tmp)
+		arg1, err = ec.unmarshalOFilterBy2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐFilterBy(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1648,13 +1649,13 @@ func (ec *executionContext) field_Repository_accessControlList_args(ctx context.
 	}
 	args["count"] = arg0
 	var arg1 *int
-	if tmp, ok := rawArgs["from"]; ok {
+	if tmp, ok := rawArgs["next"]; ok {
 		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["from"] = arg1
+	args["next"] = arg1
 	return args, nil
 }
 
@@ -1839,7 +1840,7 @@ func (ec *executionContext) field_User_repositories_args(ctx context.Context, ra
 	args["next"] = arg1
 	var arg2 *model.FilterBy
 	if tmp, ok := rawArgs["filter"]; ok {
-		arg2, err = ec.unmarshalOFilterBy2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐFilterBy(ctx, tmp)
+		arg2, err = ec.unmarshalOFilterBy2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐFilterBy(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1983,7 +1984,7 @@ func (ec *executionContext) _ACL_repository(ctx context.Context, field graphql.C
 	}
 	res := resTmp.(*model.Repository)
 	fc.Result = res
-	return ec.marshalNRepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
+	return ec.marshalNRepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ACL_entity(ctx context.Context, field graphql.CollectedField, obj *model.ACL) (ret graphql.Marshaler) {
@@ -2017,7 +2018,7 @@ func (ec *executionContext) _ACL_entity(ctx context.Context, field graphql.Colle
 	}
 	res := resTmp.(model.Entity)
 	fc.Result = res
-	return ec.marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐEntity(ctx, field.Selections, res)
+	return ec.marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ACL_mode(ctx context.Context, field graphql.CollectedField, obj *model.ACL) (ret graphql.Marshaler) {
@@ -2048,7 +2049,7 @@ func (ec *executionContext) _ACL_mode(ctx context.Context, field graphql.Collect
 	}
 	res := resTmp.(*model.AccessMode)
 	fc.Result = res
-	return ec.marshalOAccessMode2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐAccessMode(ctx, field.Selections, res)
+	return ec.marshalOAccessMode2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessMode(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Artifact_id(ctx context.Context, field graphql.CollectedField, obj *model.Artifact) (ret graphql.Marshaler) {
@@ -2150,7 +2151,7 @@ func (ec *executionContext) _Artifact_repository(ctx context.Context, field grap
 	}
 	res := resTmp.(*model.Repository)
 	fc.Result = res
-	return ec.marshalNRepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
+	return ec.marshalNRepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Artifact_filename(ctx context.Context, field graphql.CollectedField, obj *model.Artifact) (ret graphql.Marshaler) {
@@ -2354,7 +2355,7 @@ func (ec *executionContext) _Blob_type(ctx context.Context, field graphql.Collec
 	}
 	res := resTmp.(model.ObjectType)
 	fc.Result = res
-	return ec.marshalNObjectType2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐObjectType(ctx, field.Selections, res)
+	return ec.marshalNObjectType2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐObjectType(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Blob_id(ctx context.Context, field graphql.CollectedField, obj *model.Blob) (ret graphql.Marshaler) {
@@ -2490,7 +2491,7 @@ func (ec *executionContext) _Blob_blobType(ctx context.Context, field graphql.Co
 	}
 	res := resTmp.(model.BlobType)
 	fc.Result = res
-	return ec.marshalNBlobType2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐBlobType(ctx, field.Selections, res)
+	return ec.marshalNBlobType2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐBlobType(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Blob_data(ctx context.Context, field graphql.CollectedField, obj *model.Blob) (ret graphql.Marshaler) {
@@ -2521,7 +2522,7 @@ func (ec *executionContext) _Blob_data(ctx context.Context, field graphql.Collec
 	}
 	res := resTmp.(model.BlobData)
 	fc.Result = res
-	return ec.marshalOBlobData2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐBlobData(ctx, field.Selections, res)
+	return ec.marshalOBlobData2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐBlobData(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Commit_type(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
@@ -2555,7 +2556,7 @@ func (ec *executionContext) _Commit_type(ctx context.Context, field graphql.Coll
 	}
 	res := resTmp.(model.ObjectType)
 	fc.Result = res
-	return ec.marshalNObjectType2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐObjectType(ctx, field.Selections, res)
+	return ec.marshalNObjectType2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐObjectType(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Commit_id(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
@@ -2691,7 +2692,7 @@ func (ec *executionContext) _Commit_author(ctx context.Context, field graphql.Co
 	}
 	res := resTmp.(*model.Signature)
 	fc.Result = res
-	return ec.marshalNSignature2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐSignature(ctx, field.Selections, res)
+	return ec.marshalNSignature2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSignature(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Commit_committer(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
@@ -2725,7 +2726,7 @@ func (ec *executionContext) _Commit_committer(ctx context.Context, field graphql
 	}
 	res := resTmp.(*model.Signature)
 	fc.Result = res
-	return ec.marshalNSignature2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐSignature(ctx, field.Selections, res)
+	return ec.marshalNSignature2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSignature(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Commit_message(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
@@ -2793,7 +2794,7 @@ func (ec *executionContext) _Commit_tree(ctx context.Context, field graphql.Coll
 	}
 	res := resTmp.(*model.Tree)
 	fc.Result = res
-	return ec.marshalNTree2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐTree(ctx, field.Selections, res)
+	return ec.marshalNTree2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTree(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Commit_parents(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
@@ -2827,7 +2828,7 @@ func (ec *executionContext) _Commit_parents(ctx context.Context, field graphql.C
 	}
 	res := resTmp.([]*model.Commit)
 	fc.Result = res
-	return ec.marshalNCommit2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐCommitᚄ(ctx, field.Selections, res)
+	return ec.marshalNCommit2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCommitᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createRepository(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2868,7 +2869,7 @@ func (ec *executionContext) _Mutation_createRepository(ctx context.Context, fiel
 	}
 	res := resTmp.(*model.Repository)
 	fc.Result = res
-	return ec.marshalNRepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
+	return ec.marshalNRepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_updateRepository(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2909,7 +2910,7 @@ func (ec *executionContext) _Mutation_updateRepository(ctx context.Context, fiel
 	}
 	res := resTmp.(*model.Repository)
 	fc.Result = res
-	return ec.marshalNRepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
+	return ec.marshalNRepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_deleteRepository(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2950,7 +2951,7 @@ func (ec *executionContext) _Mutation_deleteRepository(ctx context.Context, fiel
 	}
 	res := resTmp.(*model.Repository)
 	fc.Result = res
-	return ec.marshalNRepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
+	return ec.marshalNRepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_updateACL(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -2991,7 +2992,7 @@ func (ec *executionContext) _Mutation_updateACL(ctx context.Context, field graph
 	}
 	res := resTmp.(*model.ACL)
 	fc.Result = res
-	return ec.marshalNACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐACL(ctx, field.Selections, res)
+	return ec.marshalNACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACL(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_deleteACL(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3032,7 +3033,7 @@ func (ec *executionContext) _Mutation_deleteACL(ctx context.Context, field graph
 	}
 	res := resTmp.(*model.ACL)
 	fc.Result = res
-	return ec.marshalNACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐACL(ctx, field.Selections, res)
+	return ec.marshalNACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACL(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_uploadArtifact(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3073,7 +3074,7 @@ func (ec *executionContext) _Mutation_uploadArtifact(ctx context.Context, field 
 	}
 	res := resTmp.(*model.Artifact)
 	fc.Result = res
-	return ec.marshalNArtifact2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐArtifact(ctx, field.Selections, res)
+	return ec.marshalNArtifact2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐArtifact(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_deleteArtifact(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3114,7 +3115,7 @@ func (ec *executionContext) _Mutation_deleteArtifact(ctx context.Context, field 
 	}
 	res := resTmp.(*model.Artifact)
 	fc.Result = res
-	return ec.marshalNArtifact2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐArtifact(ctx, field.Selections, res)
+	return ec.marshalNArtifact2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐArtifact(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_version(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3148,7 +3149,7 @@ func (ec *executionContext) _Query_version(ctx context.Context, field graphql.Co
 	}
 	res := resTmp.(*model.Version)
 	fc.Result = res
-	return ec.marshalNVersion2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐVersion(ctx, field.Selections, res)
+	return ec.marshalNVersion2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVersion(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_me(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3182,7 +3183,7 @@ func (ec *executionContext) _Query_me(ctx context.Context, field graphql.Collect
 	}
 	res := resTmp.(*model.User)
 	fc.Result = res
-	return ec.marshalNUser2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_user(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3220,7 +3221,7 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 	}
 	res := resTmp.(*model.User)
 	fc.Result = res
-	return ec.marshalOUser2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_repositories(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3261,7 +3262,7 @@ func (ec *executionContext) _Query_repositories(ctx context.Context, field graph
 	}
 	res := resTmp.([]*model.Repository)
 	fc.Result = res
-	return ec.marshalNRepository2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
+	return ec.marshalNRepository2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_repository(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3299,7 +3300,7 @@ func (ec *executionContext) _Query_repository(ctx context.Context, field graphql
 	}
 	res := resTmp.(*model.Repository)
 	fc.Result = res
-	return ec.marshalORepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
+	return ec.marshalORepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_repositoryByName(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3337,7 +3338,7 @@ func (ec *executionContext) _Query_repositoryByName(ctx context.Context, field g
 	}
 	res := resTmp.(*model.Repository)
 	fc.Result = res
-	return ec.marshalORepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
+	return ec.marshalORepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_repositoryByOwner(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3375,7 +3376,7 @@ func (ec *executionContext) _Query_repositoryByOwner(ctx context.Context, field 
 	}
 	res := resTmp.(*model.Repository)
 	fc.Result = res
-	return ec.marshalORepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
+	return ec.marshalORepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3543,7 +3544,7 @@ func (ec *executionContext) _Reference_follow(ctx context.Context, field graphql
 	}
 	res := resTmp.(model.Object)
 	fc.Result = res
-	return ec.marshalOObject2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐObject(ctx, field.Selections, res)
+	return ec.marshalOObject2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐObject(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Repository_id(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
@@ -3679,7 +3680,7 @@ func (ec *executionContext) _Repository_owner(ctx context.Context, field graphql
 	}
 	res := resTmp.(model.Entity)
 	fc.Result = res
-	return ec.marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐEntity(ctx, field.Selections, res)
+	return ec.marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Repository_name(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
@@ -3778,7 +3779,7 @@ func (ec *executionContext) _Repository_visibility(ctx context.Context, field gr
 	}
 	res := resTmp.(model.Visibility)
 	fc.Result = res
-	return ec.marshalNVisibility2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐVisibility(ctx, field.Selections, res)
+	return ec.marshalNVisibility2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Repository_upstreamUrl(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
@@ -3823,7 +3824,7 @@ func (ec *executionContext) _Repository_accessControlList(ctx context.Context, f
 		Object:   "Repository",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3836,7 +3837,7 @@ func (ec *executionContext) _Repository_accessControlList(ctx context.Context, f
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.AccessControlList, nil
+		return ec.resolvers.Repository().AccessControlList(rctx, obj, args["count"].(*int), args["next"].(*int))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3850,7 +3851,7 @@ func (ec *executionContext) _Repository_accessControlList(ctx context.Context, f
 	}
 	res := resTmp.([]*model.ACL)
 	fc.Result = res
-	return ec.marshalNACL2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐACL(ctx, field.Selections, res)
+	return ec.marshalNACL2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACL(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Repository_references(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
@@ -3891,7 +3892,7 @@ func (ec *executionContext) _Repository_references(ctx context.Context, field gr
 	}
 	res := resTmp.([]*model.Reference)
 	fc.Result = res
-	return ec.marshalNReference2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐReference(ctx, field.Selections, res)
+	return ec.marshalNReference2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐReference(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Repository_objects(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
@@ -3932,7 +3933,7 @@ func (ec *executionContext) _Repository_objects(ctx context.Context, field graph
 	}
 	res := resTmp.([]model.Object)
 	fc.Result = res
-	return ec.marshalNObject2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐObject(ctx, field.Selections, res)
+	return ec.marshalNObject2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐObject(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Repository_HEAD(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
@@ -3963,7 +3964,7 @@ func (ec *executionContext) _Repository_HEAD(ctx context.Context, field graphql.
 	}
 	res := resTmp.(*model.Reference)
 	fc.Result = res
-	return ec.marshalOReference2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐReference(ctx, field.Selections, res)
+	return ec.marshalOReference2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐReference(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Repository_log(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
@@ -4004,7 +4005,7 @@ func (ec *executionContext) _Repository_log(ctx context.Context, field graphql.C
 	}
 	res := resTmp.([]*model.Commit)
 	fc.Result = res
-	return ec.marshalNCommit2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐCommit(ctx, field.Selections, res)
+	return ec.marshalNCommit2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCommit(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Repository_tree(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
@@ -4042,7 +4043,7 @@ func (ec *executionContext) _Repository_tree(ctx context.Context, field graphql.
 	}
 	res := resTmp.(*model.Tree)
 	fc.Result = res
-	return ec.marshalOTree2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐTree(ctx, field.Selections, res)
+	return ec.marshalOTree2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTree(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Repository_file(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
@@ -4080,7 +4081,7 @@ func (ec *executionContext) _Repository_file(ctx context.Context, field graphql.
 	}
 	res := resTmp.(*model.Blob)
 	fc.Result = res
-	return ec.marshalOBlob2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐBlob(ctx, field.Selections, res)
+	return ec.marshalOBlob2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐBlob(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Repository_revparse_single(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
@@ -4118,7 +4119,7 @@ func (ec *executionContext) _Repository_revparse_single(ctx context.Context, fie
 	}
 	res := resTmp.(model.Object)
 	fc.Result = res
-	return ec.marshalOObject2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐObject(ctx, field.Selections, res)
+	return ec.marshalOObject2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐObject(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Signature_name(ctx context.Context, field graphql.CollectedField, obj *model.Signature) (ret graphql.Marshaler) {
@@ -4254,7 +4255,7 @@ func (ec *executionContext) _Tag_type(ctx context.Context, field graphql.Collect
 	}
 	res := resTmp.(model.ObjectType)
 	fc.Result = res
-	return ec.marshalNObjectType2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐObjectType(ctx, field.Selections, res)
+	return ec.marshalNObjectType2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐObjectType(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Tag_id(ctx context.Context, field graphql.CollectedField, obj *model.Tag) (ret graphql.Marshaler) {
@@ -4390,7 +4391,7 @@ func (ec *executionContext) _Tag_target(ctx context.Context, field graphql.Colle
 	}
 	res := resTmp.(model.Object)
 	fc.Result = res
-	return ec.marshalNObject2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐObject(ctx, field.Selections, res)
+	return ec.marshalNObject2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐObject(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Tag_name(ctx context.Context, field graphql.CollectedField, obj *model.Tag) (ret graphql.Marshaler) {
@@ -4458,7 +4459,7 @@ func (ec *executionContext) _Tag_tagger(ctx context.Context, field graphql.Colle
 	}
 	res := resTmp.(*model.Signature)
 	fc.Result = res
-	return ec.marshalNSignature2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐSignature(ctx, field.Selections, res)
+	return ec.marshalNSignature2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSignature(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Tag_message(ctx context.Context, field graphql.CollectedField, obj *model.Tag) (ret graphql.Marshaler) {
@@ -4557,7 +4558,7 @@ func (ec *executionContext) _Tree_type(ctx context.Context, field graphql.Collec
 	}
 	res := resTmp.(model.ObjectType)
 	fc.Result = res
-	return ec.marshalNObjectType2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐObjectType(ctx, field.Selections, res)
+	return ec.marshalNObjectType2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐObjectType(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Tree_id(ctx context.Context, field graphql.CollectedField, obj *model.Tree) (ret graphql.Marshaler) {
@@ -4700,7 +4701,7 @@ func (ec *executionContext) _Tree_entries(ctx context.Context, field graphql.Col
 	}
 	res := resTmp.([]*model.TreeEntry)
 	fc.Result = res
-	return ec.marshalNTreeEntry2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐTreeEntryᚄ(ctx, field.Selections, res)
+	return ec.marshalNTreeEntry2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTreeEntryᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Tree_entry(ctx context.Context, field graphql.CollectedField, obj *model.Tree) (ret graphql.Marshaler) {
@@ -4738,7 +4739,7 @@ func (ec *executionContext) _Tree_entry(ctx context.Context, field graphql.Colle
 	}
 	res := resTmp.(*model.TreeEntry)
 	fc.Result = res
-	return ec.marshalOTreeEntry2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐTreeEntry(ctx, field.Selections, res)
+	return ec.marshalOTreeEntry2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTreeEntry(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TreeEntry_id(ctx context.Context, field graphql.CollectedField, obj *model.TreeEntry) (ret graphql.Marshaler) {
@@ -4840,7 +4841,7 @@ func (ec *executionContext) _TreeEntry_object(ctx context.Context, field graphql
 	}
 	res := resTmp.(model.Object)
 	fc.Result = res
-	return ec.marshalNObject2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐObject(ctx, field.Selections, res)
+	return ec.marshalNObject2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐObject(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TreeEntry_mode(ctx context.Context, field graphql.CollectedField, obj *model.TreeEntry) (ret graphql.Marshaler) {
@@ -5212,7 +5213,7 @@ func (ec *executionContext) _User_repositories(ctx context.Context, field graphq
 	}
 	res := resTmp.([]*model.Repository)
 	fc.Result = res
-	return ec.marshalNRepository2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
+	return ec.marshalNRepository2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Version_major(ctx context.Context, field graphql.CollectedField, obj *model.Version) (ret graphql.Marshaler) {
@@ -6441,7 +6442,7 @@ func (ec *executionContext) unmarshalInputRepoInput(ctx context.Context, obj int
 			}
 		case "visibility":
 			var err error
-			it.Visibility, err = ec.unmarshalOVisibility2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐVisibility(ctx, v)
+			it.Visibility, err = ec.unmarshalOVisibility2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -7045,10 +7046,19 @@ func (ec *executionContext) _Repository(ctx context.Context, sel ast.SelectionSe
 		case "upstreamUrl":
 			out.Values[i] = ec._Repository_upstreamUrl(ctx, field, obj)
 		case "accessControlList":
-			out.Values[i] = ec._Repository_accessControlList(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Repository_accessControlList(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "references":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -7662,11 +7672,11 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
-func (ec *executionContext) marshalNACL2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐACL(ctx context.Context, sel ast.SelectionSet, v model.ACL) graphql.Marshaler {
+func (ec *executionContext) marshalNACL2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACL(ctx context.Context, sel ast.SelectionSet, v model.ACL) graphql.Marshaler {
 	return ec._ACL(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNACL2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐACL(ctx context.Context, sel ast.SelectionSet, v []*model.ACL) graphql.Marshaler {
+func (ec *executionContext) marshalNACL2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACL(ctx context.Context, sel ast.SelectionSet, v []*model.ACL) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -7690,7 +7700,7 @@ func (ec *executionContext) marshalNACL2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgit�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐACL(ctx, sel, v[i])
+			ret[i] = ec.marshalOACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACL(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -7703,7 +7713,7 @@ func (ec *executionContext) marshalNACL2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgit�
 	return ret
 }
 
-func (ec *executionContext) marshalNACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐACL(ctx context.Context, sel ast.SelectionSet, v *model.ACL) graphql.Marshaler {
+func (ec *executionContext) marshalNACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACL(ctx context.Context, sel ast.SelectionSet, v *model.ACL) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -7713,20 +7723,20 @@ func (ec *executionContext) marshalNACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsr
 	return ec._ACL(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNAccessMode2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐAccessMode(ctx context.Context, v interface{}) (model.AccessMode, error) {
+func (ec *executionContext) unmarshalNAccessMode2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessMode(ctx context.Context, v interface{}) (model.AccessMode, error) {
 	var res model.AccessMode
 	return res, res.UnmarshalGQL(v)
 }
 
-func (ec *executionContext) marshalNAccessMode2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐAccessMode(ctx context.Context, sel ast.SelectionSet, v model.AccessMode) graphql.Marshaler {
+func (ec *executionContext) marshalNAccessMode2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessMode(ctx context.Context, sel ast.SelectionSet, v model.AccessMode) graphql.Marshaler {
 	return v
 }
 
-func (ec *executionContext) marshalNArtifact2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐArtifact(ctx context.Context, sel ast.SelectionSet, v model.Artifact) graphql.Marshaler {
+func (ec *executionContext) marshalNArtifact2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐArtifact(ctx context.Context, sel ast.SelectionSet, v model.Artifact) graphql.Marshaler {
 	return ec._Artifact(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNArtifact2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐArtifact(ctx context.Context, sel ast.SelectionSet, v *model.Artifact) graphql.Marshaler {
+func (ec *executionContext) marshalNArtifact2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐArtifact(ctx context.Context, sel ast.SelectionSet, v *model.Artifact) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -7736,12 +7746,12 @@ func (ec *executionContext) marshalNArtifact2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgit
 	return ec._Artifact(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNBlobType2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐBlobType(ctx context.Context, v interface{}) (model.BlobType, error) {
+func (ec *executionContext) unmarshalNBlobType2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐBlobType(ctx context.Context, v interface{}) (model.BlobType, error) {
 	var res model.BlobType
 	return res, res.UnmarshalGQL(v)
 }
 
-func (ec *executionContext) marshalNBlobType2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐBlobType(ctx context.Context, sel ast.SelectionSet, v model.BlobType) graphql.Marshaler {
+func (ec *executionContext) marshalNBlobType2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐBlobType(ctx context.Context, sel ast.SelectionSet, v model.BlobType) graphql.Marshaler {
 	return v
 }
 
@@ -7759,11 +7769,11 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) marshalNCommit2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐCommit(ctx context.Context, sel ast.SelectionSet, v model.Commit) graphql.Marshaler {
+func (ec *executionContext) marshalNCommit2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCommit(ctx context.Context, sel ast.SelectionSet, v model.Commit) graphql.Marshaler {
 	return ec._Commit(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNCommit2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐCommit(ctx context.Context, sel ast.SelectionSet, v []*model.Commit) graphql.Marshaler {
+func (ec *executionContext) marshalNCommit2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCommit(ctx context.Context, sel ast.SelectionSet, v []*model.Commit) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -7787,7 +7797,7 @@ func (ec *executionContext) marshalNCommit2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgi
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOCommit2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐCommit(ctx, sel, v[i])
+			ret[i] = ec.marshalOCommit2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCommit(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -7800,7 +7810,7 @@ func (ec *executionContext) marshalNCommit2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgi
 	return ret
 }
 
-func (ec *executionContext) marshalNCommit2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐCommitᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Commit) graphql.Marshaler {
+func (ec *executionContext) marshalNCommit2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCommitᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Commit) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -7824,7 +7834,7 @@ func (ec *executionContext) marshalNCommit2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgi
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNCommit2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐCommit(ctx, sel, v[i])
+			ret[i] = ec.marshalNCommit2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCommit(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -7837,7 +7847,7 @@ func (ec *executionContext) marshalNCommit2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgi
 	return ret
 }
 
-func (ec *executionContext) marshalNCommit2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐCommit(ctx context.Context, sel ast.SelectionSet, v *model.Commit) graphql.Marshaler {
+func (ec *executionContext) marshalNCommit2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCommit(ctx context.Context, sel ast.SelectionSet, v *model.Commit) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -7847,7 +7857,7 @@ func (ec *executionContext) marshalNCommit2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgit�
 	return ec._Commit(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐEntity(ctx context.Context, sel ast.SelectionSet, v model.Entity) graphql.Marshaler {
+func (ec *executionContext) marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx context.Context, sel ast.SelectionSet, v model.Entity) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -7885,7 +7895,7 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
-func (ec *executionContext) marshalNObject2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐObject(ctx context.Context, sel ast.SelectionSet, v model.Object) graphql.Marshaler {
+func (ec *executionContext) marshalNObject2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐObject(ctx context.Context, sel ast.SelectionSet, v model.Object) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -7895,7 +7905,7 @@ func (ec *executionContext) marshalNObject2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsr
 	return ec._Object(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNObject2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐObject(ctx context.Context, sel ast.SelectionSet, v []model.Object) graphql.Marshaler {
+func (ec *executionContext) marshalNObject2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐObject(ctx context.Context, sel ast.SelectionSet, v []model.Object) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -7919,7 +7929,7 @@ func (ec *executionContext) marshalNObject2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋgit�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOObject2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐObject(ctx, sel, v[i])
+			ret[i] = ec.marshalOObject2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐObject(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -7932,16 +7942,16 @@ func (ec *executionContext) marshalNObject2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋgit�
 	return ret
 }
 
-func (ec *executionContext) unmarshalNObjectType2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐObjectType(ctx context.Context, v interface{}) (model.ObjectType, error) {
+func (ec *executionContext) unmarshalNObjectType2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐObjectType(ctx context.Context, v interface{}) (model.ObjectType, error) {
 	var res model.ObjectType
 	return res, res.UnmarshalGQL(v)
 }
 
-func (ec *executionContext) marshalNObjectType2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐObjectType(ctx context.Context, sel ast.SelectionSet, v model.ObjectType) graphql.Marshaler {
+func (ec *executionContext) marshalNObjectType2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐObjectType(ctx context.Context, sel ast.SelectionSet, v model.ObjectType) graphql.Marshaler {
 	return v
 }
 
-func (ec *executionContext) marshalNReference2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐReference(ctx context.Context, sel ast.SelectionSet, v []*model.Reference) graphql.Marshaler {
+func (ec *executionContext) marshalNReference2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐReference(ctx context.Context, sel ast.SelectionSet, v []*model.Reference) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -7965,7 +7975,7 @@ func (ec *executionContext) marshalNReference2ᚕᚖgitᚗsrᚗhtᚋאsircmpwn�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOReference2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐReference(ctx, sel, v[i])
+			ret[i] = ec.marshalOReference2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐReference(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -7978,11 +7988,11 @@ func (ec *executionContext) marshalNReference2ᚕᚖgitᚗsrᚗhtᚋאsircmpwn�
 	return ret
 }
 
-func (ec *executionContext) marshalNRepository2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepository(ctx context.Context, sel ast.SelectionSet, v model.Repository) graphql.Marshaler {
+func (ec *executionContext) marshalNRepository2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx context.Context, sel ast.SelectionSet, v model.Repository) graphql.Marshaler {
 	return ec._Repository(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNRepository2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepository(ctx context.Context, sel ast.SelectionSet, v []*model.Repository) graphql.Marshaler {
+func (ec *executionContext) marshalNRepository2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx context.Context, sel ast.SelectionSet, v []*model.Repository) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -8006,7 +8016,7 @@ func (ec *executionContext) marshalNRepository2ᚕᚖgitᚗsrᚗhtᚋאsircmpwn�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalORepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepository(ctx, sel, v[i])
+			ret[i] = ec.marshalORepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -8019,7 +8029,7 @@ func (ec *executionContext) marshalNRepository2ᚕᚖgitᚗsrᚗhtᚋאsircmpwn�
 	return ret
 }
 
-func (ec *executionContext) marshalNRepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepository(ctx context.Context, sel ast.SelectionSet, v *model.Repository) graphql.Marshaler {
+func (ec *executionContext) marshalNRepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx context.Context, sel ast.SelectionSet, v *model.Repository) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -8029,11 +8039,11 @@ func (ec *executionContext) marshalNRepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋg
 	return ec._Repository(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNSignature2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐSignature(ctx context.Context, sel ast.SelectionSet, v model.Signature) graphql.Marshaler {
+func (ec *executionContext) marshalNSignature2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSignature(ctx context.Context, sel ast.SelectionSet, v model.Signature) graphql.Marshaler {
 	return ec._Signature(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNSignature2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐSignature(ctx context.Context, sel ast.SelectionSet, v *model.Signature) graphql.Marshaler {
+func (ec *executionContext) marshalNSignature2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSignature(ctx context.Context, sel ast.SelectionSet, v *model.Signature) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -8071,11 +8081,11 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 	return res
 }
 
-func (ec *executionContext) marshalNTree2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐTree(ctx context.Context, sel ast.SelectionSet, v model.Tree) graphql.Marshaler {
+func (ec *executionContext) marshalNTree2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTree(ctx context.Context, sel ast.SelectionSet, v model.Tree) graphql.Marshaler {
 	return ec._Tree(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNTree2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐTree(ctx context.Context, sel ast.SelectionSet, v *model.Tree) graphql.Marshaler {
+func (ec *executionContext) marshalNTree2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTree(ctx context.Context, sel ast.SelectionSet, v *model.Tree) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -8085,11 +8095,11 @@ func (ec *executionContext) marshalNTree2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗs
 	return ec._Tree(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNTreeEntry2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐTreeEntry(ctx context.Context, sel ast.SelectionSet, v model.TreeEntry) graphql.Marshaler {
+func (ec *executionContext) marshalNTreeEntry2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTreeEntry(ctx context.Context, sel ast.SelectionSet, v model.TreeEntry) graphql.Marshaler {
 	return ec._TreeEntry(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNTreeEntry2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐTreeEntryᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TreeEntry) graphql.Marshaler {
+func (ec *executionContext) marshalNTreeEntry2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTreeEntryᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TreeEntry) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -8113,7 +8123,7 @@ func (ec *executionContext) marshalNTreeEntry2ᚕᚖgitᚗsrᚗhtᚋאsircmpwn�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNTreeEntry2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐTreeEntry(ctx, sel, v[i])
+			ret[i] = ec.marshalNTreeEntry2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTreeEntry(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -8126,7 +8136,7 @@ func (ec *executionContext) marshalNTreeEntry2ᚕᚖgitᚗsrᚗhtᚋאsircmpwn�
 	return ret
 }
 
-func (ec *executionContext) marshalNTreeEntry2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐTreeEntry(ctx context.Context, sel ast.SelectionSet, v *model.TreeEntry) graphql.Marshaler {
+func (ec *executionContext) marshalNTreeEntry2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTreeEntry(ctx context.Context, sel ast.SelectionSet, v *model.TreeEntry) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -8150,11 +8160,11 @@ func (ec *executionContext) marshalNUpload2gitᚗsrᚗhtᚋאsircmpwnᚋgqlgen�
 	return res
 }
 
-func (ec *executionContext) marshalNUser2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
 	return ec._User(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNUser2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -8164,11 +8174,11 @@ func (ec *executionContext) marshalNUser2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗs
 	return ec._User(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNVersion2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐVersion(ctx context.Context, sel ast.SelectionSet, v model.Version) graphql.Marshaler {
+func (ec *executionContext) marshalNVersion2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVersion(ctx context.Context, sel ast.SelectionSet, v model.Version) graphql.Marshaler {
 	return ec._Version(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNVersion2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐVersion(ctx context.Context, sel ast.SelectionSet, v *model.Version) graphql.Marshaler {
+func (ec *executionContext) marshalNVersion2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVersion(ctx context.Context, sel ast.SelectionSet, v *model.Version) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -8178,12 +8188,12 @@ func (ec *executionContext) marshalNVersion2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgit�
 	return ec._Version(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNVisibility2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐVisibility(ctx context.Context, v interface{}) (model.Visibility, error) {
+func (ec *executionContext) unmarshalNVisibility2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx context.Context, v interface{}) (model.Visibility, error) {
 	var res model.Visibility
 	return res, res.UnmarshalGQL(v)
 }
 
-func (ec *executionContext) marshalNVisibility2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐVisibility(ctx context.Context, sel ast.SelectionSet, v model.Visibility) graphql.Marshaler {
+func (ec *executionContext) marshalNVisibility2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx context.Context, sel ast.SelectionSet, v model.Visibility) graphql.Marshaler {
 	return v
 }
 
@@ -8413,53 +8423,53 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
-func (ec *executionContext) marshalOACL2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐACL(ctx context.Context, sel ast.SelectionSet, v model.ACL) graphql.Marshaler {
+func (ec *executionContext) marshalOACL2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACL(ctx context.Context, sel ast.SelectionSet, v model.ACL) graphql.Marshaler {
 	return ec._ACL(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalOACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐACL(ctx context.Context, sel ast.SelectionSet, v *model.ACL) graphql.Marshaler {
+func (ec *executionContext) marshalOACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACL(ctx context.Context, sel ast.SelectionSet, v *model.ACL) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._ACL(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOAccessMode2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐAccessMode(ctx context.Context, v interface{}) (model.AccessMode, error) {
+func (ec *executionContext) unmarshalOAccessMode2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessMode(ctx context.Context, v interface{}) (model.AccessMode, error) {
 	var res model.AccessMode
 	return res, res.UnmarshalGQL(v)
 }
 
-func (ec *executionContext) marshalOAccessMode2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐAccessMode(ctx context.Context, sel ast.SelectionSet, v model.AccessMode) graphql.Marshaler {
+func (ec *executionContext) marshalOAccessMode2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessMode(ctx context.Context, sel ast.SelectionSet, v model.AccessMode) graphql.Marshaler {
 	return v
 }
 
-func (ec *executionContext) unmarshalOAccessMode2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐAccessMode(ctx context.Context, v interface{}) (*model.AccessMode, error) {
+func (ec *executionContext) unmarshalOAccessMode2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessMode(ctx context.Context, v interface{}) (*model.AccessMode, error) {
 	if v == nil {
 		return nil, nil
 	}
-	res, err := ec.unmarshalOAccessMode2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐAccessMode(ctx, v)
+	res, err := ec.unmarshalOAccessMode2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessMode(ctx, v)
 	return &res, err
 }
 
-func (ec *executionContext) marshalOAccessMode2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐAccessMode(ctx context.Context, sel ast.SelectionSet, v *model.AccessMode) graphql.Marshaler {
+func (ec *executionContext) marshalOAccessMode2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessMode(ctx context.Context, sel ast.SelectionSet, v *model.AccessMode) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return v
 }
 
-func (ec *executionContext) marshalOBlob2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐBlob(ctx context.Context, sel ast.SelectionSet, v model.Blob) graphql.Marshaler {
+func (ec *executionContext) marshalOBlob2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐBlob(ctx context.Context, sel ast.SelectionSet, v model.Blob) graphql.Marshaler {
 	return ec._Blob(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalOBlob2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐBlob(ctx context.Context, sel ast.SelectionSet, v *model.Blob) graphql.Marshaler {
+func (ec *executionContext) marshalOBlob2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐBlob(ctx context.Context, sel ast.SelectionSet, v *model.Blob) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Blob(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOBlobData2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐBlobData(ctx context.Context, sel ast.SelectionSet, v model.BlobData) graphql.Marshaler {
+func (ec *executionContext) marshalOBlobData2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐBlobData(ctx context.Context, sel ast.SelectionSet, v model.BlobData) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -8489,26 +8499,26 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return ec.marshalOBoolean2bool(ctx, sel, *v)
 }
 
-func (ec *executionContext) marshalOCommit2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐCommit(ctx context.Context, sel ast.SelectionSet, v model.Commit) graphql.Marshaler {
+func (ec *executionContext) marshalOCommit2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCommit(ctx context.Context, sel ast.SelectionSet, v model.Commit) graphql.Marshaler {
 	return ec._Commit(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalOCommit2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐCommit(ctx context.Context, sel ast.SelectionSet, v *model.Commit) graphql.Marshaler {
+func (ec *executionContext) marshalOCommit2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCommit(ctx context.Context, sel ast.SelectionSet, v *model.Commit) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Commit(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOFilterBy2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐFilterBy(ctx context.Context, v interface{}) (model.FilterBy, error) {
+func (ec *executionContext) unmarshalOFilterBy2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐFilterBy(ctx context.Context, v interface{}) (model.FilterBy, error) {
 	return ec.unmarshalInputFilterBy(ctx, v)
 }
 
-func (ec *executionContext) unmarshalOFilterBy2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐFilterBy(ctx context.Context, v interface{}) (*model.FilterBy, error) {
+func (ec *executionContext) unmarshalOFilterBy2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐFilterBy(ctx context.Context, v interface{}) (*model.FilterBy, error) {
 	if v == nil {
 		return nil, nil
 	}
-	res, err := ec.unmarshalOFilterBy2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐFilterBy(ctx, v)
+	res, err := ec.unmarshalOFilterBy2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐFilterBy(ctx, v)
 	return &res, err
 }
 
@@ -8535,41 +8545,41 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	return ec.marshalOInt2int(ctx, sel, *v)
 }
 
-func (ec *executionContext) marshalOObject2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐObject(ctx context.Context, sel ast.SelectionSet, v model.Object) graphql.Marshaler {
+func (ec *executionContext) marshalOObject2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐObject(ctx context.Context, sel ast.SelectionSet, v model.Object) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Object(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOReference2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐReference(ctx context.Context, sel ast.SelectionSet, v model.Reference) graphql.Marshaler {
+func (ec *executionContext) marshalOReference2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐReference(ctx context.Context, sel ast.SelectionSet, v model.Reference) graphql.Marshaler {
 	return ec._Reference(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalOReference2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐReference(ctx context.Context, sel ast.SelectionSet, v *model.Reference) graphql.Marshaler {
+func (ec *executionContext) marshalOReference2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐReference(ctx context.Context, sel ast.SelectionSet, v *model.Reference) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Reference(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalORepoInput2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepoInput(ctx context.Context, v interface{}) (model.RepoInput, error) {
+func (ec *executionContext) unmarshalORepoInput2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepoInput(ctx context.Context, v interface{}) (model.RepoInput, error) {
 	return ec.unmarshalInputRepoInput(ctx, v)
 }
 
-func (ec *executionContext) unmarshalORepoInput2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepoInput(ctx context.Context, v interface{}) (*model.RepoInput, error) {
+func (ec *executionContext) unmarshalORepoInput2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepoInput(ctx context.Context, v interface{}) (*model.RepoInput, error) {
 	if v == nil {
 		return nil, nil
 	}
-	res, err := ec.unmarshalORepoInput2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepoInput(ctx, v)
+	res, err := ec.unmarshalORepoInput2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepoInput(ctx, v)
 	return &res, err
 }
 
-func (ec *executionContext) marshalORepository2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepository(ctx context.Context, sel ast.SelectionSet, v model.Repository) graphql.Marshaler {
+func (ec *executionContext) marshalORepository2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx context.Context, sel ast.SelectionSet, v model.Repository) graphql.Marshaler {
 	return ec._Repository(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalORepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐRepository(ctx context.Context, sel ast.SelectionSet, v *model.Repository) graphql.Marshaler {
+func (ec *executionContext) marshalORepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx context.Context, sel ast.SelectionSet, v *model.Repository) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -8654,57 +8664,57 @@ func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel
 	return ec.marshalOTime2timeᚐTime(ctx, sel, *v)
 }
 
-func (ec *executionContext) marshalOTree2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐTree(ctx context.Context, sel ast.SelectionSet, v model.Tree) graphql.Marshaler {
+func (ec *executionContext) marshalOTree2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTree(ctx context.Context, sel ast.SelectionSet, v model.Tree) graphql.Marshaler {
 	return ec._Tree(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalOTree2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐTree(ctx context.Context, sel ast.SelectionSet, v *model.Tree) graphql.Marshaler {
+func (ec *executionContext) marshalOTree2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTree(ctx context.Context, sel ast.SelectionSet, v *model.Tree) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Tree(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOTreeEntry2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐTreeEntry(ctx context.Context, sel ast.SelectionSet, v model.TreeEntry) graphql.Marshaler {
+func (ec *executionContext) marshalOTreeEntry2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTreeEntry(ctx context.Context, sel ast.SelectionSet, v model.TreeEntry) graphql.Marshaler {
 	return ec._TreeEntry(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalOTreeEntry2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐTreeEntry(ctx context.Context, sel ast.SelectionSet, v *model.TreeEntry) graphql.Marshaler {
+func (ec *executionContext) marshalOTreeEntry2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTreeEntry(ctx context.Context, sel ast.SelectionSet, v *model.TreeEntry) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._TreeEntry(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOUser2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
+func (ec *executionContext) marshalOUser2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
 	return ec._User(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalOUser2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
+func (ec *executionContext) marshalOUser2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOVisibility2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐVisibility(ctx context.Context, v interface{}) (model.Visibility, error) {
+func (ec *executionContext) unmarshalOVisibility2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx context.Context, v interface{}) (model.Visibility, error) {
 	var res model.Visibility
 	return res, res.UnmarshalGQL(v)
 }
 
-func (ec *executionContext) marshalOVisibility2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐVisibility(ctx context.Context, sel ast.SelectionSet, v model.Visibility) graphql.Marshaler {
+func (ec *executionContext) marshalOVisibility2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx context.Context, sel ast.SelectionSet, v model.Visibility) graphql.Marshaler {
 	return v
 }
 
-func (ec *executionContext) unmarshalOVisibility2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐVisibility(ctx context.Context, v interface{}) (*model.Visibility, error) {
+func (ec *executionContext) unmarshalOVisibility2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx context.Context, v interface{}) (*model.Visibility, error) {
 	if v == nil {
 		return nil, nil
 	}
-	res, err := ec.unmarshalOVisibility2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐVisibility(ctx, v)
+	res, err := ec.unmarshalOVisibility2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx, v)
 	return &res, err
 }
 
-func (ec *executionContext) marshalOVisibility2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋgraphqlᚋgraphᚋmodelᚐVisibility(ctx context.Context, sel ast.SelectionSet, v *model.Visibility) graphql.Marshaler {
+func (ec *executionContext) marshalOVisibility2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx context.Context, sel ast.SelectionSet, v *model.Visibility) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}

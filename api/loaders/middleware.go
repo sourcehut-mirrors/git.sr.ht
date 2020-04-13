@@ -29,12 +29,11 @@ func fetchUsersByID(ctx context.Context,
 		var (
 			err  error
 			rows *sql.Rows
-			user model.User
 		)
 		if rows, err = db.QueryContext(ctx,`
-			SELECT `+user.Rows()+`
-			FROM "user"
-			WHERE "user".id = ANY($1)`, pq.Array(ids)); err != nil {
+			SELECT `+(&model.User{}).Columns(ctx, "u")+`
+			FROM "user" u
+			WHERE u.id = ANY($1)`, pq.Array(ids)); err != nil {
 			panic(err)
 		}
 		defer rows.Close()
@@ -42,7 +41,7 @@ func fetchUsersByID(ctx context.Context,
 		usersById := map[int]*model.User{}
 		for rows.Next() {
 			user := model.User{}
-			if err := rows.Scan(user.Fields()...); err != nil {
+			if err := rows.Scan(user.Fields(ctx)...); err != nil {
 				panic(err)
 			}
 			usersById[user.ID] = &user
@@ -67,10 +66,9 @@ func fetchRepositoriesByID(ctx context.Context,
 		var (
 			err  error
 			rows *sql.Rows
-			repo model.Repository
 		)
 		if rows, err = db.QueryContext(ctx, `
-			SELECT DISTINCT `+repo.Rows()+`
+			SELECT DISTINCT `+(&model.Repository{}).Columns(ctx, "repo")+`
 			FROM repository repo
 			FULL OUTER JOIN
 				access ON repo.id = access.repo_id
@@ -87,7 +85,7 @@ func fetchRepositoriesByID(ctx context.Context,
 		reposById := map[int]*model.Repository{}
 		for rows.Next() {
 			repo := model.Repository{}
-			if err := rows.Scan(repo.Fields()...); err != nil {
+			if err := rows.Scan(repo.Fields(ctx)...); err != nil {
 				panic(err)
 			}
 			reposById[repo.ID] = &repo

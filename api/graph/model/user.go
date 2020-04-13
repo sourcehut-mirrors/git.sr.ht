@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"context"
+	"strings"
+	"time"
+)
 
 type User struct {
 	ID            int           `json:"id"`
@@ -15,30 +19,33 @@ type User struct {
 
 func (User) IsEntity() {}
 
-func (user *User) CanonicalName() string {
-	return "~" + user.Username
+func (u *User) CanonicalName() string {
+	return "~" + u.Username
 }
 
-func (user *User) Rows() string {
-	return `
-		"user".id,
-		"user".created, "user".updated,
-		"user".username,
-		"user".email,
-		"user".url,
-		"user".location,
-		"user".bio
-	`
+func (u *User) Columns(ctx context.Context, tbl string) string {
+	columns := ColumnsFor(ctx, map[string]string{
+		"id": "id",
+		"created": "created",
+		"updated": "updated",
+		"username": "username",
+		"email": "email",
+		"url": "url",
+		"location": "location",
+		"bio": "bio",
+	}, tbl)
+	return strings.Join(columns, ", ")
 }
 
-func (user *User) Fields() []interface{} {
-	return []interface{}{
-		&user.ID,
-		&user.Created, &user.Updated,
-		&user.Username,
-		&user.Email,
-		&user.URL,
-		&user.Location,
-		&user.Bio,
-	}
+func (u *User) Fields(ctx context.Context) []interface{} {
+	return FieldsFor(ctx, map[string]interface{}{
+		"id": &u.ID,
+		"created": &u.Created,
+		"updated": &u.Updated,
+		"username": &u.Username,
+		"email": &u.Email,
+		"url": &u.URL,
+		"location": &u.Location,
+		"bio": &u.Bio,
+	})
 }
