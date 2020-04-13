@@ -9,6 +9,7 @@ import (
 
 	"github.com/lib/pq"
 
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/auth"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 )
 
@@ -73,11 +74,11 @@ func fetchRepositoriesByID(ctx context.Context,
 			FULL OUTER JOIN
 				access ON repo.id = access.repo_id
 			WHERE
-				repo.id = ANY($1)
-				AND (access.user_id = 1
-					OR repo.owner_id = 1
+				repo.id = ANY($2)
+				AND (access.user_id = $1
+					OR repo.owner_id = $1
 					OR repo.visibility != 'private')
-			`, pq.Array(ids)); err != nil {
+			`, auth.ForContext(ctx).ID, pq.Array(ids)); err != nil {
 			panic(err)
 		}
 		defer rows.Close()

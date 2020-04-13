@@ -35,7 +35,7 @@ const (
 )
 
 type User struct {
-	Id               int
+	ID               int
 	Created          time.Time
 	Updated          time.Time
 	Username         string
@@ -130,7 +130,7 @@ Expected 'Authentication: Bearer <token>'`, http.StatusForbidden)
 				return
 			}
 			if err := rows.Scan(&expires, &scopes,
-				&user.Id, &user.Username,
+				&user.ID, &user.Username,
 				&user.Created, &user.Updated,
 				&user.Email,
 				&user.UserType,

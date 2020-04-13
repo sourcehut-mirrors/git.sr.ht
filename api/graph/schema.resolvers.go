@@ -57,7 +57,7 @@ func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	user := auth.ForContext(ctx)
 	return &model.User{
-		ID:       user.Id,
+		ID:       user.ID,
 		Created:  user.Created,
 		Updated:  user.Updated,
 		Username: user.Username,
