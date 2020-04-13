@@ -1,5 +1,9 @@
 package loaders
 
+//go:generate ./gen RepositoriesByIDLoader int api/graph/model.Repository
+//go:generate ./gen UsersByNameLoader string api/graph/model.User
+//go:generate ./gen UsersByIDLoader int api/graph/model.User
+
 import (
 	"context"
 	"database/sql"
@@ -19,7 +23,7 @@ type contextKey struct {
 }
 
 type Loaders struct {
-	UsersByID        UserLoader
+	UsersByID        UsersByIDLoader
 	RepositoriesByID RepositoriesByIDLoader
 }
 
@@ -108,7 +112,7 @@ func Middleware(db *sql.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := context.WithValue(r.Context(), loadersCtxKey, &Loaders{
-				UsersByID: UserLoader{
+				UsersByID: UsersByIDLoader{
 					maxBatch: 100,
 					wait: 1 * time.Millisecond,
 					fetch: fetchUsersByID(r.Context(), db),
