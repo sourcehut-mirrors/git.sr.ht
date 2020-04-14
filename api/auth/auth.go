@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/vektah/gqlparser/gqlerror"
+
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/database"
 )
 
 var userCtxKey = &contextKey{"user"}
@@ -104,21 +106,21 @@ Expected 'Authentication: Bearer <token>'`, http.StatusForbidden)
 				scopes  string
 				user    User
 			)
-			if rows, err = db.Query(`
-					SELECT
-						ot.expires,
-						ot.scopes,
-						u.id, u.username,
-						u.created, u.updated,
-						u.email,
-						u.user_type,
-						u.url, u.location, u.bio,
-						u.suspension_notice
-					FROM oauthtoken ot
-					JOIN "user" u ON u.id = ot.user_id
-					WHERE ot.token_hash = $1;
-				`, bearer); err != nil {
-
+			query := database.
+				Select(context.TODO(), []string{
+					`ot.expires`,
+					`ot.scopes`,
+					`u.id`, `u.username`,
+					`u.created`, `u.updated`,
+					`u.email`,
+					`u.user_type`,
+					`u.url`, `u.location`, `u.bio`,
+					`u.suspension_notice`,
+				}).
+				From(`oauthtoken ot`).
+				Join(`"user" u ON u.id = ot.user_id`).
+				Where(`ot.token_hash = ?`, bearer)
+			if rows, err = query.RunWith(db).Query(); err != nil {
 				panic(err)
 			}
 			defer rows.Close()
