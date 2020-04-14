@@ -1,15 +1,16 @@
-package model
+package database
 
 import (
 	"context"
 	"sort"
 
-	"git.sr.ht/~sircmpwn/gqlgen/graphql"
 	"github.com/vektah/gqlparser/v2/ast"
+
+	"git.sr.ht/~sircmpwn/gqlgen/graphql"
 )
 
-func ColumnsFor(ctx context.Context,
-	colMap map[string]string, tbl string) []string {
+func ColumnsFor(ctx context.Context, alias string,
+	colMap map[string]string) []string {
 
 	var fields []graphql.CollectedField
 	if graphql.GetFieldContext(ctx) != nil {
@@ -30,8 +31,8 @@ func ColumnsFor(ctx context.Context,
 	var columns []string
 	for _, qlCol := range fields {
 		if sqlCol, ok := colMap[qlCol.Name]; ok {
-			if tbl != "" {
-				columns = append(columns, tbl+"."+sqlCol)
+			if alias != "" {
+				columns = append(columns, alias+"."+sqlCol)
 			} else {
 				columns = append(columns, sqlCol)
 			}
@@ -68,4 +69,12 @@ func FieldsFor(ctx context.Context,
 	}
 
 	return fields
+}
+
+func WithAlias(alias, col string) string {
+	if alias != "" {
+		return alias + "." + col
+	} else {
+		return col
+	}
 }

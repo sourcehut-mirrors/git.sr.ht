@@ -6,10 +6,10 @@ import (
 )
 
 type Commit struct {
-	Type      ObjectType `json:"type"`
-	ID        string     `json:"id"`
-	ShortID   string     `json:"shortId"`
-	Raw       string     `json:"raw"`
+	Type    ObjectType `json:"type"`
+	ID      string     `json:"id"`
+	ShortID string     `json:"shortId"`
+	Raw     string     `json:"raw"`
 
 	commit *object.Commit
 	repo   *git.Repository
@@ -23,17 +23,17 @@ func (c *Commit) Message() string {
 
 func (c *Commit) Author() *Signature {
 	return &Signature{
-		Name: c.commit.Author.Name,
+		Name:  c.commit.Author.Name,
 		Email: c.commit.Author.Email,
-		Time: c.commit.Author.When,
+		Time:  c.commit.Author.When,
 	}
 }
 
 func (c *Commit) Committer() *Signature {
 	return &Signature{
-		Name: c.commit.Committer.Name,
+		Name:  c.commit.Committer.Name,
 		Email: c.commit.Committer.Email,
-		Time: c.commit.Committer.When,
+		Time:  c.commit.Committer.When,
 	}
 }
 

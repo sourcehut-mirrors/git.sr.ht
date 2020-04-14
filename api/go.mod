@@ -5,9 +5,11 @@ go 1.14
 require (
 	git.sr.ht/~sircmpwn/getopt v0.0.0-20191230200459-23622cc906b3 // indirect
 	git.sr.ht/~sircmpwn/gqlgen v0.0.0-20200412134447-57d7234737d4
+	github.com/Masterminds/squirrel v1.2.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/go-chi/chi v3.3.2+incompatible
 	github.com/go-git/go-git/v5 v5.0.0
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/lib/pq v1.3.0

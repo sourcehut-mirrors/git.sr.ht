@@ -11,13 +11,13 @@ import (
 	"git.sr.ht/~sircmpwn/gqlgen/graphql/playground"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"github.com/vaughan0/go-ini"
 	_ "github.com/lib/pq"
+	"github.com/vaughan0/go-ini"
 
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/auth"
-	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/generated"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
 )
 
 const defaultAddr = ":8080"

@@ -13,13 +13,16 @@ import (
 	"net/http"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/auth"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/database"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 )
 
 var loadersCtxKey = &contextKey{"user"}
+
 type contextKey struct {
 	name string
 }
@@ -33,23 +36,24 @@ type Loaders struct {
 }
 
 func fetchUsersByID(ctx context.Context,
-	db *sql.DB) func (ids []int) ([]*model.User, []error) {
-	return func (ids []int) ([]*model.User, []error) {
+	db *sql.DB) func(ids []int) ([]*model.User, []error) {
+	return func(ids []int) ([]*model.User, []error) {
 		var (
 			err  error
 			rows *sql.Rows
 		)
-		if rows, err = db.QueryContext(ctx,`
-			SELECT `+(&model.User{}).Columns(ctx, "u")+`
-			FROM "user" u
-			WHERE u.id = ANY($1)`, pq.Array(ids)); err != nil {
+		query := database.
+			Select(ctx, (&model.User{}).As(`u`)).
+			From(`"user" u`).
+			Where(sq.Expr(`u.id = ANY(?)`, pq.Array(ids)))
+		if rows, err = query.RunWith(db).QueryContext(ctx); err != nil {
 			panic(err)
 		}
 		defer rows.Close()
 
 		usersById := map[int]*model.User{}
 		for rows.Next() {
-			user := model.User{}
+			var user model.User
 			if err := rows.Scan(user.Fields(ctx)...); err != nil {
 				panic(err)
 			}
@@ -69,16 +73,17 @@ func fetchUsersByID(ctx context.Context,
 }
 
 func fetchUsersByName(ctx context.Context,
-	db *sql.DB) func (names []string) ([]*model.User, []error) {
-	return func (names []string) ([]*model.User, []error) {
+	db *sql.DB) func(names []string) ([]*model.User, []error) {
+	return func(names []string) ([]*model.User, []error) {
 		var (
 			err  error
 			rows *sql.Rows
 		)
-		if rows, err = db.QueryContext(ctx,`
-			SELECT `+(&model.User{}).Columns(ctx, "u")+`
-			FROM "user" u
-			WHERE u.username = ANY($1)`, pq.Array(names)); err != nil {
+		query := database.
+			Select(ctx, (&model.User{}).As(`u`)).
+			From(`"user" u`).
+			Where(sq.Expr(`u.username = ANY(?)`, pq.Array(names)))
+		if rows, err = query.RunWith(db).QueryContext(ctx); err != nil {
 			panic(err)
 		}
 		defer rows.Close()
@@ -105,23 +110,26 @@ func fetchUsersByName(ctx context.Context,
 }
 
 func fetchRepositoriesByID(ctx context.Context,
-	db *sql.DB) func (ids []int) ([]*model.Repository, []error) {
-	return func (ids []int) ([]*model.Repository, []error) {
+	db *sql.DB) func(ids []int) ([]*model.Repository, []error) {
+	return func(ids []int) ([]*model.Repository, []error) {
 		var (
 			err  error
 			rows *sql.Rows
 		)
-		if rows, err = db.QueryContext(ctx, `
-			SELECT DISTINCT `+(&model.Repository{}).Columns(ctx, "repo")+`
-			FROM repository repo
-			FULL OUTER JOIN
-				access ON repo.id = access.repo_id
-			WHERE
-				repo.id = ANY($2)
-				AND (access.user_id = $1
-					OR repo.owner_id = $1
-					OR repo.visibility != 'private')
-			`, auth.ForContext(ctx).ID, pq.Array(ids)); err != nil {
+		authUser := auth.ForContext(ctx)
+		query := database.
+			Select(ctx, (&model.Repository{}).As(`repo`)).
+			Distinct().
+			From(`repository repo`).
+			LeftJoin(`access ON repo.id = access.repo_id`).
+			Where(sq.And{
+				sq.Expr(`repo.id = ANY(?)`, pq.Array(ids)),
+				sq.Or{
+					sq.Expr(`? IN (access.user_id, repo.owner_id)`, authUser.ID),
+					sq.Expr(`repo.visibility != 'private'`),
+				},
+			})
+		if rows, err = query.RunWith(db).QueryContext(ctx); err != nil {
 			panic(err)
 		}
 		defer rows.Close()
@@ -148,17 +156,21 @@ func fetchRepositoriesByID(ctx context.Context,
 }
 
 func fetchRepositoriesByName(ctx context.Context,
-	db *sql.DB) func (names []string) ([]*model.Repository, []error) {
-	return func (names []string) ([]*model.Repository, []error) {
+	db *sql.DB) func(names []string) ([]*model.Repository, []error) {
+	return func(names []string) ([]*model.Repository, []error) {
 		var (
 			err  error
 			rows *sql.Rows
 		)
-		if rows, err = db.QueryContext(ctx, `
-			SELECT DISTINCT `+(&model.Repository{}).Columns(ctx, "repo")+`
-			FROM repository repo
-			WHERE repo.name = ANY($2) AND repo.owner_id = $1
-			`, auth.ForContext(ctx).ID, pq.Array(names)); err != nil {
+		query := database.
+			Select(ctx, (&model.Repository{}).As(`repo`)).
+			Distinct().
+			From(`repository repo`).
+			Where(sq.And{
+				sq.Expr(`repo.name = ANY(?)`, pq.Array(names)),
+				sq.Expr(`repo.owner_id = ?`, auth.ForContext(ctx).ID),
+			})
+		if rows, err = query.RunWith(db).QueryContext(ctx); err != nil {
 			panic(err)
 		}
 		defer rows.Close()
@@ -185,8 +197,8 @@ func fetchRepositoriesByName(ctx context.Context,
 }
 
 func fetchRepositoriesByOwnerRepoName(ctx context.Context,
-	db *sql.DB) func (names [][2]string) ([]*model.Repository, []error) {
-	return func (names [][2]string) ([]*model.Repository, []error) {
+	db *sql.DB) func(names [][2]string) ([]*model.Repository, []error) {
+	return func(names [][2]string) ([]*model.Repository, []error) {
 		var (
 			err    error
 			rows   *sql.Rows
@@ -198,25 +210,27 @@ func fetchRepositoriesByOwnerRepoName(ctx context.Context,
 			// and repo names
 			_names[i] = name[0] + "/" + name[1]
 		}
-		if rows, err = db.QueryContext(ctx, `
-			WITH user_repo AS (
+		query := database.
+			Select(ctx).
+			Prefix(`WITH user_repo AS (
 				SELECT
 					substring(un for position('/' in un)-1) AS owner,
 					substring(un from position('/' in un)+1) AS repo
-				FROM unnest($2::text[]) un
-			)
-			SELECT DISTINCT
-				`+(&model.Repository{}).Columns(ctx, "repo")+`,
-				u.username
-			FROM user_repo ur
-			JOIN "user" u ON ur.owner = u.username
-			JOIN repository repo ON ur.repo = repo.name AND u.id = repo.owner_id
-			LEFT JOIN access ON repo.id = access.repo_id
-			WHERE
-				access.user_id = $1
-				OR repo.owner_id = $1
-				OR repo.visibility != 'private'`,
-			auth.ForContext(ctx).ID, pq.Array(_names)); err != nil {
+				FROM unnest(?::text[]) un)`, pq.Array(_names)).
+			Columns((&model.Repository{}).As(`repo`).Select(ctx)...).
+			Columns(`u.username`).
+			Distinct().
+			From(`user_repo ur`).
+			Join(`"user" u on ur.owner = u.username`).
+			Join(`repository repo ON ur.repo = repo.name
+				AND u.id = repo.owner_id`).
+			LeftJoin(`access ON repo.id = access.repo_id`).
+			Where(sq.Or{
+				sq.Expr(`? IN (access.user_id, repo.owner_id)`,
+					auth.ForContext(ctx).ID),
+				sq.Expr(`repo.visibility != 'private'`),
+			})
+		if rows, err = query.RunWith(db).QueryContext(ctx); err != nil {
 			panic(err)
 		}
 		defer rows.Close()
@@ -250,28 +264,28 @@ func Middleware(db *sql.DB) func(http.Handler) http.Handler {
 			ctx := context.WithValue(r.Context(), loadersCtxKey, &Loaders{
 				UsersByID: UsersByIDLoader{
 					maxBatch: 100,
-					wait: 1 * time.Millisecond,
-					fetch: fetchUsersByID(r.Context(), db),
+					wait:     1 * time.Millisecond,
+					fetch:    fetchUsersByID(r.Context(), db),
 				},
 				UsersByName: UsersByNameLoader{
 					maxBatch: 100,
-					wait: 1 * time.Millisecond,
-					fetch: fetchUsersByName(r.Context(), db),
+					wait:     1 * time.Millisecond,
+					fetch:    fetchUsersByName(r.Context(), db),
 				},
 				RepositoriesByID: RepositoriesByIDLoader{
 					maxBatch: 100,
-					wait: 1 * time.Millisecond,
-					fetch: fetchRepositoriesByID(r.Context(), db),
+					wait:     1 * time.Millisecond,
+					fetch:    fetchRepositoriesByID(r.Context(), db),
 				},
 				RepositoriesByName: RepositoriesByNameLoader{
 					maxBatch: 100,
-					wait: 1 * time.Millisecond,
-					fetch: fetchRepositoriesByName(r.Context(), db),
+					wait:     1 * time.Millisecond,
+					fetch:    fetchRepositoriesByName(r.Context(), db),
 				},
 				RepositoriesByOwnerRepoName: RepositoriesByOwnerRepoNameLoader{
 					maxBatch: 100,
-					wait: 1 * time.Millisecond,
-					fetch: fetchRepositoriesByOwnerRepoName(r.Context(), db),
+					wait:     1 * time.Millisecond,
+					fetch:    fetchRepositoriesByOwnerRepoName(r.Context(), db),
 				},
 			})
 			r = r.WithContext(ctx)

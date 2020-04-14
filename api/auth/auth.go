@@ -17,6 +17,7 @@ import (
 )
 
 var userCtxKey = &contextKey{"user"}
+
 type contextKey struct {
 	name string
 }
@@ -24,14 +25,14 @@ type contextKey struct {
 var bearerRegex = regexp.MustCompile(`^[0-9a-f]{32}$`)
 
 const (
-    USER_UNCONFIRMED = "unconfirmed"
-    USER_ACTIVE_NON_PAYING = "active_non_paying"
-    USER_ACTIVE_FREE = "active_free"
-    USER_ACTIVE_PAYING = "active_paying"
-    USER_ACTIVE_DELINQUENT = "active_delinquent"
-    USER_ADMIN = "admin"
-    USER_UNKNOWN = "unknown"
-    USER_SUSPENDED = "suspended"
+	USER_UNCONFIRMED       = "unconfirmed"
+	USER_ACTIVE_NON_PAYING = "active_non_paying"
+	USER_ACTIVE_FREE       = "active_free"
+	USER_ACTIVE_PAYING     = "active_paying"
+	USER_ACTIVE_DELINQUENT = "active_delinquent"
+	USER_ADMIN             = "admin"
+	USER_UNKNOWN           = "unknown"
+	USER_SUSPENDED         = "suspended"
 )
 
 type User struct {
@@ -80,7 +81,7 @@ Expected 'Authentication: Bearer <token>'`, http.StatusForbidden)
 			}
 
 			var bearer string
-			switch (z[0]) {
+			switch z[0] {
 			case "Bearer":
 				token := []byte(z[1])
 				if !bearerRegex.Match(token) {

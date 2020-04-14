@@ -10,10 +10,10 @@ import (
 )
 
 type Blob struct {
-	Type     ObjectType `json:"type"`
-	ID       string     `json:"id"`
-	ShortID  string     `json:"shortId"`
-	Raw      string     `json:"raw"`
+	Type    ObjectType `json:"type"`
+	ID      string     `json:"id"`
+	ShortID string     `json:"shortId"`
+	Raw     string     `json:"raw"`
 
 	blob  *object.Blob
 	repo  *git.Repository

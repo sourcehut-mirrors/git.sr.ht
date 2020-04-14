@@ -9,10 +9,10 @@ import (
 )
 
 type Tree struct {
-	Type    ObjectType   `json:"type"`
-	ID      string       `json:"id"`
-	ShortID string       `json:"shortId"`
-	Raw     string       `json:"raw"`
+	Type    ObjectType `json:"type"`
+	ID      string     `json:"id"`
+	ShortID string     `json:"shortId"`
+	Raw     string     `json:"raw"`
 
 	tree *object.Tree
 	repo *git.Repository
@@ -21,8 +21,8 @@ type Tree struct {
 func (Tree) IsObject() {}
 
 type TreeEntry struct {
-	Name   string `json:"name"`
-	Mode   int    `json:"mode"`
+	Name string `json:"name"`
+	Mode int    `json:"mode"`
 
 	hash plumbing.Hash
 	repo *git.Repository

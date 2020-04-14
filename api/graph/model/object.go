@@ -51,4 +51,3 @@ func LookupObject(repo *git.Repository, hash plumbing.Hash) (Object, error) {
 		return nil, errors.New("Unknown object type")
 	}
 }
-
