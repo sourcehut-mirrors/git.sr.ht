@@ -16,7 +16,6 @@ import (
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
 	"git.sr.ht/~sircmpwn/gqlgen/graphql"
-	sq "github.com/Masterminds/squirrel"
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
@@ -75,8 +74,43 @@ func (r *queryResolver) User(ctx context.Context, username string) (*model.User,
 	return loaders.ForContext(ctx).UsersByName.Load(username)
 }
 
-func (r *queryResolver) Repositories(ctx context.Context, next *int, filter *model.FilterBy) ([]*model.Repository, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *queryResolver) Repositories(ctx context.Context, count *int, next *int, filter *model.FilterBy) ([]*model.Repository, error) {
+	var (
+		err  error
+		rows *sql.Rows
+	)
+	repo := (&model.Repository{}).As(`repo`)
+	query := database.
+		Select(ctx, repo).
+		From(`repository repo`).
+		Where(`repo.owner_id = ?`, auth.ForContext(ctx).ID).
+		OrderBy(`repo.id DESC`).
+		Limit(uint64(*count))
+	if next != nil {
+		query = query.Where(`repo.id < ?`, *next)
+	}
+	if filter != nil {
+		searchable, _ := repo.(database.Searchable)
+		query, err = database.ApplyFilter(query, searchable, filter.Search)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if rows, err = query.RunWith(r.DB).QueryContext(ctx); err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	var repos []*model.Repository
+	for rows.Next() {
+		var repo model.Repository
+		if err := rows.Scan(repo.Fields(ctx)...); err != nil {
+			panic(err)
+		}
+		repos = append(repos, &repo)
+	}
+	return repos, nil
 }
 
 func (r *queryResolver) Repository(ctx context.Context, id int) (*model.Repository, error) {
@@ -142,15 +176,23 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, count 
 		err  error
 		rows *sql.Rows
 	)
+	repo := (&model.Repository{}).As(`repo`)
 	query := database.
-		Select(ctx, (&model.Repository{}).As(`repo`)).
+		Select(ctx, repo).
 		From(`repository repo`).
-		Where(sq.And{
-			sq.Expr(`repo.owner_id = ?`, obj.ID),
-			sq.Expr(`CASE WHEN ? != 0 THEN repo.id < ? ELSE true END`, next, next),
-		}).
+		Where(`repo.owner_id = ?`, obj.ID).
 		OrderBy(`id DESC`).
 		Limit(uint64(*count))
+	if next != nil {
+		query = query.Where(`repo.id < ?`, *next)
+	}
+	if filter != nil {
+		searchable, _ := repo.(database.Searchable)
+		query, err = database.ApplyFilter(query, searchable, filter.Search)
+		if err != nil {
+			return nil, err
+		}
+	}
 	if rows, err = query.RunWith(r.DB).QueryContext(ctx); err != nil {
 		panic(err)
 	}

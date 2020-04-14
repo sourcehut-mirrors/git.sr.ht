@@ -2,10 +2,10 @@ package model
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/go-git/go-git/v5"
+	sq "github.com/Masterminds/squirrel"
 
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/database"
 )
@@ -51,19 +51,6 @@ func (r *Repository) Head() *Reference {
 	return &Reference{Ref: ref, Repo: r.repo}
 }
 
-func (r *Repository) Columns(ctx context.Context, tbl string) string {
-	columns := ColumnsFor(ctx, map[string]string{
-		"id":          "id",
-		"created":     "created",
-		"updated":     "updated",
-		"name":        "name",
-		"description": "description",
-		"visibility":  "visibility",
-		"upstreamUrl": "upstream_uri",
-	}, tbl)
-	return strings.Join(append(columns, tbl+".path", tbl+".owner_id"), ", ")
-}
-
 func (r *Repository) Select(ctx context.Context) []string {
 	return append(database.ColumnsFor(ctx, r.alias, map[string]string{
 		"id":          "id",
@@ -94,4 +81,15 @@ func (r *Repository) Fields(ctx context.Context) []interface{} {
 		"upstream_url": &r.UpstreamURL,
 	})
 	return append(fields, &r.Path, &r.OwnerID)
+}
+
+func (r *Repository) DefaultSearch(query sq.SelectBuilder,
+	term string) (sq.SelectBuilder, error) {
+	name := database.WithAlias(r.alias, "name")
+	desc := database.WithAlias(r.alias, "description")
+	return query.
+		Where(sq.Or{
+			sq.Expr(name + ` ILIKE '%' || ? || '%'`, term),
+			sq.Expr(desc + ` ILIKE '%' || ? || '%'`, term),
+		}), nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"sort"
 
+	"github.com/lib/pq"
 	"github.com/vektah/gqlparser/v2/ast"
 
 	"git.sr.ht/~sircmpwn/gqlgen/graphql"
@@ -32,9 +33,10 @@ func ColumnsFor(ctx context.Context, alias string,
 	for _, qlCol := range fields {
 		if sqlCol, ok := colMap[qlCol.Name]; ok {
 			if alias != "" {
-				columns = append(columns, alias+"."+sqlCol)
+				columns = append(columns, pq.QuoteIdentifier(alias)+
+					"."+pq.QuoteIdentifier(sqlCol))
 			} else {
-				columns = append(columns, sqlCol)
+				columns = append(columns, pq.QuoteIdentifier(sqlCol))
 			}
 		}
 	}

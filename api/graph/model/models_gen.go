@@ -32,7 +32,7 @@ type Artifact struct {
 }
 
 type FilterBy struct {
-	Terms string `json:"terms"`
+	Search string `json:"search"`
 }
 
 type RepoInput struct {

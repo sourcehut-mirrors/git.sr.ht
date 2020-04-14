@@ -102,7 +102,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Me                func(childComplexity int) int
-		Repositories      func(childComplexity int, next *int, filter *model.FilterBy) int
+		Repositories      func(childComplexity int, count *int, next *int, filter *model.FilterBy) int
 		Repository        func(childComplexity int, id int) int
 		RepositoryByName  func(childComplexity int, name string) int
 		RepositoryByOwner func(childComplexity int, owner string, repo string) int
@@ -206,7 +206,7 @@ type QueryResolver interface {
 	Version(ctx context.Context) (*model.Version, error)
 	Me(ctx context.Context) (*model.User, error)
 	User(ctx context.Context, username string) (*model.User, error)
-	Repositories(ctx context.Context, next *int, filter *model.FilterBy) ([]*model.Repository, error)
+	Repositories(ctx context.Context, count *int, next *int, filter *model.FilterBy) ([]*model.Repository, error)
 	Repository(ctx context.Context, id int) (*model.Repository, error)
 	RepositoryByName(ctx context.Context, name string) (*model.Repository, error)
 	RepositoryByOwner(ctx context.Context, owner string, repo string) (*model.Repository, error)
@@ -533,7 +533,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.Repositories(childComplexity, args["next"].(*int), args["filter"].(*model.FilterBy)), true
+		return e.complexity.Query.Repositories(childComplexity, args["count"].(*int), args["next"].(*int), args["filter"].(*model.FilterBy)), true
 
 	case "Query.repository":
 		if e.complexity.Query.Repository == nil {
@@ -1322,7 +1322,7 @@ type Tag implements Object {
 # Specifies filtering criteria for a listing query
 input FilterBy {
   # Same search syntax as searching on the web UI
-  terms: String!
+  search: String!
 }
 
 type Query {
@@ -1341,7 +1341,7 @@ type Query {
   # will be to return all repositories that the user either (1) has been given
   # explicit access to via ACLs or (2) has implicit access to either by
   # ownership or group membership.
-  repositories(next: Int, filter: FilterBy): [Repository]!
+  repositories(count: Int = 10, next: Int, filter: FilterBy): [Repository]!
 
   # Returns a specific repository
   repository(id: Int!): Repository
@@ -1555,21 +1555,29 @@ func (ec *executionContext) field_Query_repositories_args(ctx context.Context, r
 	var err error
 	args := map[string]interface{}{}
 	var arg0 *int
-	if tmp, ok := rawArgs["next"]; ok {
+	if tmp, ok := rawArgs["count"]; ok {
 		arg0, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["next"] = arg0
-	var arg1 *model.FilterBy
-	if tmp, ok := rawArgs["filter"]; ok {
-		arg1, err = ec.unmarshalOFilterBy2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐFilterBy(ctx, tmp)
+	args["count"] = arg0
+	var arg1 *int
+	if tmp, ok := rawArgs["next"]; ok {
+		arg1, err = ec.unmarshalOInt2ᚖint(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["filter"] = arg1
+	args["next"] = arg1
+	var arg2 *model.FilterBy
+	if tmp, ok := rawArgs["filter"]; ok {
+		arg2, err = ec.unmarshalOFilterBy2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐFilterBy(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["filter"] = arg2
 	return args, nil
 }
 
@@ -3248,7 +3256,7 @@ func (ec *executionContext) _Query_repositories(ctx context.Context, field graph
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Repositories(rctx, args["next"].(*int), args["filter"].(*model.FilterBy))
+		return ec.resolvers.Query().Repositories(rctx, args["count"].(*int), args["next"].(*int), args["filter"].(*model.FilterBy))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6410,9 +6418,9 @@ func (ec *executionContext) unmarshalInputFilterBy(ctx context.Context, obj inte
 
 	for k, v := range asMap {
 		switch k {
-		case "terms":
+		case "search":
 			var err error
-			it.Terms, err = ec.unmarshalNString2string(ctx, v)
+			it.Search, err = ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}

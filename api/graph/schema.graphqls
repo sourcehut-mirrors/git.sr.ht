@@ -231,7 +231,7 @@ type Tag implements Object {
 # Specifies filtering criteria for a listing query
 input FilterBy {
   # Same search syntax as searching on the web UI
-  terms: String!
+  search: String!
 }
 
 type Query {
@@ -250,7 +250,7 @@ type Query {
   # will be to return all repositories that the user either (1) has been given
   # explicit access to via ACLs or (2) has implicit access to either by
   # ownership or group membership.
-  repositories(next: Int, filter: FilterBy): [Repository]!
+  repositories(count: Int = 10, next: Int, filter: FilterBy): [Repository]!
 
   # Returns a specific repository
   repository(id: Int!): Repository
