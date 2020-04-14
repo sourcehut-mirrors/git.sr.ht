@@ -11,10 +11,12 @@ import (
 	"strings"
 
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/auth"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/database"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/generated"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
 	"git.sr.ht/~sircmpwn/gqlgen/graphql"
+	sq "github.com/Masterminds/squirrel"
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
@@ -140,15 +142,16 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, count 
 		err  error
 		rows *sql.Rows
 	)
-	if rows, err = r.DB.QueryContext(ctx, `
-			SELECT `+(&model.Repository{}).Columns(ctx, "repo")+`
-			FROM repository repo
-			WHERE
-				repo.owner_id = $1
-				AND CASE WHEN $2 != 0 THEN repo.id < $2 ELSE true END
-			ORDER BY id DESC
-			LIMIT $3;
-		`, obj.ID, next, count); err != nil {
+	query := database.
+		Select(ctx, (&model.Repository{}).As(`repo`)).
+		From(`repository repo`).
+		Where(sq.And{
+			sq.Expr(`repo.owner_id = ?`, obj.ID),
+			sq.Expr(`CASE WHEN ? != 0 THEN repo.id < ? ELSE true END`, next, next),
+		}).
+		OrderBy(`id DESC`).
+		Limit(uint64(*count))
+	if rows, err = query.RunWith(r.DB).QueryContext(ctx); err != nil {
 		panic(err)
 	}
 	defer rows.Close()
