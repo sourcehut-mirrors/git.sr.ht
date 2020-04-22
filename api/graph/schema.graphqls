@@ -1,3 +1,4 @@
+scalar Cursor
 scalar Time
 scalar Upload
 
@@ -40,7 +41,7 @@ interface Entity {
   canonicalName: String!
 
   # A list of repositories owned by this entity
-  repositories(count: Int = 10, next: Int, filter: FilterBy): [Repository]!
+  repositories(cursor: Cursor): [Repository]!
 }
 
 # A registered user
@@ -56,7 +57,7 @@ type User implements Entity {
   bio: String
 
   # A list of repositories owned by this user
-  repositories(count: Int = 10, next: Int, filter: FilterBy): [Repository]!
+  repositories(cursor: Cursor): [Repository]!
 }
 
 # A git repository
@@ -69,12 +70,15 @@ type Repository {
   description: String
   visibility: Visibility!
 
+  # Pass this into the same endpoint to receive a new page of results
+  cursor: Cursor
+
   # If this repository was cloned from another, this will be set to the
   # original clone URL
   upstreamUrl: String
 
   # Returns access control list entries for this repository
-  accessControlList(count: Int = 10, next: Int): [ACL]!
+  accessControlList(cursor: Cursor): [ACL]!
 
   ## Plumbing API:
 
@@ -82,7 +86,7 @@ type Repository {
   # 
   # glob: an optional string to filter the list of references, e.g. for tags
   # use "refs/tags/*", or leave null to enumerate all references
-  references(count: Int = 10, next: String, glob: String): [Reference]!
+  references(cursor: Cursor): [Reference]!
 
   # Returns a list of objects for this repository by their IDs (using fully
   # qualified git object IDs, 40 character hex strings)
@@ -97,8 +101,9 @@ type Repository {
   # The HEAD reference for this repository (equivalent to the default branch)
   HEAD: Reference
 
-  # Returns a list of comments, starting from revspec
-  log(revspec: String = "HEAD", count: Int = 10): [Commit]!
+  # Returns a list of comments in topological order. `cursor.from` is used as
+  # the revspec to begin logging from.
+  log(cursor: Cursor): [Commit]!
 
   # Returns the tree for a given revspec
   #
@@ -178,7 +183,7 @@ type Tree implements Object {
   shortId: String!
   raw: String!
   # TODO: add globbing
-  entries(count: Int = 100, next: String): [TreeEntry!]!
+  entries(cursor: Cursor): [TreeEntry!]!
 
   entry(path: String): TreeEntry
 }
@@ -228,10 +233,16 @@ type Tag implements Object {
   message: String
 }
 
-# Specifies filtering criteria for a listing query
-input FilterBy {
-  # Same search syntax as searching on the web UI
-  search: String!
+input Filter {
+  # Number of results to return.
+  count: Int = 20
+
+  # Search terms. The exact meaning varies by usage, but generally these are
+  # compatible with the web UI's search syntax.
+  search: String
+
+  # Field to order results by, if possible.
+  orderBy: String
 }
 
 type Query {
@@ -241,16 +252,20 @@ type Query {
   # Returns the authenticated user
   me: User!
 
+  # Returns a custom cursor based on a given filter criteria
+  cursor(filter: Filter!): Cursor
+
   # Returns a specific user
   user(username: String!): User
 
   # Returns repositories that the authenticated user has access to
+  #
   # NOTE: in this version of the API, only repositories owned by the
   # authenticated user are returned, but in the future the default behavior
   # will be to return all repositories that the user either (1) has been given
   # explicit access to via ACLs or (2) has implicit access to either by
   # ownership or group membership.
-  repositories(count: Int = 10, next: Int, filter: FilterBy): [Repository]!
+  repositories(cursor: Cursor): [Repository]!
 
   # Returns a specific repository
   repository(id: Int!): Repository

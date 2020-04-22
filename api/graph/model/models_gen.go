@@ -31,8 +31,10 @@ type Artifact struct {
 	URL        string      `json:"url"`
 }
 
-type FilterBy struct {
-	Search string `json:"search"`
+type Filter struct {
+	Count   *int    `json:"count"`
+	Search  *string `json:"search"`
+	OrderBy *string `json:"orderBy"`
 }
 
 type RepoInput struct {

@@ -17,6 +17,7 @@ type Repository struct {
 	Name           string     `json:"name"`
 	Description    *string    `json:"description"`
 	Visibility     Visibility `json:"visibility"`
+	Cursor         *Cursor    `json:"cursor"`
 	UpstreamURL    *string    `json:"upstreamUrl"`
 	Objects        []Object   `json:"objects"`
 	Log            []*Commit  `json:"log"`

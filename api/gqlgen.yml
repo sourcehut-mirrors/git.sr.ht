@@ -54,3 +54,6 @@ models:
       - git.sr.ht/~sircmpwn/gqlgen/graphql.Int
       - git.sr.ht/~sircmpwn/gqlgen/graphql.Int64
       - git.sr.ht/~sircmpwn/gqlgen/graphql.Int32
+  Cursor:
+    model:
+      - git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model.Cursor

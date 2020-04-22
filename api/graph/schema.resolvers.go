@@ -70,11 +70,15 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	}, nil
 }
 
+func (r *queryResolver) Cursor(ctx context.Context, filter model.Filter) (*model.Cursor, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) User(ctx context.Context, username string) (*model.User, error) {
 	return loaders.ForContext(ctx).UsersByName.Load(username)
 }
 
-func (r *queryResolver) Repositories(ctx context.Context, count *int, next *int, filter *model.FilterBy) ([]*model.Repository, error) {
+func (r *queryResolver) Repositories(ctx context.Context, cursor *model.Cursor) ([]*model.Repository, error) {
 	var (
 		err  error
 		rows *sql.Rows
@@ -85,18 +89,7 @@ func (r *queryResolver) Repositories(ctx context.Context, count *int, next *int,
 		From(`repository repo`).
 		Where(`repo.owner_id = ?`, auth.ForContext(ctx).ID).
 		OrderBy(`repo.id DESC`).
-		Limit(uint64(*count))
-	if next != nil {
-		query = query.Where(`repo.id < ?`, *next)
-	}
-	if filter != nil {
-		searchable, _ := repo.(database.Searchable)
-		query, err = database.ApplyFilter(query, searchable, filter.Search)
-		if err != nil {
-			return nil, err
-		}
-	}
-
+		Limit(25)
 	if rows, err = query.RunWith(r.DB).QueryContext(ctx); err != nil {
 		panic(err)
 	}
@@ -135,11 +128,11 @@ func (r *repositoryResolver) Owner(ctx context.Context, obj *model.Repository) (
 	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
 }
 
-func (r *repositoryResolver) AccessControlList(ctx context.Context, obj *model.Repository, count *int, next *int) ([]*model.ACL, error) {
+func (r *repositoryResolver) AccessControlList(ctx context.Context, obj *model.Repository, cursor *model.Cursor) ([]*model.ACL, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *repositoryResolver) References(ctx context.Context, obj *model.Repository, count *int, next *string, glob *string) ([]*model.Reference, error) {
+func (r *repositoryResolver) References(ctx context.Context, obj *model.Repository, cursor *model.Cursor) ([]*model.Reference, error) {
 	iter, err := obj.Repo().References()
 	if err != nil {
 		return nil, err
@@ -154,24 +147,17 @@ func (r *repositoryResolver) References(ctx context.Context, obj *model.Reposito
 	sort.SliceStable(refs, func(i, j int) bool {
 		return refs[i].Name() < refs[j].Name()
 	})
-	if next != nil {
-		for i, ref := range refs {
-			if ref.Name() == *next {
-				refs = refs[i+1:]
-				if len(refs) > *count {
-					refs = refs[:*count]
-				}
-				return refs, nil
-			}
-		}
-	}
-	if len(refs) > *count {
-		refs = refs[:*count]
+	if len(refs) > 25 {
+		refs = refs[:25]
 	}
 	return refs, nil
 }
 
-func (r *userResolver) Repositories(ctx context.Context, obj *model.User, count *int, next *int, filter *model.FilterBy) ([]*model.Repository, error) {
+func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *model.Cursor) ([]*model.TreeEntry, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor *model.Cursor) ([]*model.Repository, error) {
 	var (
 		err  error
 		rows *sql.Rows
@@ -182,17 +168,7 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, count 
 		From(`repository repo`).
 		Where(`repo.owner_id = ?`, obj.ID).
 		OrderBy(`id DESC`).
-		Limit(uint64(*count))
-	if next != nil {
-		query = query.Where(`repo.id < ?`, *next)
-	}
-	if filter != nil {
-		searchable, _ := repo.(database.Searchable)
-		query, err = database.ApplyFilter(query, searchable, filter.Search)
-		if err != nil {
-			return nil, err
-		}
-	}
+		Limit(25)
 	if rows, err = query.RunWith(r.DB).QueryContext(ctx); err != nil {
 		panic(err)
 	}
@@ -217,10 +193,24 @@ func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 // Repository returns generated.RepositoryResolver implementation.
 func (r *Resolver) Repository() generated.RepositoryResolver { return &repositoryResolver{r} }
 
+// Tree returns generated.TreeResolver implementation.
+func (r *Resolver) Tree() generated.TreeResolver { return &treeResolver{r} }
+
 // User returns generated.UserResolver implementation.
 func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type repositoryResolver struct{ *Resolver }
+type treeResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+func (r *repositoryResolver) Cursor(ctx context.Context, obj *model.Repository) (*model.Cursor, error) {
+	panic(fmt.Errorf("not implemented"))
+}

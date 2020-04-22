@@ -15,6 +15,7 @@ import (
 	"github.com/vaughan0/go-ini"
 
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/auth"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/crypto"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/generated"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
@@ -48,6 +49,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load config file: %v", err)
 	}
+
+	crypto.InitCrypto(config)
 
 	pgcs, ok := config.Get("git.sr.ht", "connection-string")
 	if !ok {
