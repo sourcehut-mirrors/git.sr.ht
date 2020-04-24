@@ -8,53 +8,9 @@
 {% endblock %}
 
 {% block head %}
-  <style type="text/css">
-    svg.contributors { background-color: WhiteSmoke }
-    rect { fill: #116bdd }
-    rect:hover { fill: #dc3545 }
-  </style>
+{% include "partials/scmcontrib-head.html" %}
 {% endblock %}
 
 {% block content %}
-<div class="container">
-  <p>
-    Contributions to {{repo.owner.canonical_name}}/{{repo.name}}
-    in the last 52 weeks:
-  </p>
-  <div class="row">
-  {% for email, full_name, username, commits, bars in chart_data %}
-    <div class="col-md-6">
-      <h3>
-        {% if username %}
-          <a href="{{ url_for('public.user_index', username=username) }}">
-            ~{{ username }}
-          </a>
-        {% else %}
-          {{ full_name }}
-        {% endif %}
-        <small>{{ commits }} commits</small>
-      </h3>
-
-      <svg
-        version="1.1"
-        baseProfile="full"
-        viewBox="0 0 520 100"
-        xmlns="http://www.w3.org/2000/svg"
-	class="contributors"
-      >
-        {% for bar in bars %}
-          <rect
-            x="{{ bar.ordinal * 10 }}"
-            y="{{ 100 - bar.height }}%"
-            width="11"
-            height="{{ bar.height }}%"
-          >
-            <title>{{ bar.commits }} commits in the week of {{ bar.week }}</title>
-          </rect>
-        {% endfor %}
-      </svg>
-    </div>
-  {% endfor %}
-  </div>
-</div>
+{% include "partials/scmcontrib-body.html" %}
 {% endblock %}
