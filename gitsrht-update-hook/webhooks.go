@@ -114,7 +114,7 @@ func deliverWebhooks(subs []WebhookSubscription,
 
 		resp, err := client.Do(req)
 		if err != nil {
-			delivery.Response = fmt.Sprintf("Error sending webhook: %v")
+			delivery.Response = fmt.Sprintf("Error sending webhook: %v", err)
 			log.Printf(delivery.Response)
 			deliveries = append(deliveries, delivery)
 			continue
