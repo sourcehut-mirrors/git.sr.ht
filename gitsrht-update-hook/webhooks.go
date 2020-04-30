@@ -77,7 +77,7 @@ func deliverWebhooks(subs []WebhookSubscription,
 
 	for _, sub := range subs {
 		var (
-			nonceSeed []byte
+			nonceSeed [8]byte
 			nonceHex  []byte
 		)
 		_, err := rand.Read(nonceSeed)
