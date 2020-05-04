@@ -236,7 +236,6 @@ def tree(owner, repo, ref, path):
                         ref=ref, path=os.path.dirname("/".join(path)))
                     md = markdown(data, ["h1", "h2", "h3", "h4", "h5"],
                             link_prefix=[link_prefix, blob_prefix])
-                    print(md)
                 force_source = "view-source" in request.args
                 return render_template("blob.html", view="blob",
                         owner=owner, repo=repo, ref=ref, path=path, entry=entry,
