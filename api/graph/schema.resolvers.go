@@ -71,15 +71,11 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	}, nil
 }
 
-func (r *queryResolver) Cursor(ctx context.Context, filter model.Filter) (*model.Cursor, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
 func (r *queryResolver) User(ctx context.Context, username string) (*model.User, error) {
 	return loaders.ForContext(ctx).UsersByName.Load(username)
 }
 
-func (r *queryResolver) Repositories(ctx context.Context, cursor *model.Cursor) (*model.RepositoryCursor, error) {
+func (r *queryResolver) Repositories(ctx context.Context, cursor *model.Cursor, filter *model.Filter) (*model.RepositoryCursor, error) {
 	var (
 		err  error
 		rows *sql.Rows
@@ -159,7 +155,7 @@ func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *mod
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor *model.Cursor) (*model.RepositoryCursor, error) {
+func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor *model.Cursor, filter *model.Filter) (*model.RepositoryCursor, error) {
 	var (
 		err  error
 		rows *sql.Rows
@@ -222,6 +218,9 @@ type userResolver struct{ *Resolver }
 //  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
 //    it when you're done.
 //  - You have helper methods in this file. Move them out to keep these resolver files clean.
+func (r *queryResolver) Cursor(ctx context.Context, filter model.Filter) (*model.Cursor, error) {
+	panic(fmt.Errorf("not implemented"))
+}
 func (r *repositoryResolver) Cursor(ctx context.Context, obj *model.Repository) (*model.Cursor, error) {
 	panic(fmt.Errorf("not implemented"))
 }

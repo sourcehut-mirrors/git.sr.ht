@@ -41,7 +41,7 @@ interface Entity {
   canonicalName: String!
 
   # A list of repositories owned by this entity
-  repositories(cursor: Cursor): RepositoryCursor
+  repositories(cursor: Cursor, filter: Filter): RepositoryCursor
 }
 
 # A registered user
@@ -57,7 +57,7 @@ type User implements Entity {
   bio: String
 
   # A list of repositories owned by this user
-  repositories(cursor: Cursor): RepositoryCursor
+  repositories(cursor: Cursor, filter: Filter): RepositoryCursor
 }
 
 # A git repository
@@ -259,9 +259,6 @@ type Query {
   # Returns the authenticated user
   me: User!
 
-  # Returns a custom cursor based on a given filter criteria
-  cursor(filter: Filter!): Cursor
-
   # Returns a specific user
   user(username: String!): User
 
@@ -272,7 +269,7 @@ type Query {
   # will be to return all repositories that the user either (1) has been given
   # explicit access to via ACLs or (2) has implicit access to either by
   # ownership or group membership.
-  repositories(cursor: Cursor): RepositoryCursor
+  repositories(cursor: Cursor, filter: Filter): RepositoryCursor
 
   # Returns a specific repository
   repository(id: Int!): Repository
