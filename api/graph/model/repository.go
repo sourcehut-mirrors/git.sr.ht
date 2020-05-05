@@ -72,7 +72,7 @@ func (r *Repository) As(alias string) database.Selectable {
 }
 
 func (r *Repository) Fields(ctx context.Context) []interface{} {
-	fields := FieldsFor(ctx, map[string]interface{}{
+	fields := database.FieldsFor(ctx, map[string]interface{}{
 		"id":           &r.ID,
 		"created":      &r.Created,
 		"updated":      &r.Updated,

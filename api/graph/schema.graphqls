@@ -41,7 +41,7 @@ interface Entity {
   canonicalName: String!
 
   # A list of repositories owned by this entity
-  repositories(cursor: Cursor): [Repository]!
+  repositories(cursor: Cursor): RepositoryCursor
 }
 
 # A registered user
@@ -57,7 +57,7 @@ type User implements Entity {
   bio: String
 
   # A list of repositories owned by this user
-  repositories(cursor: Cursor): [Repository]!
+  repositories(cursor: Cursor): RepositoryCursor
 }
 
 # A git repository
@@ -69,9 +69,6 @@ type Repository {
   name: String!
   description: String
   visibility: Visibility!
-
-  # Pass this into the same endpoint to receive a new page of results
-  cursor: Cursor
 
   # If this repository was cloned from another, this will be set to the
   # original clone URL
@@ -116,6 +113,16 @@ type Repository {
   # Returns the object for a given revspec. Useful, for example, to turn
   # something ambiuguous like "9790b10" into a commit object
   revparse_single(revspec: String!): Object
+}
+
+# A cursor for enumerating a list of repositories
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type RepositoryCursor {
+  results: [Repository]!
+  cursor: Cursor
 }
 
 # Access Control List entry
@@ -265,7 +272,7 @@ type Query {
   # will be to return all repositories that the user either (1) has been given
   # explicit access to via ACLs or (2) has implicit access to either by
   # ownership or group membership.
-  repositories(cursor: Cursor): [Repository]!
+  repositories(cursor: Cursor): RepositoryCursor
 
   # Returns a specific repository
   repository(id: Int!): Repository

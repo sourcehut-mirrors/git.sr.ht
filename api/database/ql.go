@@ -10,13 +10,34 @@ import (
 	"git.sr.ht/~sircmpwn/gqlgen/graphql"
 )
 
-func ColumnsFor(ctx context.Context, alias string,
-	colMap map[string]string) []string {
-
+func collectFields(ctx context.Context) []graphql.CollectedField {
 	var fields []graphql.CollectedField
 	if graphql.GetFieldContext(ctx) != nil {
 		fields = graphql.CollectFieldsCtx(ctx, nil)
-	} else {
+
+		octx := graphql.GetOperationContext(ctx)
+		for _, col := range fields {
+			if col.Name == "results" {
+				// This endpoint is using the cursor pattern; the columns we
+				// actually need to filter with are nested into the results
+				// field.
+				fields = graphql.CollectFields(octx, col.SelectionSet, nil)
+				break
+			}
+		}
+
+		sort.Slice(fields, func(a, b int) bool {
+			return fields[a].Name < fields[b].Name
+		})
+	}
+	return fields
+}
+
+func ColumnsFor(ctx context.Context, alias string,
+	colMap map[string]string) []string {
+
+	fields := collectFields(ctx)
+	if len(fields) == 0 {
 		// Collect all fields if we are not in an active graphql context
 		for qlCol, _ := range colMap {
 			fields = append(fields, graphql.CollectedField{
@@ -24,10 +45,6 @@ func ColumnsFor(ctx context.Context, alias string,
 			})
 		}
 	}
-
-	sort.Slice(fields, func(a, b int) bool {
-		return fields[a].Name < fields[b].Name
-	})
 
 	var columns []string
 	for _, qlCol := range fields {
@@ -47,10 +64,8 @@ func ColumnsFor(ctx context.Context, alias string,
 func FieldsFor(ctx context.Context,
 	colMap map[string]interface{}) []interface{} {
 
-	var qlFields []graphql.CollectedField
-	if graphql.GetFieldContext(ctx) != nil {
-		qlFields = graphql.CollectFieldsCtx(ctx, nil)
-	} else {
+	qlFields := collectFields(ctx)
+	if len(qlFields) == 0 {
 		// Collect all fields if we are not in an active graphql context
 		for qlCol, _ := range colMap {
 			qlFields = append(qlFields, graphql.CollectedField{
@@ -58,10 +73,6 @@ func FieldsFor(ctx context.Context,
 			})
 		}
 	}
-
-	sort.Slice(qlFields, func(a, b int) bool {
-		return qlFields[a].Name < qlFields[b].Name
-	})
 
 	var fields []interface{}
 	for _, qlField := range qlFields {

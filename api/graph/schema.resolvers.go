@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/auth"
@@ -78,7 +79,7 @@ func (r *queryResolver) User(ctx context.Context, username string) (*model.User,
 	return loaders.ForContext(ctx).UsersByName.Load(username)
 }
 
-func (r *queryResolver) Repositories(ctx context.Context, cursor *model.Cursor) ([]*model.Repository, error) {
+func (r *queryResolver) Repositories(ctx context.Context, cursor *model.Cursor) (*model.RepositoryCursor, error) {
 	var (
 		err  error
 		rows *sql.Rows
@@ -103,7 +104,8 @@ func (r *queryResolver) Repositories(ctx context.Context, cursor *model.Cursor) 
 		}
 		repos = append(repos, &repo)
 	}
-	return repos, nil
+	// TODO: Cursor
+	return &model.RepositoryCursor{repos, nil}, nil
 }
 
 func (r *queryResolver) Repository(ctx context.Context, id int) (*model.Repository, error) {
@@ -157,7 +159,7 @@ func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *mod
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor *model.Cursor) ([]*model.Repository, error) {
+func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor *model.Cursor) (*model.RepositoryCursor, error) {
 	var (
 		err  error
 		rows *sql.Rows
@@ -168,7 +170,7 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor
 		From(`repository repo`).
 		Where(`repo.owner_id = ?`, obj.ID).
 		OrderBy(`id DESC`).
-		Limit(25)
+		Limit(26)
 	if rows, err = query.RunWith(r.DB).QueryContext(ctx); err != nil {
 		panic(err)
 	}
@@ -181,7 +183,16 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor
 		}
 		repos = append(repos, &repo)
 	}
-	return repos, nil
+	if len(repos) > 25 {
+		cursor = &model.Cursor{
+			Count:   25,
+			Next:    strconv.Itoa(repos[len(repos)-1].ID),
+			OrderBy: `id DESC`,
+			Search:  "",
+		}
+		repos = repos[:25]
+	}
+	return &model.RepositoryCursor{repos, cursor}, nil
 }
 
 // Mutation returns generated.MutationResolver implementation.

@@ -121,7 +121,6 @@ type ComplexityRoot struct {
 	Repository struct {
 		AccessControlList func(childComplexity int, cursor *model.Cursor) int
 		Created           func(childComplexity int) int
-		Cursor            func(childComplexity int) int
 		Description       func(childComplexity int) int
 		File              func(childComplexity int, revspec *string, path string) int
 		Head              func(childComplexity int) int
@@ -136,6 +135,11 @@ type ComplexityRoot struct {
 		Updated           func(childComplexity int) int
 		UpstreamURL       func(childComplexity int) int
 		Visibility        func(childComplexity int) int
+	}
+
+	RepositoryCursor struct {
+		Cursor  func(childComplexity int) int
+		Results func(childComplexity int) int
 	}
 
 	Signature struct {
@@ -210,7 +214,7 @@ type QueryResolver interface {
 	Me(ctx context.Context) (*model.User, error)
 	Cursor(ctx context.Context, filter model.Filter) (*model.Cursor, error)
 	User(ctx context.Context, username string) (*model.User, error)
-	Repositories(ctx context.Context, cursor *model.Cursor) ([]*model.Repository, error)
+	Repositories(ctx context.Context, cursor *model.Cursor) (*model.RepositoryCursor, error)
 	Repository(ctx context.Context, id int) (*model.Repository, error)
 	RepositoryByName(ctx context.Context, name string) (*model.Repository, error)
 	RepositoryByOwner(ctx context.Context, owner string, repo string) (*model.Repository, error)
@@ -225,7 +229,7 @@ type TreeResolver interface {
 	Entries(ctx context.Context, obj *model.Tree, cursor *model.Cursor) ([]*model.TreeEntry, error)
 }
 type UserResolver interface {
-	Repositories(ctx context.Context, obj *model.User, cursor *model.Cursor) ([]*model.Repository, error)
+	Repositories(ctx context.Context, obj *model.User, cursor *model.Cursor) (*model.RepositoryCursor, error)
 }
 
 type executableSchema struct {
@@ -649,13 +653,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Repository.Created(childComplexity), true
 
-	case "Repository.cursor":
-		if e.complexity.Repository.Cursor == nil {
-			break
-		}
-
-		return e.complexity.Repository.Cursor(childComplexity), true
-
 	case "Repository.description":
 		if e.complexity.Repository.Description == nil {
 			break
@@ -783,6 +780,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Repository.Visibility(childComplexity), true
+
+	case "RepositoryCursor.cursor":
+		if e.complexity.RepositoryCursor.Cursor == nil {
+			break
+		}
+
+		return e.complexity.RepositoryCursor.Cursor(childComplexity), true
+
+	case "RepositoryCursor.results":
+		if e.complexity.RepositoryCursor.Results == nil {
+			break
+		}
+
+		return e.complexity.RepositoryCursor.Results(childComplexity), true
 
 	case "Signature.email":
 		if e.complexity.Signature.Email == nil {
@@ -1158,7 +1169,7 @@ interface Entity {
   canonicalName: String!
 
   # A list of repositories owned by this entity
-  repositories(cursor: Cursor): [Repository]!
+  repositories(cursor: Cursor): RepositoryCursor
 }
 
 # A registered user
@@ -1174,7 +1185,7 @@ type User implements Entity {
   bio: String
 
   # A list of repositories owned by this user
-  repositories(cursor: Cursor): [Repository]!
+  repositories(cursor: Cursor): RepositoryCursor
 }
 
 # A git repository
@@ -1186,9 +1197,6 @@ type Repository {
   name: String!
   description: String
   visibility: Visibility!
-
-  # Pass this into the same endpoint to receive a new page of results
-  cursor: Cursor
 
   # If this repository was cloned from another, this will be set to the
   # original clone URL
@@ -1233,6 +1241,16 @@ type Repository {
   # Returns the object for a given revspec. Useful, for example, to turn
   # something ambiuguous like "9790b10" into a commit object
   revparse_single(revspec: String!): Object
+}
+
+# A cursor for enumerating a list of repositories
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type RepositoryCursor {
+  results: [Repository]!
+  cursor: Cursor
 }
 
 # Access Control List entry
@@ -1382,7 +1400,7 @@ type Query {
   # will be to return all repositories that the user either (1) has been given
   # explicit access to via ACLs or (2) has implicit access to either by
   # ownership or group membership.
-  repositories(cursor: Cursor): [Repository]!
+  repositories(cursor: Cursor): RepositoryCursor
 
   # Returns a specific repository
   repository(id: Int!): Repository
@@ -3284,14 +3302,11 @@ func (ec *executionContext) _Query_repositories(ctx context.Context, field graph
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Repository)
+	res := resTmp.(*model.RepositoryCursor)
 	fc.Result = res
-	return ec.marshalNRepository2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
+	return ec.marshalORepositoryCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepositoryCursor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_repository(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3811,37 +3826,6 @@ func (ec *executionContext) _Repository_visibility(ctx context.Context, field gr
 	return ec.marshalNVisibility2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Repository_cursor(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Repository",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Cursor, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*model.Cursor)
-	fc.Result = res
-	return ec.marshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCursor(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Repository_upstreamUrl(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4180,6 +4164,71 @@ func (ec *executionContext) _Repository_revparse_single(ctx context.Context, fie
 	res := resTmp.(model.Object)
 	fc.Result = res
 	return ec.marshalOObject2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐObject(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RepositoryCursor_results(ctx context.Context, field graphql.CollectedField, obj *model.RepositoryCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "RepositoryCursor",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Results, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Repository)
+	fc.Result = res
+	return ec.marshalNRepository2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RepositoryCursor_cursor(ctx context.Context, field graphql.CollectedField, obj *model.RepositoryCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "RepositoryCursor",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Cursor)
+	fc.Result = res
+	return ec.marshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCursor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Signature_name(ctx context.Context, field graphql.CollectedField, obj *model.Signature) (ret graphql.Marshaler) {
@@ -5266,14 +5315,11 @@ func (ec *executionContext) _User_repositories(ctx context.Context, field graphq
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Repository)
+	res := resTmp.(*model.RepositoryCursor)
 	fc.Result = res
-	return ec.marshalNRepository2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
+	return ec.marshalORepositoryCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepositoryCursor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Version_major(ctx context.Context, field graphql.CollectedField, obj *model.Version) (ret graphql.Marshaler) {
@@ -6991,9 +7037,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_repositories(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
 				return res
 			})
 		case "repository":
@@ -7130,8 +7173,6 @@ func (ec *executionContext) _Repository(ctx context.Context, sel ast.SelectionSe
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "cursor":
-			out.Values[i] = ec._Repository_cursor(ctx, field, obj)
 		case "upstreamUrl":
 			out.Values[i] = ec._Repository_upstreamUrl(ctx, field, obj)
 		case "accessControlList":
@@ -7180,6 +7221,35 @@ func (ec *executionContext) _Repository(ctx context.Context, sel ast.SelectionSe
 			out.Values[i] = ec._Repository_file(ctx, field, obj)
 		case "revparse_single":
 			out.Values[i] = ec._Repository_revparse_single(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var repositoryCursorImplementors = []string{"RepositoryCursor"}
+
+func (ec *executionContext) _RepositoryCursor(ctx context.Context, sel ast.SelectionSet, obj *model.RepositoryCursor) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, repositoryCursorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RepositoryCursor")
+		case "results":
+			out.Values[i] = ec._RepositoryCursor_results(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "cursor":
+			out.Values[i] = ec._RepositoryCursor_cursor(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7470,9 +7540,6 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 					}
 				}()
 				res = ec._User_repositories(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
 				return res
 			})
 		default:
@@ -8698,6 +8765,17 @@ func (ec *executionContext) marshalORepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋg
 		return graphql.Null
 	}
 	return ec._Repository(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalORepositoryCursor2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepositoryCursor(ctx context.Context, sel ast.SelectionSet, v model.RepositoryCursor) graphql.Marshaler {
+	return ec._RepositoryCursor(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalORepositoryCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepositoryCursor(ctx context.Context, sel ast.SelectionSet, v *model.RepositoryCursor) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._RepositoryCursor(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {

@@ -37,5 +37,7 @@ func (cur Cursor) MarshalGQL(w io.Writer) {
 	if err != nil {
 		panic(err)
 	}
+	w.Write([]byte("\""))
 	w.Write(crypto.Encrypt(data))
+	w.Write([]byte("\""))
 }

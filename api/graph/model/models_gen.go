@@ -43,6 +43,11 @@ type RepoInput struct {
 	Visibility  *Visibility `json:"visibility"`
 }
 
+type RepositoryCursor struct {
+	Results []*Repository `json:"results"`
+	Cursor  *Cursor       `json:"cursor"`
+}
+
 type Signature struct {
 	Name  string    `json:"name"`
 	Email string    `json:"email"`
