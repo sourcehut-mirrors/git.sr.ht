@@ -8,7 +8,6 @@ import (
 )
 
 type Selectable interface {
-	As(alias string) Selectable
 	Select(ctx context.Context) []string
 	Fields(ctx context.Context) []interface{}
 }

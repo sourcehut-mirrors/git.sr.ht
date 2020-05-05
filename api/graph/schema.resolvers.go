@@ -160,17 +160,22 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor
 		err  error
 		rows *sql.Rows
 	)
+
 	repo := (&model.Repository{}).As(`repo`)
 	query := database.
 		Select(ctx, repo).
 		From(`repository repo`).
-		Where(`repo.owner_id = ?`, obj.ID).
-		OrderBy(`id DESC`).
-		Limit(26)
+		Where(`repo.owner_id = ?`, obj.ID)
+	if cursor == nil {
+		cursor = model.NewCursor(filter)
+	}
+	query = repo.ApplyCursor(query, cursor)
+
 	if rows, err = query.RunWith(r.DB).QueryContext(ctx); err != nil {
 		panic(err)
 	}
 	defer rows.Close()
+
 	var repos []*model.Repository
 	for rows.Next() {
 		var repo model.Repository
@@ -179,6 +184,7 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor
 		}
 		repos = append(repos, &repo)
 	}
+
 	if len(repos) > 25 {
 		cursor = &model.Cursor{
 			Count:   25,
@@ -187,7 +193,10 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor
 			Search:  "",
 		}
 		repos = repos[:25]
+	} else {
+		cursor = nil
 	}
+
 	return &model.RepositoryCursor{repos, cursor}, nil
 }
 

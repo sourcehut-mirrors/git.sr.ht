@@ -8,6 +8,7 @@ import (
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/crypto"
 )
 
+// TODO: Add a field for the resource this is intended to be used with
 type Cursor struct {
 	Count   int    `json:"count"`
 	Next    string `json:"next"`
@@ -40,4 +41,14 @@ func (cur Cursor) MarshalGQL(w io.Writer) {
 	w.Write([]byte("\""))
 	w.Write(crypto.Encrypt(data))
 	w.Write([]byte("\""))
+}
+
+func NewCursor(filter *Filter) *Cursor {
+	// TODO: Apply filter
+	return &Cursor{
+		Count:   25,
+		Next:    "",
+		OrderBy: "",
+		Search:  "",
+	}
 }

@@ -3,6 +3,7 @@ package model
 import (
 	"context"
 	"time"
+	"strconv"
 
 	"github.com/go-git/go-git/v5"
 	sq "github.com/Masterminds/squirrel"
@@ -66,7 +67,7 @@ func (r *Repository) Select(ctx context.Context) []string {
 		database.WithAlias(r.alias, "owner_id"))
 }
 
-func (r *Repository) As(alias string) database.Selectable {
+func (r *Repository) As(alias string) *Repository {
 	r.alias = alias
 	return r
 }
@@ -82,6 +83,19 @@ func (r *Repository) Fields(ctx context.Context) []interface{} {
 		"upstream_url": &r.UpstreamURL,
 	})
 	return append(fields, &r.Path, &r.OwnerID)
+}
+
+func (r *Repository) ApplyCursor(q sq.SelectBuilder, c *Cursor) sq.SelectBuilder {
+	if c.Next != "" {
+		id, _ := strconv.Atoi(c.Next)
+		q = q.Where(r.alias + `.id <= ?`, id)
+	}
+	if c.OrderBy != "" {
+		q = q.OrderBy(c.OrderBy)
+	} else {
+		q = q.OrderBy(r.alias + `.id DESC`)
+	}
+	return q.Limit(uint64(c.Count + 1))
 }
 
 func (r *Repository) DefaultSearch(query sq.SelectBuilder,
