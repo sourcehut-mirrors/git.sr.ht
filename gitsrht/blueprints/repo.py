@@ -179,7 +179,7 @@ def lookup_ref(git_repo, ref, path):
         abort(404)
     if isinstance(commit, pygit2.Tag):
         commit = git_repo.get(commit.target)
-    if not commit:
+    if not commit or not isinstance(commit, pygit2.Commit):
         abort(404)
     return commit, ref, "/".join(path)
 
