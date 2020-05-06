@@ -179,7 +179,7 @@ def lookup_ref(git_repo, ref, path):
         abort(404)
     if isinstance(commit, pygit2.Tag):
         commit = git_repo.get(commit.target)
-    if not commit or not isinstance(commit, pygit2.Commit):
+    if not commit:
         abort(404)
     return commit, ref, "/".join(path)
 
@@ -202,6 +202,8 @@ def tree(owner, repo, ref, path):
         if isinstance(commit, pygit2.Tag):
             commit = git_repo.get(commit.target)
         orig_commit = commit
+        if not isinstance(commit, pygit2.Commit)
+            abort(404)
         tree = commit.tree
         if not tree:
             abort(404)
@@ -259,6 +261,8 @@ def raw_blob(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
         commit, ref, path = lookup_ref(git_repo, ref, path)
+        if not isinstance(commit, pygit2.Commit)
+            abort(404)
 
         blob = None
         entry = None
@@ -292,6 +296,8 @@ def archive(owner, repo, ref):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
         commit, ref, _ = lookup_ref(git_repo, ref, None)
+        if not isinstance(commit, pygit2.Commit)
+            abort(404)
 
         path = f"/tmp/{commit.id.hex}{binascii.hexlify(os.urandom(8))}.tar.gz"
         try:
@@ -365,6 +371,8 @@ def log(owner, repo, ref, path):
             return render_empty_repo(owner, repo)
 
         commit, ref, path = lookup_ref(git_repo, ref, path)
+        if not isinstance(commit, pygit2.Commit)
+            abort(404)
         refs = collect_refs(git_repo)
 
         from_id = request.args.get("from")
@@ -387,6 +395,8 @@ def log_rss(owner, repo, ref):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
         commit, ref, _ = lookup_ref(git_repo, ref, None)
+        if not isinstance(commit, pygit2.Commit)
+            abort(404)
         commits = get_log(git_repo, commit)
 
     repo_name = f"{repo.owner.canonical_name}/{repo.name}"
@@ -404,6 +414,8 @@ def commit(owner, repo, ref):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
         commit, ref, _ = lookup_ref(git_repo, ref, None)
+        if not isinstance(commit, pygit2.Commit)
+            abort(404)
         try:
             parent = git_repo.revparse_single(ref + "^")
             diff = git_repo.diff(parent, ref)
@@ -422,6 +434,8 @@ def patch(owner, repo, ref):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
         commit, ref, _ = lookup_ref(git_repo, ref, None)
+        if not isinstance(commit, pygit2.Commit)
+            abort(404)
         try:
             commit = git_repo.revparse_single(ref)
         except KeyError:
