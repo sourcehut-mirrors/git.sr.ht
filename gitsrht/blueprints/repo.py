@@ -179,6 +179,8 @@ def lookup_ref(git_repo, ref, path):
         abort(404)
     if isinstance(commit, pygit2.Tag):
         commit = git_repo.get(commit.target)
+    if not commit:
+        abort(404)
     return commit, ref, "/".join(path)
 
 @repo.route("/<owner>/<repo>/tree", defaults={"ref": None, "path": ""})
@@ -200,8 +202,6 @@ def tree(owner, repo, ref, path):
         if isinstance(commit, pygit2.Tag):
             commit = git_repo.get(commit.target)
         orig_commit = commit
-        if not commit:
-            abort(404)
         tree = commit.tree
         if not tree:
             abort(404)
