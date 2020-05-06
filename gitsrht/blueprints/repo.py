@@ -202,7 +202,7 @@ def tree(owner, repo, ref, path):
         if isinstance(commit, pygit2.Tag):
             commit = git_repo.get(commit.target)
         orig_commit = commit
-        if not isinstance(commit, pygit2.Commit)
+        if not isinstance(commit, pygit2.Commit):
             abort(404)
         tree = commit.tree
         if not tree:
@@ -261,7 +261,7 @@ def raw_blob(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
         commit, ref, path = lookup_ref(git_repo, ref, path)
-        if not isinstance(commit, pygit2.Commit)
+        if not isinstance(commit, pygit2.Commit):
             abort(404)
 
         blob = None
@@ -296,7 +296,7 @@ def archive(owner, repo, ref):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
         commit, ref, _ = lookup_ref(git_repo, ref, None)
-        if not isinstance(commit, pygit2.Commit)
+        if not isinstance(commit, pygit2.Commit):
             abort(404)
 
         path = f"/tmp/{commit.id.hex}{binascii.hexlify(os.urandom(8))}.tar.gz"
@@ -371,7 +371,7 @@ def log(owner, repo, ref, path):
             return render_empty_repo(owner, repo)
 
         commit, ref, path = lookup_ref(git_repo, ref, path)
-        if not isinstance(commit, pygit2.Commit)
+        if not isinstance(commit, pygit2.Commit):
             abort(404)
         refs = collect_refs(git_repo)
 
@@ -395,7 +395,7 @@ def log_rss(owner, repo, ref):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
         commit, ref, _ = lookup_ref(git_repo, ref, None)
-        if not isinstance(commit, pygit2.Commit)
+        if not isinstance(commit, pygit2.Commit):
             abort(404)
         commits = get_log(git_repo, commit)
 
@@ -414,7 +414,7 @@ def commit(owner, repo, ref):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
         commit, ref, _ = lookup_ref(git_repo, ref, None)
-        if not isinstance(commit, pygit2.Commit)
+        if not isinstance(commit, pygit2.Commit):
             abort(404)
         try:
             parent = git_repo.revparse_single(ref + "^")
@@ -434,7 +434,7 @@ def patch(owner, repo, ref):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
         commit, ref, _ = lookup_ref(git_repo, ref, None)
-        if not isinstance(commit, pygit2.Commit)
+        if not isinstance(commit, pygit2.Commit):
             abort(404)
         try:
             commit = git_repo.revparse_single(ref)
