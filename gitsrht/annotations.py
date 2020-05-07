@@ -239,13 +239,13 @@ class AnnotatedFormatter(_BaseFormatter):
                     target = self.link_prefix + "/" + target
                 if start <= colno < end:
                     if color is not None:
-                        return (f"<a class='annotation' title='{title}' " +
+                        return (f"<a class='annotation' title='{escape_html(title)}' " +
                             f"href='{escape_html(target)}' " +
                             f"rel='nofollow noopener' " +
                             f"style='background-color: {color}' " +
                             f">{escape_html(token)}</a>""")
                     else:
-                        return (f"<a class='annotation' title='{title}' " +
+                        return (f"<a class='annotation' title='{escape_html(title)}' " +
                             f"href='{escape_html(target)}' " +
                             f"rel='nofollow noopener' " +
                             f">{escape_html(token)}</a>""")
@@ -256,7 +256,7 @@ class AnnotatedFormatter(_BaseFormatter):
                 content = anno["content"]
                 content = markdown(content, baselevel=6,
                         link_prefix=self.link_prefix)
-                annotation = f"<details><summary>{title}</summary>{content}</details>\n"
+                annotation = f"<details><summary>{escape_html(title)}</summary>{content}</details>\n"
                 token = escape_html(token).replace("\n", annotation, 1)
                 return token
             # Other types?
