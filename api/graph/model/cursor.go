@@ -43,8 +43,24 @@ func (cur Cursor) MarshalGQL(w io.Writer) {
 	w.Write([]byte("\""))
 }
 
+func derefOrInt(i *int, d int) int {
+	if i != nil {
+		return *i
+	}
+	return d
+}
+
 func NewCursor(filter *Filter) *Cursor {
-	// TODO: Apply filter
+	if filter != nil {
+		return &Cursor{
+			Next: "",
+
+			Count: derefOrInt(filter.Count, 25),
+			// TODO:
+			OrderBy: "",
+			Search:  "",
+		}
+	}
 	return &Cursor{
 		Count:   25,
 		Next:    "",

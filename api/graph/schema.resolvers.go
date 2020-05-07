@@ -185,14 +185,14 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor
 		repos = append(repos, &repo)
 	}
 
-	if len(repos) > 25 {
+	if len(repos) > cursor.Count {
 		cursor = &model.Cursor{
-			Count:   25,
+			Count:   cursor.Count,
 			Next:    strconv.Itoa(repos[len(repos)-1].ID),
 			OrderBy: `id DESC`,
 			Search:  "",
 		}
-		repos = repos[:25]
+		repos = repos[:cursor.Count]
 	} else {
 		cursor = nil
 	}
