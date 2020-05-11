@@ -80,13 +80,18 @@ func (r *queryResolver) Repositories(ctx context.Context, cursor *model.Cursor, 
 		err  error
 		rows *sql.Rows
 	)
+
+	if cursor == nil {
+		cursor = model.NewCursor(filter)
+	}
+
 	repo := (&model.Repository{}).As(`repo`)
 	query := database.
 		Select(ctx, repo).
 		From(`repository repo`).
-		Where(`repo.owner_id = ?`, auth.ForContext(ctx).ID).
-		OrderBy(`repo.id DESC`).
-		Limit(25)
+		Where(`repo.owner_id = ?`, auth.ForContext(ctx).ID)
+	query = repo.ApplyCursor(query, cursor)
+
 	if rows, err = query.RunWith(r.DB).QueryContext(ctx); err != nil {
 		panic(err)
 	}
@@ -100,8 +105,20 @@ func (r *queryResolver) Repositories(ctx context.Context, cursor *model.Cursor, 
 		}
 		repos = append(repos, &repo)
 	}
-	// TODO: Cursor
-	return &model.RepositoryCursor{repos, nil}, nil
+
+	if len(repos) > cursor.Count {
+		cursor = &model.Cursor{
+			Count:   cursor.Count,
+			Next:    strconv.Itoa(repos[len(repos)-1].ID),
+			OrderBy: `id DESC`,
+			Search:  "",
+		}
+		repos = repos[:cursor.Count]
+	} else {
+		cursor = nil
+	}
+
+	return &model.RepositoryCursor{repos, cursor}, nil
 }
 
 func (r *queryResolver) Repository(ctx context.Context, id int) (*model.Repository, error) {
@@ -161,14 +178,15 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor
 		rows *sql.Rows
 	)
 
+	if cursor == nil {
+		cursor = model.NewCursor(filter)
+	}
+
 	repo := (&model.Repository{}).As(`repo`)
 	query := database.
 		Select(ctx, repo).
 		From(`repository repo`).
 		Where(`repo.owner_id = ?`, obj.ID)
-	if cursor == nil {
-		cursor = model.NewCursor(filter)
-	}
 	query = repo.ApplyCursor(query, cursor)
 
 	if rows, err = query.RunWith(r.DB).QueryContext(ctx); err != nil {
