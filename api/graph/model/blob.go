@@ -47,6 +47,12 @@ func BlobFromObject(repo *git.Repository, obj *object.Blob) Object {
 	defer reader.Close()
 
 	// XXX: Probably a bad idea
+	// An improvement would be to just read the first bit, and see if it's
+	// parsable as UTF-8, then wait to fetch the rest until the user asks for
+	// it (or, if they ask for a range, we might skip some!). This would still
+	// be kind of finicky though, because if we accidentally read half of a
+	// UTF-8 codepoint at the end of the buffer, we'll be in Problems City,
+	// population us.
 	bytes, err := ioutil.ReadAll(reader)
 	if err != nil {
 		panic(err)

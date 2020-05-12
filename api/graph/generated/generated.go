@@ -1195,18 +1195,17 @@ var sources = []*ast.Source{
 scalar Time
 scalar Upload
 
-# Representation of a semantic API version
 # https://semver.org
 type Version {
   major: Int!
   minor: Int!
   patch: Int!
   # If this API version is scheduled for deprecation, this is the date on which
-  # it will stop working
+  # it will stop working; or null if this API version is not scheduled for
+  # deprecation.
   deprecationDate: Time
 }
 
-# Access mode for an ACL entry
 enum AccessMode {
   # Read-only
   RO
@@ -1214,7 +1213,6 @@ enum AccessMode {
   RW
 }
 
-# Visibility of a git repository to others
 enum Visibility {
   # Visible to everyone, listed on your profile
   PUBLIC
@@ -1224,7 +1222,6 @@ enum Visibility {
   PRIVATE
 }
 
-# An entity can have ownership over resources
 interface Entity {
   id: Int!
   created: Time!
@@ -1233,11 +1230,9 @@ interface Entity {
   # prefixed with '~'. Additional entity types will be supported in the future.
   canonicalName: String!
 
-  # A list of repositories owned by this entity
   repositories(cursor: Cursor, filter: Filter): RepositoryCursor
 }
 
-# A registered user
 type User implements Entity {
   id: Int!
   created: Time!
@@ -1249,11 +1244,9 @@ type User implements Entity {
   location: String
   bio: String
 
-  # A list of repositories owned by this user
   repositories(cursor: Cursor, filter: Filter): RepositoryCursor
 }
 
-# A git repository
 type Repository {
   id: Int!
   created: Time!
@@ -1263,43 +1256,36 @@ type Repository {
   description: String
   visibility: Visibility!
 
-  # If this repository was cloned from another, this will be set to the
-  # original clone URL
+  # If this repository was cloned from another, this is set to the original
+  # clone URL.
   upstreamUrl: String
 
-  # Returns access control list entries for this repository
   accessControlList(cursor: Cursor): ACLCursor
 
   ## Plumbing API:
 
-  # Returns a list of references for this repository
   references(cursor: Cursor): ReferenceCursor
-
-  # Returns a list of objects for this repository by their IDs (using fully
-  # qualified git object IDs, 40 character hex strings)
   objects(ids: [String]): [Object]!
 
   ## Porcelain API:
 
   # NOTE: revspecs are git-compatible, e.g. "HEAD~4", "master", "9790b10")
-  # To fetch the next page, pass revspec="9790b10~1" where 9790b10 is the last
-  # SHA in the log
   
   # The HEAD reference for this repository (equivalent to the default branch)
   HEAD: Reference
 
-  # Returns a list of comments in topological order.
+  # Returns a list of comments sorted by committer time (similar to ` + "`" + `git log` + "`" + `'s
+  # default ordering).
   #
   # If ` + "`" + `from` + "`" + ` is specified, it is interpreted as a revspec to start logging
-  # from.
+  # from. A clever reader may notice that using commits[-1].from + "^" as the
+  # from parameter is equivalent to passing the cursor to the next call.
   log(cursor: Cursor, from: String): CommitCursor
 
-  #
-  # Returns a tree entry for a given path and revspec
+  # Returns a tree entry for a given path, at the given revspec.
   path(revspec: String = "HEAD", path: String!): TreeEntry
 
-  # Returns the commit for a given revspec. Useful, for example, to turn
-  # something ambiuguous like "9790b10" into a commit object
+  # Returns the commit for a given revspec.
   revparse_single(revspec: String!): Commit
 }
 
@@ -1344,7 +1330,6 @@ type CommitCursor {
   cursor: Cursor
 }
 
-# Access Control List entry
 type ACL {
   id: Int!
   created: Time!
@@ -1465,22 +1450,19 @@ input Filter {
   # Search terms. The exact meaning varies by usage, but generally these are
   # compatible with the web UI's search syntax.
   search: String
-
-  # Field to order results by, if possible.
-  orderBy: String
 }
 
 type Query {
-  # Returns API version information
+  # Returns API version information.
   version: Version!
 
-  # Returns the authenticated user
+  # Returns the authenticated user.
   me: User!
 
-  # Returns a specific user
+  # Returns a specific user.
   user(username: String!): User
 
-  # Returns repositories that the authenticated user has access to
+  # Returns repositories that the authenticated user has access to.
   #
   # NOTE: in this version of the API, only repositories owned by the
   # authenticated user are returned, but in the future the default behavior
@@ -1489,7 +1471,7 @@ type Query {
   # ownership or group membership.
   repositories(cursor: Cursor, filter: Filter): RepositoryCursor
 
-  # Returns a specific repository
+  # Returns a specific repository by ID.
   repository(id: Int!): Repository
 
   # Returns a specific repository, owned by the authenticated user.
@@ -1500,7 +1482,6 @@ type Query {
   repositoryByOwner(owner: String!, repo: String!): Repository
 }
 
-# Details for repository creation or updates
 input RepoInput {
   name: String!
   description: String
@@ -1508,25 +1489,14 @@ input RepoInput {
 }
 
 type Mutation {
-  # Creates a new repository
   createRepository(params: RepoInput): Repository!
-
-  # Updates repository information
   updateRepository(id: ID!, params: RepoInput): Repository!
-
-  # Deletes a repository and returns the deleted repository
   deleteRepository(id: ID!): Repository!
 
-  # Creates a new ACL or updates an existing ACL for the given entity ID
   updateACL(repoId: ID!, mode: AccessMode!, entity: ID!): ACL!
-
-  # Deletes the ACL for the given entity ID and returns the deleted ACL
   deleteACL(repoId: Int!, entity: ID!): ACL!
 
-  # Uploads a new artifact, attaching it to the given revspec
   uploadArtifact(repoId: Int!, revspec: String!, file: Upload!): Artifact!
-
-  # Deletes an artifact
   deleteArtifact(id: Int!): Artifact!
 }
 `, BuiltIn: false},
@@ -6819,12 +6789,6 @@ func (ec *executionContext) unmarshalInputFilter(ctx context.Context, obj interf
 		case "search":
 			var err error
 			it.Search, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "orderBy":
-			var err error
-			it.OrderBy, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}

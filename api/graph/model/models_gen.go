@@ -38,9 +38,8 @@ type CommitCursor struct {
 }
 
 type Filter struct {
-	Count   *int    `json:"count"`
-	Search  *string `json:"search"`
-	OrderBy *string `json:"orderBy"`
+	Count  *int    `json:"count"`
+	Search *string `json:"search"`
 }
 
 type ReferenceCursor struct {
