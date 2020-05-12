@@ -239,7 +239,7 @@ type RepositoryResolver interface {
 
 	Log(ctx context.Context, obj *model.Repository, cursor *model.Cursor) ([]*model.Commit, error)
 	Path(ctx context.Context, obj *model.Repository, revspec *string, path string) (*model.TreeEntry, error)
-	RevparseSingle(ctx context.Context, obj *model.Repository, revspec string) (model.Object, error)
+	RevparseSingle(ctx context.Context, obj *model.Repository, revspec string) (*model.Commit, error)
 }
 type TreeResolver interface {
 	Entries(ctx context.Context, obj *model.Tree, cursor *model.Cursor) ([]*model.TreeEntry, error)
@@ -1265,9 +1265,9 @@ type Repository {
   # Returns a tree entry for a given path and revspec
   path(revspec: String = "HEAD", path: String!): TreeEntry
 
-  # Returns the object for a given revspec. Useful, for example, to turn
+  # Returns the commit for a given revspec. Useful, for example, to turn
   # something ambiuguous like "9790b10" into a commit object
-  revparse_single(revspec: String!): Object
+  revparse_single(revspec: String!): Commit
 }
 
 # A cursor for enumerating a list of repositories
@@ -4167,9 +4167,9 @@ func (ec *executionContext) _Repository_revparse_single(ctx context.Context, fie
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(model.Object)
+	res := resTmp.(*model.Commit)
 	fc.Result = res
-	return ec.marshalOObject2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐObject(ctx, field.Selections, res)
+	return ec.marshalOCommit2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCommit(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _RepositoryCursor_results(ctx context.Context, field graphql.CollectedField, obj *model.RepositoryCursor) (ret graphql.Marshaler) {
