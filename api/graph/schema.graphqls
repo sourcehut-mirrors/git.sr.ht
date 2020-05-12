@@ -95,9 +95,11 @@ type Repository {
   # The HEAD reference for this repository (equivalent to the default branch)
   HEAD: Reference
 
-  # Returns a list of comments in topological order. `cursor.from` is used as
-  # the revspec to begin logging from.
-  log(cursor: Cursor): [Commit]!
+  # Returns a list of comments in topological order.
+  #
+  # If `from` is specified, it is interpreted as a revspec to start logging
+  # from.
+  log(cursor: Cursor, from: String): CommitCursor
 
   #
   # Returns a tree entry for a given path and revspec
@@ -136,6 +138,16 @@ type ACLCursor {
 # there are no remaining results to return.
 type ReferenceCursor {
   results: [Reference]!
+  cursor: Cursor
+}
+
+# A cursor for enumerating commits
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type CommitCursor {
+  results: [Commit]!
   cursor: Cursor
 }
 
@@ -196,6 +208,7 @@ type Commit implements Object {
   message: String!
   tree: Tree!
   parents: [Commit!]!
+  diff: String!
 }
 
 type Tree implements Object {

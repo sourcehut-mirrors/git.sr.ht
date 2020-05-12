@@ -21,14 +21,7 @@ func LookupObject(repo *git.Repository, hash plumbing.Hash) (Object, error) {
 	// TODO: Add raw object data, if requested
 	switch obj := obj.(type) {
 	case *object.Commit:
-		return &Commit{
-			Type:    ObjectTypeCommit,
-			ID:      obj.ID().String(),
-			ShortID: obj.ID().String()[:7],
-
-			commit: obj,
-			repo:   repo,
-		}, nil
+		return CommitFromObject(repo, obj), nil
 	case *object.Tree:
 		return TreeFromObject(repo, obj), nil
 	case *object.Blob:

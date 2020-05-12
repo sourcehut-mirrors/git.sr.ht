@@ -15,8 +15,10 @@ import (
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
 	"git.sr.ht/~sircmpwn/gqlgen/graphql"
+	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/storer"
 )
 
 func (r *aCLResolver) Repository(ctx context.Context, obj *model.ACL) (*model.Repository, error) {
@@ -51,6 +53,10 @@ func (r *aCLResolver) Entity(ctx context.Context, obj *model.ACL) (model.Entity,
 		panic(err)
 	}
 	return user, nil
+}
+
+func (r *commitResolver) Diff(ctx context.Context, obj *model.Commit) (string, error) {
+	return obj.DiffContext(ctx), nil
 }
 
 func (r *mutationResolver) CreateRepository(ctx context.Context, params *model.RepoInput) (*model.Repository, error) {
@@ -212,8 +218,54 @@ func (r *repositoryResolver) Objects(ctx context.Context, obj *model.Repository,
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *repositoryResolver) Log(ctx context.Context, obj *model.Repository, cursor *model.Cursor) ([]*model.Commit, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *repositoryResolver) Log(ctx context.Context, obj *model.Repository, cursor *model.Cursor, from *string) (*model.CommitCursor, error) {
+	if cursor == nil {
+		cursor = model.NewCursor(nil)
+		if from != nil {
+			cursor.Next = *from
+		}
+	}
+
+	opts := &git.LogOptions{
+		Order: git.LogOrderCommitterTime,
+	}
+	if cursor.Next != "" {
+		rev, err := obj.Repo().ResolveRevision(plumbing.Revision(cursor.Next))
+		if err != nil {
+			return nil, err
+		}
+		if rev == nil {
+			return nil, fmt.Errorf("No such revision")
+		}
+		opts.From = *rev
+	}
+
+	log, err := obj.Repo().Log(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	var commits []*model.Commit
+	log.ForEach(func(c *object.Commit) error {
+		commits = append(commits, model.CommitFromObject(obj.Repo(), c))
+		if len(commits) == cursor.Count+1 {
+			return storer.ErrStop
+		}
+		return nil
+	})
+
+	if len(commits) > cursor.Count {
+		cursor = &model.Cursor{
+			Count:  cursor.Count,
+			Next:   commits[cursor.Count].ID,
+			Search: "",
+		}
+		commits = commits[:cursor.Count]
+	} else {
+		cursor = nil
+	}
+
+	return &model.CommitCursor{commits, cursor}, nil
 }
 
 func (r *repositoryResolver) Path(ctx context.Context, obj *model.Repository, revspec *string, path string) (*model.TreeEntry, error) {
@@ -296,6 +348,9 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor
 // ACL returns generated.ACLResolver implementation.
 func (r *Resolver) ACL() generated.ACLResolver { return &aCLResolver{r} }
 
+// Commit returns generated.CommitResolver implementation.
+func (r *Resolver) Commit() generated.CommitResolver { return &commitResolver{r} }
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
@@ -312,6 +367,7 @@ func (r *Resolver) Tree() generated.TreeResolver { return &treeResolver{r} }
 func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
 
 type aCLResolver struct{ *Resolver }
+type commitResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type repositoryResolver struct{ *Resolver }

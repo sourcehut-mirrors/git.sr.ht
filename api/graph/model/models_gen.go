@@ -32,6 +32,11 @@ type Artifact struct {
 	URL        string      `json:"url"`
 }
 
+type CommitCursor struct {
+	Results []*Commit `json:"results"`
+	Cursor  *Cursor   `json:"cursor"`
+}
+
 type Filter struct {
 	Count   *int    `json:"count"`
 	Search  *string `json:"search"`

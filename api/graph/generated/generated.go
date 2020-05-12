@@ -38,6 +38,7 @@ type Config struct {
 
 type ResolverRoot interface {
 	ACL() ACLResolver
+	Commit() CommitResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
 	Repository() RepositoryResolver
@@ -83,6 +84,7 @@ type ComplexityRoot struct {
 	Commit struct {
 		Author    func(childComplexity int) int
 		Committer func(childComplexity int) int
+		Diff      func(childComplexity int) int
 		ID        func(childComplexity int) int
 		Message   func(childComplexity int) int
 		Parents   func(childComplexity int) int
@@ -90,6 +92,11 @@ type ComplexityRoot struct {
 		ShortID   func(childComplexity int) int
 		Tree      func(childComplexity int) int
 		Type      func(childComplexity int) int
+	}
+
+	CommitCursor struct {
+		Cursor  func(childComplexity int) int
+		Results func(childComplexity int) int
 	}
 
 	Mutation struct {
@@ -129,7 +136,7 @@ type ComplexityRoot struct {
 		Description       func(childComplexity int) int
 		Head              func(childComplexity int) int
 		ID                func(childComplexity int) int
-		Log               func(childComplexity int, cursor *model.Cursor) int
+		Log               func(childComplexity int, cursor *model.Cursor, from *string) int
 		Name              func(childComplexity int) int
 		Objects           func(childComplexity int, ids []*string) int
 		Owner             func(childComplexity int) int
@@ -212,6 +219,9 @@ type ACLResolver interface {
 	Repository(ctx context.Context, obj *model.ACL) (*model.Repository, error)
 	Entity(ctx context.Context, obj *model.ACL) (model.Entity, error)
 }
+type CommitResolver interface {
+	Diff(ctx context.Context, obj *model.Commit) (string, error)
+}
 type MutationResolver interface {
 	CreateRepository(ctx context.Context, params *model.RepoInput) (*model.Repository, error)
 	UpdateRepository(ctx context.Context, id string, params *model.RepoInput) (*model.Repository, error)
@@ -237,7 +247,7 @@ type RepositoryResolver interface {
 	References(ctx context.Context, obj *model.Repository, cursor *model.Cursor) (*model.ReferenceCursor, error)
 	Objects(ctx context.Context, obj *model.Repository, ids []*string) ([]model.Object, error)
 
-	Log(ctx context.Context, obj *model.Repository, cursor *model.Cursor) ([]*model.Commit, error)
+	Log(ctx context.Context, obj *model.Repository, cursor *model.Cursor, from *string) (*model.CommitCursor, error)
 	Path(ctx context.Context, obj *model.Repository, revspec *string, path string) (*model.TreeEntry, error)
 	RevparseSingle(ctx context.Context, obj *model.Repository, revspec string) (*model.Commit, error)
 }
@@ -410,6 +420,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Commit.Committer(childComplexity), true
 
+	case "Commit.diff":
+		if e.complexity.Commit.Diff == nil {
+			break
+		}
+
+		return e.complexity.Commit.Diff(childComplexity), true
+
 	case "Commit.id":
 		if e.complexity.Commit.ID == nil {
 			break
@@ -458,6 +475,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Commit.Type(childComplexity), true
+
+	case "CommitCursor.cursor":
+		if e.complexity.CommitCursor.Cursor == nil {
+			break
+		}
+
+		return e.complexity.CommitCursor.Cursor(childComplexity), true
+
+	case "CommitCursor.results":
+		if e.complexity.CommitCursor.Results == nil {
+			break
+		}
+
+		return e.complexity.CommitCursor.Results(childComplexity), true
 
 	case "Mutation.createRepository":
 		if e.complexity.Mutation.CreateRepository == nil {
@@ -702,7 +733,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Repository.Log(childComplexity, args["cursor"].(*model.Cursor)), true
+		return e.complexity.Repository.Log(childComplexity, args["cursor"].(*model.Cursor), args["from"].(*string)), true
 
 	case "Repository.name":
 		if e.complexity.Repository.Name == nil {
@@ -1257,9 +1288,11 @@ type Repository {
   # The HEAD reference for this repository (equivalent to the default branch)
   HEAD: Reference
 
-  # Returns a list of comments in topological order. ` + "`" + `cursor.from` + "`" + ` is used as
-  # the revspec to begin logging from.
-  log(cursor: Cursor): [Commit]!
+  # Returns a list of comments in topological order.
+  #
+  # If ` + "`" + `from` + "`" + ` is specified, it is interpreted as a revspec to start logging
+  # from.
+  log(cursor: Cursor, from: String): CommitCursor
 
   #
   # Returns a tree entry for a given path and revspec
@@ -1298,6 +1331,16 @@ type ACLCursor {
 # there are no remaining results to return.
 type ReferenceCursor {
   results: [Reference]!
+  cursor: Cursor
+}
+
+# A cursor for enumerating commits
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type CommitCursor {
+  results: [Commit]!
   cursor: Cursor
 }
 
@@ -1358,6 +1401,7 @@ type Commit implements Object {
   message: String!
   tree: Tree!
   parents: [Commit!]!
+  diff: String!
 }
 
 type Tree implements Object {
@@ -1764,6 +1808,14 @@ func (ec *executionContext) field_Repository_log_args(ctx context.Context, rawAr
 		}
 	}
 	args["cursor"] = arg0
+	var arg1 *string
+	if tmp, ok := rawArgs["from"]; ok {
+		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["from"] = arg1
 	return args, nil
 }
 
@@ -2861,6 +2913,105 @@ func (ec *executionContext) _Commit_parents(ctx context.Context, field graphql.C
 	res := resTmp.([]*model.Commit)
 	fc.Result = res
 	return ec.marshalNCommit2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCommitᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Commit_diff(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Commit",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Commit().Diff(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _CommitCursor_results(ctx context.Context, field graphql.CollectedField, obj *model.CommitCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "CommitCursor",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Results, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Commit)
+	fc.Result = res
+	return ec.marshalNCommit2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCommit(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _CommitCursor_cursor(ctx context.Context, field graphql.CollectedField, obj *model.CommitCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "CommitCursor",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Cursor)
+	fc.Result = res
+	return ec.marshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCursor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createRepository(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -4079,21 +4230,18 @@ func (ec *executionContext) _Repository_log(ctx context.Context, field graphql.C
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Repository().Log(rctx, obj, args["cursor"].(*model.Cursor))
+		return ec.resolvers.Repository().Log(rctx, obj, args["cursor"].(*model.Cursor), args["from"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Commit)
+	res := resTmp.(*model.CommitCursor)
 	fc.Result = res
-	return ec.marshalNCommit2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCommit(ctx, field.Selections, res)
+	return ec.marshalOCommitCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCommitCursor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Repository_path(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
@@ -7016,48 +7164,91 @@ func (ec *executionContext) _Commit(ctx context.Context, sel ast.SelectionSet, o
 		case "type":
 			out.Values[i] = ec._Commit_type(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "id":
 			out.Values[i] = ec._Commit_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "shortId":
 			out.Values[i] = ec._Commit_shortId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "raw":
 			out.Values[i] = ec._Commit_raw(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "author":
 			out.Values[i] = ec._Commit_author(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "committer":
 			out.Values[i] = ec._Commit_committer(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "message":
 			out.Values[i] = ec._Commit_message(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "tree":
 			out.Values[i] = ec._Commit_tree(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "parents":
 			out.Values[i] = ec._Commit_parents(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "diff":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Commit_diff(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var commitCursorImplementors = []string{"CommitCursor"}
+
+func (ec *executionContext) _CommitCursor(ctx context.Context, sel ast.SelectionSet, obj *model.CommitCursor) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, commitCursorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CommitCursor")
+		case "results":
+			out.Values[i] = ec._CommitCursor_results(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "cursor":
+			out.Values[i] = ec._CommitCursor_cursor(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7407,9 +7598,6 @@ func (ec *executionContext) _Repository(ctx context.Context, sel ast.SelectionSe
 					}
 				}()
 				res = ec._Repository_log(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
 				return res
 			})
 		case "path":
@@ -8890,6 +9078,17 @@ func (ec *executionContext) marshalOCommit2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgit�
 		return graphql.Null
 	}
 	return ec._Commit(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOCommitCursor2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCommitCursor(ctx context.Context, sel ast.SelectionSet, v model.CommitCursor) graphql.Marshaler {
+	return ec._CommitCursor(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOCommitCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCommitCursor(ctx context.Context, sel ast.SelectionSet, v *model.CommitCursor) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._CommitCursor(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOCursor2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCursor(ctx context.Context, v interface{}) (model.Cursor, error) {

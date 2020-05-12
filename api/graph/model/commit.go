@@ -1,6 +1,8 @@
 package model
 
 import (
+	"context"
+
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
@@ -37,6 +39,15 @@ func (c *Commit) Committer() *Signature {
 	}
 }
 
+func (c *Commit) DiffContext(ctx context.Context) string {
+	parent, _ := c.commit.Parent(0)
+	patch, _ := c.commit.PatchContext(ctx, parent)
+	if patch != nil {
+		return patch.String()
+	}
+	return ""
+}
+
 func (c *Commit) Tree() *Tree {
 	obj, err := LookupObject(c.repo, c.commit.TreeHash)
 	if err != nil {
@@ -57,4 +68,15 @@ func (c *Commit) Parents() []*Commit {
 		parents = append(parents, parent)
 	}
 	return parents
+}
+
+func CommitFromObject(repo *git.Repository, obj *object.Commit) *Commit {
+	return &Commit{
+		Type:    ObjectTypeCommit,
+		ID:      obj.ID().String(),
+		ShortID: obj.ID().String()[:7],
+
+		commit: obj,
+		repo:   repo,
+	}
 }
