@@ -99,11 +99,6 @@ type Repository {
   # the revspec to begin logging from.
   log(cursor: Cursor): [Commit]!
 
-  # Returns the tree for a given revspec
-  #
-  # path: optional path to the tree to retrieve
-  tree(revspec: String = "HEAD", path: String): Tree
-
   #
   # Returns a tree entry for a given path and revspec
   path(revspec: String = "HEAD", path: String!): TreeEntry

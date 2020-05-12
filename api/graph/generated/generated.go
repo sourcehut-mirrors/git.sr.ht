@@ -136,7 +136,6 @@ type ComplexityRoot struct {
 		Path              func(childComplexity int, revspec *string, path string) int
 		References        func(childComplexity int, cursor *model.Cursor) int
 		RevparseSingle    func(childComplexity int, revspec string) int
-		Tree              func(childComplexity int, revspec *string, path *string) int
 		Updated           func(childComplexity int) int
 		UpstreamURL       func(childComplexity int) int
 		Visibility        func(childComplexity int) int
@@ -239,7 +238,6 @@ type RepositoryResolver interface {
 	Objects(ctx context.Context, obj *model.Repository, ids []*string) ([]model.Object, error)
 
 	Log(ctx context.Context, obj *model.Repository, cursor *model.Cursor) ([]*model.Commit, error)
-	Tree(ctx context.Context, obj *model.Repository, revspec *string, path *string) (*model.Tree, error)
 	Path(ctx context.Context, obj *model.Repository, revspec *string, path string) (*model.TreeEntry, error)
 	RevparseSingle(ctx context.Context, obj *model.Repository, revspec string) (model.Object, error)
 }
@@ -768,18 +766,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Repository.RevparseSingle(childComplexity, args["revspec"].(string)), true
 
-	case "Repository.tree":
-		if e.complexity.Repository.Tree == nil {
-			break
-		}
-
-		args, err := ec.field_Repository_tree_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Repository.Tree(childComplexity, args["revspec"].(*string), args["path"].(*string)), true
-
 	case "Repository.updated":
 		if e.complexity.Repository.Updated == nil {
 			break
@@ -1274,11 +1260,6 @@ type Repository {
   # Returns a list of comments in topological order. ` + "`" + `cursor.from` + "`" + ` is used as
   # the revspec to begin logging from.
   log(cursor: Cursor): [Commit]!
-
-  # Returns the tree for a given revspec
-  #
-  # path: optional path to the tree to retrieve
-  tree(revspec: String = "HEAD", path: String): Tree
 
   #
   # Returns a tree entry for a given path and revspec
@@ -1847,28 +1828,6 @@ func (ec *executionContext) field_Repository_revparse_single_args(ctx context.Co
 		}
 	}
 	args["revspec"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Repository_tree_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 *string
-	if tmp, ok := rawArgs["revspec"]; ok {
-		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["revspec"] = arg0
-	var arg1 *string
-	if tmp, ok := rawArgs["path"]; ok {
-		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["path"] = arg1
 	return args, nil
 }
 
@@ -4135,44 +4094,6 @@ func (ec *executionContext) _Repository_log(ctx context.Context, field graphql.C
 	res := resTmp.([]*model.Commit)
 	fc.Result = res
 	return ec.marshalNCommit2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCommit(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Repository_tree(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Repository",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Repository_tree_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Repository().Tree(rctx, obj, args["revspec"].(*string), args["path"].(*string))
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*model.Tree)
-	fc.Result = res
-	return ec.marshalOTree2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTree(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Repository_path(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
@@ -7491,17 +7412,6 @@ func (ec *executionContext) _Repository(ctx context.Context, sel ast.SelectionSe
 				}
 				return res
 			})
-		case "tree":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Repository_tree(ctx, field, obj)
-				return res
-			})
 		case "path":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -9180,17 +9090,6 @@ func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel
 		return graphql.Null
 	}
 	return ec.marshalOTime2timeᚐTime(ctx, sel, *v)
-}
-
-func (ec *executionContext) marshalOTree2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTree(ctx context.Context, sel ast.SelectionSet, v model.Tree) graphql.Marshaler {
-	return ec._Tree(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalOTree2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTree(ctx context.Context, sel ast.SelectionSet, v *model.Tree) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Tree(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOTreeEntry2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTreeEntry(ctx context.Context, sel ast.SelectionSet, v model.TreeEntry) graphql.Marshaler {

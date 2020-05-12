@@ -207,10 +207,6 @@ func (r *repositoryResolver) Log(ctx context.Context, obj *model.Repository, cur
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *repositoryResolver) Tree(ctx context.Context, obj *model.Repository, revspec *string, path *string) (*model.Tree, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
 func (r *repositoryResolver) Path(ctx context.Context, obj *model.Repository, revspec *string, path string) (*model.TreeEntry, error) {
 	rev := plumbing.Revision("HEAD")
 	if revspec != nil {
@@ -237,6 +233,7 @@ func (r *repositoryResolver) Path(ctx context.Context, obj *model.Repository, re
 	} else {
 		tree = model.TreeFromObject(obj.Repo(), treeObj)
 	}
+	// TODO: Cursor
 	return tree.Entry(path), nil
 }
 
@@ -250,7 +247,6 @@ func (r *repositoryResolver) RevparseSingle(ctx context.Context, obj *model.Repo
 		return nil, fmt.Errorf("No such object")
 	}
 	return model.LookupObject(obj.Repo(), *hash)
-
 }
 
 func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *model.Cursor) ([]*model.TreeEntry, error) {
