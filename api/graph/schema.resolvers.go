@@ -183,12 +183,21 @@ func (r *repositoryResolver) References(ctx context.Context, obj *model.Reposito
 		return refs[i].Name() < refs[j].Name()
 	})
 
-	// TODO: Implement cursor globbing/next
+	if cursor.Next != "" {
+		i := sort.Search(len(refs), func(n int) bool {
+			return refs[n].Name() > cursor.Next
+		})
+		if i != len(refs) {
+			refs = refs[i+1:]
+		} else {
+			refs = nil
+		}
+	}
 
 	if len(refs) > cursor.Count {
 		cursor = &model.Cursor{
 			Count:  cursor.Count,
-			Next:   refs[len(refs)-1].Name(),
+			Next:   refs[cursor.Count].Name(),
 			Search: cursor.Search,
 		}
 		refs = refs[:cursor.Count]
