@@ -16,6 +16,8 @@ import (
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
 	"git.sr.ht/~sircmpwn/gqlgen/graphql"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/filemode"
+	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 func (r *aCLResolver) Repository(ctx context.Context, obj *model.ACL) (*model.Repository, error) {
@@ -207,11 +209,47 @@ func (r *repositoryResolver) Log(ctx context.Context, obj *model.Repository, cur
 }
 
 func (r *repositoryResolver) Tree(ctx context.Context, obj *model.Repository, revspec *string, path *string) (*model.Tree, error) {
-	panic(fmt.Errorf("not implemented"))
+	panic(fmt.Errorf("not implemented")) // TODO: Merge with File
 }
 
 func (r *repositoryResolver) File(ctx context.Context, obj *model.Repository, revspec *string, path string) (*model.Blob, error) {
-	panic(fmt.Errorf("not implemented"))
+	rev := plumbing.Revision("HEAD")
+	if revspec != nil {
+		rev = plumbing.Revision(*revspec)
+	}
+	hash, err := obj.Repo().ResolveRevision(rev)
+	if err != nil {
+		return nil, err
+	}
+	if hash == nil {
+		return nil, fmt.Errorf("No such object")
+	}
+	o, err := obj.Repo().Object(plumbing.CommitObject, *hash)
+	if err != nil {
+		return nil, err
+	}
+	var (
+		commit *object.Commit
+		tree   *object.Tree
+		ent    *object.TreeEntry
+	)
+	commit, _ = o.(*object.Commit)
+	if tree, err = commit.Tree(); err != nil {
+		panic(err)
+	}
+	if ent, err = tree.FindEntry(path); err != nil {
+		panic(err)
+	}
+	if ent.Mode == filemode.Dir {
+		// TODO: Merge with Tree
+		return nil, fmt.Errorf("Path refers to a sub-tree, not a blob")
+	}
+	mo, err := model.LookupObject(obj.Repo(), ent.Hash)
+	if err != nil {
+		return nil, err
+	}
+	blob, _ := mo.(*model.Blob)
+	return blob, nil
 }
 
 func (r *repositoryResolver) RevparseSingle(ctx context.Context, obj *model.Repository, revspec string) (model.Object, error) {
