@@ -245,7 +245,18 @@ func (r *repositoryResolver) RevparseSingle(ctx context.Context, obj *model.Repo
 }
 
 func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *model.Cursor) ([]*model.TreeEntry, error) {
-	panic(fmt.Errorf("tree.entries: not implemented"))
+	if cursor == nil {
+		// TODO: Filter?
+		cursor = model.NewCursor(nil)
+	}
+
+	// TODO: Implement cursor properly
+	entries := obj.Entries()
+	if len(entries) > cursor.Count {
+		entries = entries[:cursor.Count]
+	}
+
+	return entries, nil
 }
 
 func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor *model.Cursor, filter *model.Filter) (*model.RepositoryCursor, error) {

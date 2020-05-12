@@ -40,7 +40,20 @@ func (ent *TreeEntry) Object() Object {
 	return obj
 }
 
-func (tree *Tree) Entries(count *int, next *string) []*TreeEntry {
+func (tree *Tree) Entry(path string) *TreeEntry {
+	ent, err := tree.tree.FindEntry(path)
+	if err == object.ErrEntryNotFound {
+		return nil
+	}
+	return &TreeEntry{
+		Name: ent.Name,
+		Mode: int(ent.Mode),
+		hash: ent.Hash,
+		repo: tree.repo,
+	}
+}
+
+func (tree *Tree) Entries() []*TreeEntry {
 	entries := tree.tree.Entries[:]
 	sort.SliceStable(entries, func(a, b int) bool {
 		return entries[a].Name < entries[b].Name
@@ -56,34 +69,7 @@ func (tree *Tree) Entries(count *int, next *string) []*TreeEntry {
 		}
 	}
 
-	if next != nil {
-		for i, ent := range qlents {
-			if ent.Name == *next {
-				qlents = qlents[i+1:]
-				if len(entries) > *count {
-					qlents = qlents[:*count]
-				}
-				return qlents
-			}
-		}
-	}
-	if len(qlents) > *count {
-		qlents = qlents[:*count]
-	}
 	return qlents
-}
-
-func (tree *Tree) Entry(path string) *TreeEntry {
-	ent, err := tree.tree.FindEntry(path)
-	if err == object.ErrEntryNotFound {
-		return nil
-	}
-	return &TreeEntry{
-		Name: ent.Name,
-		Mode: int(ent.Mode),
-		hash: ent.Hash,
-		repo: tree.repo,
-	}
 }
 
 func TreeFromObject(repo *git.Repository, obj *object.Tree) *Tree {
