@@ -251,7 +251,7 @@ func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *mod
 	}
 
 	// TODO: Implement cursor properly
-	entries := obj.Entries()
+	entries := obj.GetEntries()
 	if len(entries) > cursor.Count {
 		entries = entries[:cursor.Count]
 	}

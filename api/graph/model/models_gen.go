@@ -9,6 +9,10 @@ import (
 	"time"
 )
 
+type Blob interface {
+	IsBlob()
+}
+
 type Entity interface {
 	IsEntity()
 }
@@ -114,47 +118,6 @@ func (e *AccessMode) UnmarshalGQL(v interface{}) error {
 }
 
 func (e AccessMode) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-type BlobType string
-
-const (
-	BlobTypeBinary BlobType = "BINARY"
-	BlobTypeText   BlobType = "TEXT"
-)
-
-var AllBlobType = []BlobType{
-	BlobTypeBinary,
-	BlobTypeText,
-}
-
-func (e BlobType) IsValid() bool {
-	switch e {
-	case BlobTypeBinary, BlobTypeText:
-		return true
-	}
-	return false
-}
-
-func (e BlobType) String() string {
-	return string(e)
-}
-
-func (e *BlobType) UnmarshalGQL(v interface{}) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = BlobType(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid BlobType", str)
-	}
-	return nil
-}
-
-func (e BlobType) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 

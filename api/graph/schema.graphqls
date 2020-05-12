@@ -222,30 +222,28 @@ type TreeEntry {
   mode: Int!
 }
 
-enum BlobType {
-  BINARY
-  TEXT
+interface Blob {
+  id: String!
 }
 
-type BinaryBlob {
-  # TODO: Consdier adding a range specifier
-  base64: String!
-}
-
-type TextBlob {
-  # TODO: Consdier adding a range specifier
-  text: String!
-}
-
-union BlobData = BinaryBlob | TextBlob
-
-type Blob implements Object {
+type TextBlob implements Object & Blob {
   type: ObjectType!
   id: String!
   shortId: String!
   raw: String!
-  blobType: BlobType!
-  data: BlobData
+
+  # TODO: Consider adding a range specifier
+  text: String!
+}
+
+type BinaryBlob implements Object & Blob {
+  type: ObjectType!
+  id: String!
+  shortId: String!
+  raw: String!
+
+  # TODO: Consider adding a range specifier
+  base64: String!
 }
 
 type Tag implements Object {

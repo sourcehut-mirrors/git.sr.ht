@@ -73,16 +73,11 @@ type ComplexityRoot struct {
 	}
 
 	BinaryBlob struct {
-		Base64 func(childComplexity int) int
-	}
-
-	Blob struct {
-		BlobType func(childComplexity int) int
-		Data     func(childComplexity int) int
-		ID       func(childComplexity int) int
-		Raw      func(childComplexity int) int
-		ShortID  func(childComplexity int) int
-		Type     func(childComplexity int) int
+		Base64  func(childComplexity int) int
+		ID      func(childComplexity int) int
+		Raw     func(childComplexity int) int
+		ShortID func(childComplexity int) int
+		Type    func(childComplexity int) int
 	}
 
 	Commit struct {
@@ -170,7 +165,11 @@ type ComplexityRoot struct {
 	}
 
 	TextBlob struct {
-		Text func(childComplexity int) int
+		ID      func(childComplexity int) int
+		Raw     func(childComplexity int) int
+		ShortID func(childComplexity int) int
+		Text    func(childComplexity int) int
+		Type    func(childComplexity int) int
 	}
 
 	Tree struct {
@@ -371,47 +370,33 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.BinaryBlob.Base64(childComplexity), true
 
-	case "Blob.blobType":
-		if e.complexity.Blob.BlobType == nil {
+	case "BinaryBlob.id":
+		if e.complexity.BinaryBlob.ID == nil {
 			break
 		}
 
-		return e.complexity.Blob.BlobType(childComplexity), true
+		return e.complexity.BinaryBlob.ID(childComplexity), true
 
-	case "Blob.data":
-		if e.complexity.Blob.Data == nil {
+	case "BinaryBlob.raw":
+		if e.complexity.BinaryBlob.Raw == nil {
 			break
 		}
 
-		return e.complexity.Blob.Data(childComplexity), true
+		return e.complexity.BinaryBlob.Raw(childComplexity), true
 
-	case "Blob.id":
-		if e.complexity.Blob.ID == nil {
+	case "BinaryBlob.shortId":
+		if e.complexity.BinaryBlob.ShortID == nil {
 			break
 		}
 
-		return e.complexity.Blob.ID(childComplexity), true
+		return e.complexity.BinaryBlob.ShortID(childComplexity), true
 
-	case "Blob.raw":
-		if e.complexity.Blob.Raw == nil {
+	case "BinaryBlob.type":
+		if e.complexity.BinaryBlob.Type == nil {
 			break
 		}
 
-		return e.complexity.Blob.Raw(childComplexity), true
-
-	case "Blob.shortId":
-		if e.complexity.Blob.ShortID == nil {
-			break
-		}
-
-		return e.complexity.Blob.ShortID(childComplexity), true
-
-	case "Blob.type":
-		if e.complexity.Blob.Type == nil {
-			break
-		}
-
-		return e.complexity.Blob.Type(childComplexity), true
+		return e.complexity.BinaryBlob.Type(childComplexity), true
 
 	case "Commit.author":
 		if e.complexity.Commit.Author == nil {
@@ -907,12 +892,40 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Tag.Type(childComplexity), true
 
+	case "TextBlob.id":
+		if e.complexity.TextBlob.ID == nil {
+			break
+		}
+
+		return e.complexity.TextBlob.ID(childComplexity), true
+
+	case "TextBlob.raw":
+		if e.complexity.TextBlob.Raw == nil {
+			break
+		}
+
+		return e.complexity.TextBlob.Raw(childComplexity), true
+
+	case "TextBlob.shortId":
+		if e.complexity.TextBlob.ShortID == nil {
+			break
+		}
+
+		return e.complexity.TextBlob.ShortID(childComplexity), true
+
 	case "TextBlob.text":
 		if e.complexity.TextBlob.Text == nil {
 			break
 		}
 
 		return e.complexity.TextBlob.Text(childComplexity), true
+
+	case "TextBlob.type":
+		if e.complexity.TextBlob.Type == nil {
+			break
+		}
+
+		return e.complexity.TextBlob.Type(childComplexity), true
 
 	case "Tree.entries":
 		if e.complexity.Tree.Entries == nil {
@@ -1385,30 +1398,28 @@ type TreeEntry {
   mode: Int!
 }
 
-enum BlobType {
-  BINARY
-  TEXT
+interface Blob {
+  id: String!
 }
 
-type BinaryBlob {
-  # TODO: Consdier adding a range specifier
-  base64: String!
-}
-
-type TextBlob {
-  # TODO: Consdier adding a range specifier
-  text: String!
-}
-
-union BlobData = BinaryBlob | TextBlob
-
-type Blob implements Object {
+type TextBlob implements Object & Blob {
   type: ObjectType!
   id: String!
   shortId: String!
   raw: String!
-  blobType: BlobType!
-  data: BlobData
+
+  # TODO: Consider adding a range specifier
+  text: String!
+}
+
+type BinaryBlob implements Object & Blob {
+  type: ObjectType!
+  id: String!
+  shortId: String!
+  raw: String!
+
+  # TODO: Consider adding a range specifier
+  base64: String!
 }
 
 type Tag implements Object {
@@ -2417,6 +2428,142 @@ func (ec *executionContext) _Artifact_url(ctx context.Context, field graphql.Col
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _BinaryBlob_type(ctx context.Context, field graphql.CollectedField, obj *model.BinaryBlob) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "BinaryBlob",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Type, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.ObjectType)
+	fc.Result = res
+	return ec.marshalNObjectType2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐObjectType(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _BinaryBlob_id(ctx context.Context, field graphql.CollectedField, obj *model.BinaryBlob) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "BinaryBlob",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _BinaryBlob_shortId(ctx context.Context, field graphql.CollectedField, obj *model.BinaryBlob) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "BinaryBlob",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ShortID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _BinaryBlob_raw(ctx context.Context, field graphql.CollectedField, obj *model.BinaryBlob) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "BinaryBlob",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Raw, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _BinaryBlob_base64(ctx context.Context, field graphql.CollectedField, obj *model.BinaryBlob) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2449,207 +2596,6 @@ func (ec *executionContext) _BinaryBlob_base64(ctx context.Context, field graphq
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Blob_type(ctx context.Context, field graphql.CollectedField, obj *model.Blob) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Blob",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Type, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.ObjectType)
-	fc.Result = res
-	return ec.marshalNObjectType2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐObjectType(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Blob_id(ctx context.Context, field graphql.CollectedField, obj *model.Blob) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Blob",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Blob_shortId(ctx context.Context, field graphql.CollectedField, obj *model.Blob) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Blob",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ShortID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Blob_raw(ctx context.Context, field graphql.CollectedField, obj *model.Blob) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Blob",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Raw, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Blob_blobType(ctx context.Context, field graphql.CollectedField, obj *model.Blob) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Blob",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.BlobType(), nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.BlobType)
-	fc.Result = res
-	return ec.marshalNBlobType2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐBlobType(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Blob_data(ctx context.Context, field graphql.CollectedField, obj *model.Blob) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Blob",
-		Field:    field,
-		Args:     nil,
-		IsMethod: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Data(), nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(model.BlobData)
-	fc.Result = res
-	return ec.marshalOBlobData2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐBlobData(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Commit_type(ctx context.Context, field graphql.CollectedField, obj *model.Commit) (ret graphql.Marshaler) {
@@ -4741,6 +4687,142 @@ func (ec *executionContext) _Tag_message(ctx context.Context, field graphql.Coll
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _TextBlob_type(ctx context.Context, field graphql.CollectedField, obj *model.TextBlob) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "TextBlob",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Type, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.ObjectType)
+	fc.Result = res
+	return ec.marshalNObjectType2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐObjectType(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TextBlob_id(ctx context.Context, field graphql.CollectedField, obj *model.TextBlob) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "TextBlob",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TextBlob_shortId(ctx context.Context, field graphql.CollectedField, obj *model.TextBlob) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "TextBlob",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ShortID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TextBlob_raw(ctx context.Context, field graphql.CollectedField, obj *model.TextBlob) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "TextBlob",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Raw, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _TextBlob_text(ctx context.Context, field graphql.CollectedField, obj *model.TextBlob) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -6717,17 +6799,10 @@ func (ec *executionContext) unmarshalInputRepoInput(ctx context.Context, obj int
 
 // region    ************************** interface.gotpl ***************************
 
-func (ec *executionContext) _BlobData(ctx context.Context, sel ast.SelectionSet, obj model.BlobData) graphql.Marshaler {
+func (ec *executionContext) _Blob(ctx context.Context, sel ast.SelectionSet, obj model.Blob) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case model.BinaryBlob:
-		return ec._BinaryBlob(ctx, sel, &obj)
-	case *model.BinaryBlob:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._BinaryBlob(ctx, sel, obj)
 	case model.TextBlob:
 		return ec._TextBlob(ctx, sel, &obj)
 	case *model.TextBlob:
@@ -6735,6 +6810,13 @@ func (ec *executionContext) _BlobData(ctx context.Context, sel ast.SelectionSet,
 			return graphql.Null
 		}
 		return ec._TextBlob(ctx, sel, obj)
+	case model.BinaryBlob:
+		return ec._BinaryBlob(ctx, sel, &obj)
+	case *model.BinaryBlob:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._BinaryBlob(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -6774,13 +6856,20 @@ func (ec *executionContext) _Object(ctx context.Context, sel ast.SelectionSet, o
 			return graphql.Null
 		}
 		return ec._Tree(ctx, sel, obj)
-	case model.Blob:
-		return ec._Blob(ctx, sel, &obj)
-	case *model.Blob:
+	case model.TextBlob:
+		return ec._TextBlob(ctx, sel, &obj)
+	case *model.TextBlob:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._Blob(ctx, sel, obj)
+		return ec._TextBlob(ctx, sel, obj)
+	case model.BinaryBlob:
+		return ec._BinaryBlob(ctx, sel, &obj)
+	case *model.BinaryBlob:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._BinaryBlob(ctx, sel, obj)
 	case model.Tag:
 		return ec._Tag(ctx, sel, &obj)
 	case *model.Tag:
@@ -6945,7 +7034,7 @@ func (ec *executionContext) _Artifact(ctx context.Context, sel ast.SelectionSet,
 	return out
 }
 
-var binaryBlobImplementors = []string{"BinaryBlob", "BlobData"}
+var binaryBlobImplementors = []string{"BinaryBlob", "Object", "Blob"}
 
 func (ec *executionContext) _BinaryBlob(ctx context.Context, sel ast.SelectionSet, obj *model.BinaryBlob) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, binaryBlobImplementors)
@@ -6956,60 +7045,31 @@ func (ec *executionContext) _BinaryBlob(ctx context.Context, sel ast.SelectionSe
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("BinaryBlob")
+		case "type":
+			out.Values[i] = ec._BinaryBlob_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "id":
+			out.Values[i] = ec._BinaryBlob_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "shortId":
+			out.Values[i] = ec._BinaryBlob_shortId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "raw":
+			out.Values[i] = ec._BinaryBlob_raw(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "base64":
 			out.Values[i] = ec._BinaryBlob_base64(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var blobImplementors = []string{"Blob", "Object"}
-
-func (ec *executionContext) _Blob(ctx context.Context, sel ast.SelectionSet, obj *model.Blob) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, blobImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("Blob")
-		case "type":
-			out.Values[i] = ec._Blob_type(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "id":
-			out.Values[i] = ec._Blob_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "shortId":
-			out.Values[i] = ec._Blob_shortId(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "raw":
-			out.Values[i] = ec._Blob_raw(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "blobType":
-			out.Values[i] = ec._Blob_blobType(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "data":
-			out.Values[i] = ec._Blob_data(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7600,7 +7660,7 @@ func (ec *executionContext) _Tag(ctx context.Context, sel ast.SelectionSet, obj 
 	return out
 }
 
-var textBlobImplementors = []string{"TextBlob", "BlobData"}
+var textBlobImplementors = []string{"TextBlob", "Object", "Blob"}
 
 func (ec *executionContext) _TextBlob(ctx context.Context, sel ast.SelectionSet, obj *model.TextBlob) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, textBlobImplementors)
@@ -7611,6 +7671,26 @@ func (ec *executionContext) _TextBlob(ctx context.Context, sel ast.SelectionSet,
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("TextBlob")
+		case "type":
+			out.Values[i] = ec._TextBlob_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "id":
+			out.Values[i] = ec._TextBlob_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "shortId":
+			out.Values[i] = ec._TextBlob_shortId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "raw":
+			out.Values[i] = ec._TextBlob_raw(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "text":
 			out.Values[i] = ec._TextBlob_text(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -8152,15 +8232,6 @@ func (ec *executionContext) marshalNArtifact2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgit
 		return graphql.Null
 	}
 	return ec._Artifact(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNBlobType2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐBlobType(ctx context.Context, v interface{}) (model.BlobType, error) {
-	var res model.BlobType
-	return res, res.UnmarshalGQL(v)
-}
-
-func (ec *executionContext) marshalNBlobType2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐBlobType(ctx context.Context, sel ast.SelectionSet, v model.BlobType) graphql.Marshaler {
-	return v
 }
 
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
@@ -8875,13 +8946,6 @@ func (ec *executionContext) marshalOAccessMode2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋg
 		return graphql.Null
 	}
 	return v
-}
-
-func (ec *executionContext) marshalOBlobData2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐBlobData(ctx context.Context, sel ast.SelectionSet, v model.BlobData) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._BlobData(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {

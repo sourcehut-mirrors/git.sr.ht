@@ -53,7 +53,7 @@ func (tree *Tree) Entry(path string) *TreeEntry {
 	}
 }
 
-func (tree *Tree) Entries() []*TreeEntry {
+func (tree *Tree) GetEntries() []*TreeEntry {
 	entries := tree.tree.Entries[:]
 	sort.SliceStable(entries, func(a, b int) bool {
 		return entries[a].Name < entries[b].Name

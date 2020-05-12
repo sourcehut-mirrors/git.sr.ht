@@ -3,6 +3,7 @@ git.sr.ht/~sircmpwn/getopt v0.0.0-20191230200459-23622cc906b3/go.mod h1:wMEGFFFN
 git.sr.ht/~sircmpwn/git.sr.ht v0.0.0-20200405134845-b8fbf5bf484f h1:SW8+xV65kcga0rHmQbnZkLG36yp286BcbVOdQTVo1m8=
 git.sr.ht/~sircmpwn/git.sr.ht v0.0.0-20200413150414-046cd382d7b7 h1:PYRTIcsHR5W+aPn98OCC73ly528uw5o/4Z3b5Rvc7vA=
 git.sr.ht/~sircmpwn/git.sr.ht v0.0.0-20200430231646-4014870a700b h1:xHyh0xixoMog7F1kqOG55daFfK0uso98i0lQ/D4dSM8=
+git.sr.ht/~sircmpwn/git.sr.ht v0.0.0-20200511133609-1161d017dc00 h1:uHwXamWDLQX54bOBJcGub96xOX6ApQtQWJ83QmE39OM=
 git.sr.ht/~sircmpwn/gqlgen v0.0.0-20200412134447-57d7234737d4 h1:J/Sb88htNHzZaN6ZEF8BnRWj3LzYoTrOL4WRhZEEiQE=
 git.sr.ht/~sircmpwn/gqlgen v0.0.0-20200412134447-57d7234737d4/go.mod h1:W1cijL2EqAyL1eo1WAJ3ijNVkZM2okpYyCF5TRu1VfI=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
