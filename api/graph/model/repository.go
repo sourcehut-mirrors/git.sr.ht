@@ -21,11 +21,6 @@ type Repository struct {
 	Visibility     Visibility `json:"visibility"`
 	Cursor         *Cursor    `json:"cursor"`
 	UpstreamURL    *string    `json:"upstreamUrl"`
-	Objects        []Object   `json:"objects"`
-	Log            []*Commit  `json:"log"`
-	Tree           *Tree      `json:"tree"`
-	File           *Blob      `json:"file"`
-	RevparseSingle Object     `json:"revparse_single"`
 
 	Path    string
 	OwnerID int

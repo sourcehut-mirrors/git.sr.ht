@@ -237,6 +237,12 @@ type RepositoryResolver interface {
 
 	AccessControlList(ctx context.Context, obj *model.Repository, cursor *model.Cursor) (*model.ACLCursor, error)
 	References(ctx context.Context, obj *model.Repository, cursor *model.Cursor) (*model.ReferenceCursor, error)
+	Objects(ctx context.Context, obj *model.Repository, ids []*string) ([]model.Object, error)
+
+	Log(ctx context.Context, obj *model.Repository, cursor *model.Cursor) ([]*model.Commit, error)
+	Tree(ctx context.Context, obj *model.Repository, revspec *string, path *string) (*model.Tree, error)
+	File(ctx context.Context, obj *model.Repository, revspec *string, path string) (*model.Blob, error)
+	RevparseSingle(ctx context.Context, obj *model.Repository, revspec string) (model.Object, error)
 }
 type TreeResolver interface {
 	Entries(ctx context.Context, obj *model.Tree, cursor *model.Cursor) ([]*model.TreeEntry, error)
@@ -4082,7 +4088,7 @@ func (ec *executionContext) _Repository_objects(ctx context.Context, field graph
 		Object:   "Repository",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4095,7 +4101,7 @@ func (ec *executionContext) _Repository_objects(ctx context.Context, field graph
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Objects, nil
+		return ec.resolvers.Repository().Objects(rctx, obj, args["ids"].([]*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4154,7 +4160,7 @@ func (ec *executionContext) _Repository_log(ctx context.Context, field graphql.C
 		Object:   "Repository",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4167,7 +4173,7 @@ func (ec *executionContext) _Repository_log(ctx context.Context, field graphql.C
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Log, nil
+		return ec.resolvers.Repository().Log(rctx, obj, args["cursor"].(*model.Cursor))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4195,7 +4201,7 @@ func (ec *executionContext) _Repository_tree(ctx context.Context, field graphql.
 		Object:   "Repository",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4208,7 +4214,7 @@ func (ec *executionContext) _Repository_tree(ctx context.Context, field graphql.
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Tree, nil
+		return ec.resolvers.Repository().Tree(rctx, obj, args["revspec"].(*string), args["path"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4233,7 +4239,7 @@ func (ec *executionContext) _Repository_file(ctx context.Context, field graphql.
 		Object:   "Repository",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4246,7 +4252,7 @@ func (ec *executionContext) _Repository_file(ctx context.Context, field graphql.
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.File, nil
+		return ec.resolvers.Repository().File(rctx, obj, args["revspec"].(*string), args["path"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4271,7 +4277,7 @@ func (ec *executionContext) _Repository_revparse_single(ctx context.Context, fie
 		Object:   "Repository",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4284,7 +4290,7 @@ func (ec *executionContext) _Repository_revparse_single(ctx context.Context, fie
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.RevparseSingle, nil
+		return ec.resolvers.Repository().RevparseSingle(rctx, obj, args["revspec"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7395,23 +7401,68 @@ func (ec *executionContext) _Repository(ctx context.Context, sel ast.SelectionSe
 				return res
 			})
 		case "objects":
-			out.Values[i] = ec._Repository_objects(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Repository_objects(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "HEAD":
 			out.Values[i] = ec._Repository_HEAD(ctx, field, obj)
 		case "log":
-			out.Values[i] = ec._Repository_log(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Repository_log(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "tree":
-			out.Values[i] = ec._Repository_tree(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Repository_tree(ctx, field, obj)
+				return res
+			})
 		case "file":
-			out.Values[i] = ec._Repository_file(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Repository_file(ctx, field, obj)
+				return res
+			})
 		case "revparse_single":
-			out.Values[i] = ec._Repository_revparse_single(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Repository_revparse_single(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

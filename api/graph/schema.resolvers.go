@@ -198,6 +198,26 @@ func (r *repositoryResolver) References(ctx context.Context, obj *model.Reposito
 	return &model.ReferenceCursor{refs, cursor}, nil
 }
 
+func (r *repositoryResolver) Objects(ctx context.Context, obj *model.Repository, ids []*string) ([]model.Object, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *repositoryResolver) Log(ctx context.Context, obj *model.Repository, cursor *model.Cursor) ([]*model.Commit, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *repositoryResolver) Tree(ctx context.Context, obj *model.Repository, revspec *string, path *string) (*model.Tree, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *repositoryResolver) File(ctx context.Context, obj *model.Repository, revspec *string, path string) (*model.Blob, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *repositoryResolver) RevparseSingle(ctx context.Context, obj *model.Repository, revspec string) (model.Object, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *model.Cursor) ([]*model.TreeEntry, error) {
 	panic(fmt.Errorf("tree.entries: not implemented"))
 }
