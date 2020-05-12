@@ -13,12 +13,9 @@ type Entity interface {
 	IsEntity()
 }
 
-type ACL struct {
-	ID         int         `json:"id"`
-	Created    time.Time   `json:"created"`
-	Repository *Repository `json:"repository"`
-	Entity     Entity      `json:"entity"`
-	Mode       *AccessMode `json:"mode"`
+type ACLCursor struct {
+	Results []*ACL  `json:"results"`
+	Cursor  *Cursor `json:"cursor"`
 }
 
 type Artifact struct {

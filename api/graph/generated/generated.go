@@ -37,6 +37,7 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	ACL() ACLResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
 	Repository() RepositoryResolver
@@ -54,6 +55,11 @@ type ComplexityRoot struct {
 		ID         func(childComplexity int) int
 		Mode       func(childComplexity int) int
 		Repository func(childComplexity int) int
+	}
+
+	ACLCursor struct {
+		Cursor  func(childComplexity int) int
+		Results func(childComplexity int) int
 	}
 
 	Artifact struct {
@@ -199,6 +205,10 @@ type ComplexityRoot struct {
 	}
 }
 
+type ACLResolver interface {
+	Repository(ctx context.Context, obj *model.ACL) (*model.Repository, error)
+	Entity(ctx context.Context, obj *model.ACL) (model.Entity, error)
+}
 type MutationResolver interface {
 	CreateRepository(ctx context.Context, params *model.RepoInput) (*model.Repository, error)
 	UpdateRepository(ctx context.Context, id string, params *model.RepoInput) (*model.Repository, error)
@@ -220,7 +230,7 @@ type QueryResolver interface {
 type RepositoryResolver interface {
 	Owner(ctx context.Context, obj *model.Repository) (model.Entity, error)
 
-	AccessControlList(ctx context.Context, obj *model.Repository, cursor *model.Cursor) ([]*model.ACL, error)
+	AccessControlList(ctx context.Context, obj *model.Repository, cursor *model.Cursor) (*model.ACLCursor, error)
 	References(ctx context.Context, obj *model.Repository, cursor *model.Cursor) ([]*model.Reference, error)
 }
 type TreeResolver interface {
@@ -279,6 +289,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ACL.Repository(childComplexity), true
+
+	case "ACLCursor.cursor":
+		if e.complexity.ACLCursor.Cursor == nil {
+			break
+		}
+
+		return e.complexity.ACLCursor.Cursor(childComplexity), true
+
+	case "ACLCursor.results":
+		if e.complexity.ACLCursor.Results == nil {
+			break
+		}
+
+		return e.complexity.ACLCursor.Results(childComplexity), true
 
 	case "Artifact.checksum":
 		if e.complexity.Artifact.Checksum == nil {
@@ -1189,7 +1213,7 @@ type Repository {
   upstreamUrl: String
 
   # Returns access control list entries for this repository
-  accessControlList(cursor: Cursor): [ACL]!
+  accessControlList(cursor: Cursor): ACLCursor
 
   ## Plumbing API:
 
@@ -1236,6 +1260,16 @@ type Repository {
 # there are no remaining results to return.
 type RepositoryCursor {
   results: [Repository]!
+  cursor: Cursor
+}
+
+# A cursor for enumerating access control list entries
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type ACLCursor {
+  results: [ACL]!
   cursor: Cursor
 }
 
@@ -1958,13 +1992,13 @@ func (ec *executionContext) _ACL_repository(ctx context.Context, field graphql.C
 		Object:   "ACL",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Repository, nil
+		return ec.resolvers.ACL().Repository(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1992,13 +2026,13 @@ func (ec *executionContext) _ACL_entity(ctx context.Context, field graphql.Colle
 		Object:   "ACL",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Entity, nil
+		return ec.resolvers.ACL().Entity(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2044,6 +2078,71 @@ func (ec *executionContext) _ACL_mode(ctx context.Context, field graphql.Collect
 	res := resTmp.(*model.AccessMode)
 	fc.Result = res
 	return ec.marshalOAccessMode2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessMode(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ACLCursor_results(ctx context.Context, field graphql.CollectedField, obj *model.ACLCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ACLCursor",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Results, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.ACL)
+	fc.Result = res
+	return ec.marshalNACL2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACL(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ACLCursor_cursor(ctx context.Context, field graphql.CollectedField, obj *model.ACLCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ACLCursor",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Cursor)
+	fc.Result = res
+	return ec.marshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCursor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Artifact_id(ctx context.Context, field graphql.CollectedField, obj *model.Artifact) (ret graphql.Marshaler) {
@@ -3835,14 +3934,11 @@ func (ec *executionContext) _Repository_accessControlList(ctx context.Context, f
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.ACL)
+	res := resTmp.(*model.ACLCursor)
 	fc.Result = res
-	return ec.marshalNACL2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACL(ctx, field.Selections, res)
+	return ec.marshalOACLCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACLCursor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Repository_references(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
@@ -6619,25 +6715,72 @@ func (ec *executionContext) _ACL(ctx context.Context, sel ast.SelectionSet, obj 
 		case "id":
 			out.Values[i] = ec._ACL_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "created":
 			out.Values[i] = ec._ACL_created(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "repository":
-			out.Values[i] = ec._ACL_repository(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ACL_repository(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "entity":
-			out.Values[i] = ec._ACL_entity(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._ACL_entity(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "mode":
 			out.Values[i] = ec._ACL_mode(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var aCLCursorImplementors = []string{"ACLCursor"}
+
+func (ec *executionContext) _ACLCursor(ctx context.Context, sel ast.SelectionSet, obj *model.ACLCursor) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, aCLCursorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ACLCursor")
+		case "results":
+			out.Values[i] = ec._ACLCursor_results(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "cursor":
+			out.Values[i] = ec._ACLCursor_cursor(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7120,9 +7263,6 @@ func (ec *executionContext) _Repository(ctx context.Context, sel ast.SelectionSe
 					}
 				}()
 				res = ec._Repository_accessControlList(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
 				return res
 			})
 		case "references":
@@ -8533,6 +8673,17 @@ func (ec *executionContext) marshalOACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsr
 		return graphql.Null
 	}
 	return ec._ACL(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOACLCursor2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACLCursor(ctx context.Context, sel ast.SelectionSet, v model.ACLCursor) graphql.Marshaler {
+	return ec._ACLCursor(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOACLCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACLCursor(ctx context.Context, sel ast.SelectionSet, v *model.ACLCursor) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ACLCursor(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOAccessMode2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessMode(ctx context.Context, v interface{}) (model.AccessMode, error) {

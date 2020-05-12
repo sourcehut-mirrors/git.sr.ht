@@ -54,6 +54,11 @@ func (r *Repository) Head() *Reference {
 	return &Reference{Ref: ref, Repo: r.repo}
 }
 
+func (r *Repository) As(alias string) *Repository {
+	r.alias = alias
+	return r
+}
+
 func (r *Repository) Select(ctx context.Context) []string {
 	cols := database.ColumnsFor(ctx, r.alias, map[string]string{
 		"id":          "id",
@@ -68,11 +73,6 @@ func (r *Repository) Select(ctx context.Context) []string {
 		database.WithAlias(r.alias, "path"),
 		database.WithAlias(r.alias, "owner_id"),
 		database.WithAlias(r.alias, "updated"))
-}
-
-func (r *Repository) As(alias string) *Repository {
-	r.alias = alias
-	return r
 }
 
 func (r *Repository) Fields(ctx context.Context) []interface{} {

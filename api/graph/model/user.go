@@ -26,8 +26,13 @@ func (u *User) CanonicalName() string {
 	return "~" + u.Username
 }
 
+func (u *User) As(alias string) *User {
+	u.alias = alias
+	return u
+}
+
 func (u *User) Select(ctx context.Context) []string {
-	return database.ColumnsFor(ctx, u.alias, map[string]string{
+	cols := database.ColumnsFor(ctx, u.alias, map[string]string{
 		"id":       "id",
 		"created":  "created",
 		"updated":  "updated",
@@ -37,15 +42,13 @@ func (u *User) Select(ctx context.Context) []string {
 		"location": "location",
 		"bio":      "bio",
 	})
-}
-
-func (u *User) As(alias string) database.Selectable {
-	u.alias = alias
-	return u
+	return append(cols,
+		database.WithAlias(u.alias, "id"),
+		database.WithAlias(u.alias, "username"))
 }
 
 func (u *User) Fields(ctx context.Context) []interface{} {
-	return database.FieldsFor(ctx, map[string]interface{}{
+	fields := database.FieldsFor(ctx, map[string]interface{}{
 		"id":       &u.ID,
 		"created":  &u.Created,
 		"updated":  &u.Updated,
@@ -55,4 +58,5 @@ func (u *User) Fields(ctx context.Context) []interface{} {
 		"location": &u.Location,
 		"bio":      &u.Bio,
 	})
+	return append(fields, &u.ID, &u.Username)
 }

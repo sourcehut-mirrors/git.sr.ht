@@ -19,31 +19,31 @@ import (
 )
 
 func (r *mutationResolver) CreateRepository(ctx context.Context, params *model.RepoInput) (*model.Repository, error) {
-	panic(fmt.Errorf("not implemented"))
+	panic(fmt.Errorf("createRepository: not implemented"))
 }
 
 func (r *mutationResolver) UpdateRepository(ctx context.Context, id string, params *model.RepoInput) (*model.Repository, error) {
-	panic(fmt.Errorf("not implemented"))
+	panic(fmt.Errorf("updateRepository: not implemented"))
 }
 
 func (r *mutationResolver) DeleteRepository(ctx context.Context, id string) (*model.Repository, error) {
-	panic(fmt.Errorf("not implemented"))
+	panic(fmt.Errorf("deleteRepository: not implemented"))
 }
 
 func (r *mutationResolver) UpdateACL(ctx context.Context, repoID string, mode model.AccessMode, entity string) (*model.ACL, error) {
-	panic(fmt.Errorf("not implemented"))
+	panic(fmt.Errorf("updateACL: not implemented"))
 }
 
 func (r *mutationResolver) DeleteACL(ctx context.Context, repoID int, entity string) (*model.ACL, error) {
-	panic(fmt.Errorf("not implemented"))
+	panic(fmt.Errorf("deleteACL: not implemented"))
 }
 
 func (r *mutationResolver) UploadArtifact(ctx context.Context, repoID int, revspec string, file graphql.Upload) (*model.Artifact, error) {
-	panic(fmt.Errorf("not implemented"))
+	panic(fmt.Errorf("uploadArtifact: not implemented"))
 }
 
 func (r *mutationResolver) DeleteArtifact(ctx context.Context, id int) (*model.Artifact, error) {
-	panic(fmt.Errorf("not implemented"))
+	panic(fmt.Errorf("deleteArtifact: not implemented"))
 }
 
 func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
@@ -110,8 +110,55 @@ func (r *repositoryResolver) Owner(ctx context.Context, obj *model.Repository) (
 	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
 }
 
-func (r *repositoryResolver) AccessControlList(ctx context.Context, obj *model.Repository, cursor *model.Cursor) ([]*model.ACL, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *repositoryResolver) AccessControlList(ctx context.Context, obj *model.Repository, cursor *model.Cursor) (*model.ACLCursor, error) {
+	if cursor == nil {
+		cursor = model.NewCursor(nil)
+	}
+
+	acl := (&model.ACL{}).As(`acl`)
+	query := database.
+		Select(ctx, acl).
+		From(`access acl`).
+		Join(`repository repo ON acl.repo_id = repo.id`).
+		Where(`acl.repo_id = ?`, obj.ID).
+		Where(`repo.owner_id = ?`, auth.ForContext(ctx).ID)
+
+	acls, cursor := acl.QueryWithCursor(ctx, r.DB, query, cursor)
+	return &model.ACLCursor{acls, cursor}, nil
+}
+
+func (r *aCLResolver) Repository(ctx context.Context, obj *model.ACL) (*model.Repository, error) {
+	// XXX This could be moved into a loader, but it's unlikely to be a
+	// frequently utilized endpoint, so I'm not especially interested in the
+	// extra work/cruft.
+	repo := (&model.Repository{}).As(`repo`)
+	query := database.
+		Select(ctx, repo).
+		From(`repository repo`).
+		Join(`access acl ON acl.repo_id = repo.id`).
+		Where(`acl.id = ?`, obj.ID)
+	row := query.RunWith(r.DB).QueryRow()
+	if err := row.Scan(repo.Fields(ctx)...); err != nil {
+		panic(err)
+	}
+	return repo, nil
+}
+
+func (r *aCLResolver) Entity(ctx context.Context, obj *model.ACL) (model.Entity, error) {
+	// XXX This could be moved into a loader, but it's unlikely to be a
+	// frequently utilized endpoint, so I'm not especially interested in the
+	// extra work/cruft.
+	user := (&model.User{}).As(`u`)
+	query := database.
+		Select(ctx, user).
+		From(`"user" u`).
+		Join(`access acl ON acl.user_id = u.id`).
+		Where(`acl.id = ?`, obj.ID)
+	row := query.RunWith(r.DB).QueryRow()
+	if err := row.Scan(user.Fields(ctx)...); err != nil {
+		panic(err)
+	}
+	return user, nil
 }
 
 func (r *repositoryResolver) References(ctx context.Context, obj *model.Repository, cursor *model.Cursor) ([]*model.Reference, error) {
@@ -136,7 +183,7 @@ func (r *repositoryResolver) References(ctx context.Context, obj *model.Reposito
 }
 
 func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *model.Cursor) ([]*model.TreeEntry, error) {
-	panic(fmt.Errorf("not implemented"))
+	panic(fmt.Errorf("tree.entries: not implemented"))
 }
 
 func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor *model.Cursor, filter *model.Filter) (*model.RepositoryCursor, error) {
@@ -154,6 +201,9 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor
 	return &model.RepositoryCursor{repos, cursor}, nil
 }
 
+// ACL returns generated.ACLResolver implementation.
+func (r *Resolver) ACL() generated.ACLResolver { return &aCLResolver{r} }
+
 // Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
@@ -169,6 +219,7 @@ func (r *Resolver) Tree() generated.TreeResolver { return &treeResolver{r} }
 // User returns generated.UserResolver implementation.
 func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
 
+type aCLResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type repositoryResolver struct{ *Resolver }

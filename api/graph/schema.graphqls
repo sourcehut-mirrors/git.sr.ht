@@ -75,7 +75,7 @@ type Repository {
   upstreamUrl: String
 
   # Returns access control list entries for this repository
-  accessControlList(cursor: Cursor): [ACL]!
+  accessControlList(cursor: Cursor): ACLCursor
 
   ## Plumbing API:
 
@@ -122,6 +122,16 @@ type Repository {
 # there are no remaining results to return.
 type RepositoryCursor {
   results: [Repository]!
+  cursor: Cursor
+}
+
+# A cursor for enumerating access control list entries
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type ACLCursor {
+  results: [ACL]!
   cursor: Cursor
 }
 
