@@ -241,7 +241,16 @@ func (r *repositoryResolver) Path(ctx context.Context, obj *model.Repository, re
 }
 
 func (r *repositoryResolver) RevparseSingle(ctx context.Context, obj *model.Repository, revspec string) (model.Object, error) {
-	panic(fmt.Errorf("not implemented"))
+	rev := plumbing.Revision(revspec)
+	hash, err := obj.Repo().ResolveRevision(rev)
+	if err != nil {
+		return nil, err
+	}
+	if hash == nil {
+		return nil, fmt.Errorf("No such object")
+	}
+	return model.LookupObject(obj.Repo(), *hash)
+
 }
 
 func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *model.Cursor) ([]*model.TreeEntry, error) {
