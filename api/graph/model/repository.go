@@ -55,7 +55,7 @@ func (r *Repository) Head() *Reference {
 }
 
 func (r *Repository) Select(ctx context.Context) []string {
-	return append(database.ColumnsFor(ctx, r.alias, map[string]string{
+	cols := database.ColumnsFor(ctx, r.alias, map[string]string{
 		"id":          "id",
 		"created":     "created",
 		"updated":     "updated",
@@ -63,7 +63,8 @@ func (r *Repository) Select(ctx context.Context) []string {
 		"description": "description",
 		"visibility":  "visibility",
 		"upstreamUrl": "upstream_uri",
-	}),
+	})
+	return append(cols,
 		database.WithAlias(r.alias, "path"),
 		database.WithAlias(r.alias, "owner_id"),
 		database.WithAlias(r.alias, "updated"))

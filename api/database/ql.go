@@ -25,10 +25,6 @@ func collectFields(ctx context.Context) []graphql.CollectedField {
 				break
 			}
 		}
-
-		sort.Slice(fields, func(a, b int) bool {
-			return fields[a].Name < fields[b].Name
-		})
 	}
 	return fields
 }
@@ -45,6 +41,10 @@ func ColumnsFor(ctx context.Context, alias string,
 			})
 		}
 	}
+
+	sort.Slice(fields, func(a, b int) bool {
+		return fields[a].Name < fields[b].Name
+	})
 
 	var columns []string
 	for _, qlCol := range fields {
@@ -73,6 +73,10 @@ func FieldsFor(ctx context.Context,
 			})
 		}
 	}
+
+	sort.Slice(qlFields, func(a, b int) bool {
+		return qlFields[a].Name < qlFields[b].Name
+	})
 
 	var fields []interface{}
 	for _, qlField := range qlFields {
