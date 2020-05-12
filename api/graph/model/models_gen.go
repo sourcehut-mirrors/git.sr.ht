@@ -34,6 +34,11 @@ type Filter struct {
 	OrderBy *string `json:"orderBy"`
 }
 
+type ReferenceCursor struct {
+	Results []*Reference `json:"results"`
+	Cursor  *Cursor      `json:"cursor"`
+}
+
 type RepoInput struct {
 	Name        string      `json:"name"`
 	Description *string     `json:"description"`

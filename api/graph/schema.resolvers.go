@@ -18,6 +18,40 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
+func (r *aCLResolver) Repository(ctx context.Context, obj *model.ACL) (*model.Repository, error) {
+	// XXX This could be moved into a loader, but it's unlikely to be a
+	// frequently utilized endpoint, so I'm not especially interested in the
+	// extra work/cruft.
+	repo := (&model.Repository{}).As(`repo`)
+	query := database.
+		Select(ctx, repo).
+		From(`repository repo`).
+		Join(`access acl ON acl.repo_id = repo.id`).
+		Where(`acl.id = ?`, obj.ID)
+	row := query.RunWith(r.DB).QueryRow()
+	if err := row.Scan(repo.Fields(ctx)...); err != nil {
+		panic(err)
+	}
+	return repo, nil
+}
+
+func (r *aCLResolver) Entity(ctx context.Context, obj *model.ACL) (model.Entity, error) {
+	// XXX This could be moved into a loader, but it's unlikely to be a
+	// frequently utilized endpoint, so I'm not especially interested in the
+	// extra work/cruft.
+	user := (&model.User{}).As(`u`)
+	query := database.
+		Select(ctx, user).
+		From(`"user" u`).
+		Join(`access acl ON acl.user_id = u.id`).
+		Where(`acl.id = ?`, obj.ID)
+	row := query.RunWith(r.DB).QueryRow()
+	if err := row.Scan(user.Fields(ctx)...); err != nil {
+		panic(err)
+	}
+	return user, nil
+}
+
 func (r *mutationResolver) CreateRepository(ctx context.Context, params *model.RepoInput) (*model.Repository, error) {
 	panic(fmt.Errorf("createRepository: not implemented"))
 }
@@ -127,59 +161,41 @@ func (r *repositoryResolver) AccessControlList(ctx context.Context, obj *model.R
 	return &model.ACLCursor{acls, cursor}, nil
 }
 
-func (r *aCLResolver) Repository(ctx context.Context, obj *model.ACL) (*model.Repository, error) {
-	// XXX This could be moved into a loader, but it's unlikely to be a
-	// frequently utilized endpoint, so I'm not especially interested in the
-	// extra work/cruft.
-	repo := (&model.Repository{}).As(`repo`)
-	query := database.
-		Select(ctx, repo).
-		From(`repository repo`).
-		Join(`access acl ON acl.repo_id = repo.id`).
-		Where(`acl.id = ?`, obj.ID)
-	row := query.RunWith(r.DB).QueryRow()
-	if err := row.Scan(repo.Fields(ctx)...); err != nil {
-		panic(err)
-	}
-	return repo, nil
-}
-
-func (r *aCLResolver) Entity(ctx context.Context, obj *model.ACL) (model.Entity, error) {
-	// XXX This could be moved into a loader, but it's unlikely to be a
-	// frequently utilized endpoint, so I'm not especially interested in the
-	// extra work/cruft.
-	user := (&model.User{}).As(`u`)
-	query := database.
-		Select(ctx, user).
-		From(`"user" u`).
-		Join(`access acl ON acl.user_id = u.id`).
-		Where(`acl.id = ?`, obj.ID)
-	row := query.RunWith(r.DB).QueryRow()
-	if err := row.Scan(user.Fields(ctx)...); err != nil {
-		panic(err)
-	}
-	return user, nil
-}
-
-func (r *repositoryResolver) References(ctx context.Context, obj *model.Repository, cursor *model.Cursor) ([]*model.Reference, error) {
+func (r *repositoryResolver) References(ctx context.Context, obj *model.Repository, cursor *model.Cursor) (*model.ReferenceCursor, error) {
 	iter, err := obj.Repo().References()
 	if err != nil {
 		return nil, err
 	}
 	defer iter.Close()
+
+	if cursor == nil {
+		cursor = model.NewCursor(nil)
+	}
+
 	var refs []*model.Reference
 	iter.ForEach(func(ref *plumbing.Reference) error {
 		refs = append(refs, &model.Reference{obj.Repo(), ref})
 		return nil
 	})
-	// TODO: Implement globbing
+
 	sort.SliceStable(refs, func(i, j int) bool {
 		return refs[i].Name() < refs[j].Name()
 	})
-	if len(refs) > 25 {
-		refs = refs[:25]
+
+	// TODO: Implement cursor globbing/next
+
+	if len(refs) > cursor.Count {
+		cursor = &model.Cursor{
+			Count:  cursor.Count,
+			Next:   refs[len(refs)-1].Name(),
+			Search: cursor.Search,
+		}
+		refs = refs[:cursor.Count]
+	} else {
+		cursor = nil
 	}
-	return refs, nil
+
+	return &model.ReferenceCursor{refs, cursor}, nil
 }
 
 func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *model.Cursor) ([]*model.TreeEntry, error) {

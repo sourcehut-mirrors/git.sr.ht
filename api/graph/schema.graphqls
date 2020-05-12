@@ -80,10 +80,7 @@ type Repository {
   ## Plumbing API:
 
   # Returns a list of references for this repository
-  # 
-  # glob: an optional string to filter the list of references, e.g. for tags
-  # use "refs/tags/*", or leave null to enumerate all references
-  references(cursor: Cursor): [Reference]!
+  references(cursor: Cursor): ReferenceCursor
 
   # Returns a list of objects for this repository by their IDs (using fully
   # qualified git object IDs, 40 character hex strings)
@@ -132,6 +129,17 @@ type RepositoryCursor {
 # there are no remaining results to return.
 type ACLCursor {
   results: [ACL]!
+  cursor: Cursor
+}
+
+
+# A cursor for enumerating a list of references
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type ReferenceCursor {
+  results: [Reference]!
   cursor: Cursor
 }
 
