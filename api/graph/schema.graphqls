@@ -104,8 +104,9 @@ type Repository {
   # path: optional path to the tree to retrieve
   tree(revspec: String = "HEAD", path: String): Tree
 
-  # Returns a blob for a given path and revspec
-  file(revspec: String = "HEAD", path: String!): Blob
+  #
+  # Returns a tree entry for a given path and revspec
+  path(revspec: String = "HEAD", path: String!): TreeEntry
 
   # Returns the object for a given revspec. Useful, for example, to turn
   # something ambiuguous like "9790b10" into a commit object

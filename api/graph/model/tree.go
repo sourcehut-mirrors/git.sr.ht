@@ -85,3 +85,14 @@ func (tree *Tree) Entry(path string) *TreeEntry {
 		repo: tree.repo,
 	}
 }
+
+func TreeFromObject(repo *git.Repository, obj *object.Tree) *Tree {
+	return &Tree{
+		Type:    ObjectTypeTree,
+		ID:      obj.ID().String(),
+		ShortID: obj.ID().String()[:7],
+
+		tree: obj,
+		repo: repo,
+	}
+}

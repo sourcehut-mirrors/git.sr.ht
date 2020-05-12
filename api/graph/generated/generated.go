@@ -132,13 +132,13 @@ type ComplexityRoot struct {
 		AccessControlList func(childComplexity int, cursor *model.Cursor) int
 		Created           func(childComplexity int) int
 		Description       func(childComplexity int) int
-		File              func(childComplexity int, revspec *string, path string) int
 		Head              func(childComplexity int) int
 		ID                func(childComplexity int) int
 		Log               func(childComplexity int, cursor *model.Cursor) int
 		Name              func(childComplexity int) int
 		Objects           func(childComplexity int, ids []*string) int
 		Owner             func(childComplexity int) int
+		Path              func(childComplexity int, revspec *string, path string) int
 		References        func(childComplexity int, cursor *model.Cursor) int
 		RevparseSingle    func(childComplexity int, revspec string) int
 		Tree              func(childComplexity int, revspec *string, path *string) int
@@ -241,7 +241,7 @@ type RepositoryResolver interface {
 
 	Log(ctx context.Context, obj *model.Repository, cursor *model.Cursor) ([]*model.Commit, error)
 	Tree(ctx context.Context, obj *model.Repository, revspec *string, path *string) (*model.Tree, error)
-	File(ctx context.Context, obj *model.Repository, revspec *string, path string) (*model.Blob, error)
+	Path(ctx context.Context, obj *model.Repository, revspec *string, path string) (*model.TreeEntry, error)
 	RevparseSingle(ctx context.Context, obj *model.Repository, revspec string) (model.Object, error)
 }
 type TreeResolver interface {
@@ -695,18 +695,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Repository.Description(childComplexity), true
 
-	case "Repository.file":
-		if e.complexity.Repository.File == nil {
-			break
-		}
-
-		args, err := ec.field_Repository_file_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Repository.File(childComplexity, args["revspec"].(*string), args["path"].(string)), true
-
 	case "Repository.HEAD":
 		if e.complexity.Repository.Head == nil {
 			break
@@ -758,6 +746,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Repository.Owner(childComplexity), true
+
+	case "Repository.path":
+		if e.complexity.Repository.Path == nil {
+			break
+		}
+
+		args, err := ec.field_Repository_path_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Repository.Path(childComplexity, args["revspec"].(*string), args["path"].(string)), true
 
 	case "Repository.references":
 		if e.complexity.Repository.References == nil {
@@ -1267,8 +1267,9 @@ type Repository {
   # path: optional path to the tree to retrieve
   tree(revspec: String = "HEAD", path: String): Tree
 
-  # Returns a blob for a given path and revspec
-  file(revspec: String = "HEAD", path: String!): Blob
+  #
+  # Returns a tree entry for a given path and revspec
+  path(revspec: String = "HEAD", path: String!): TreeEntry
 
   # Returns the object for a given revspec. Useful, for example, to turn
   # something ambiuguous like "9790b10" into a commit object
@@ -1760,28 +1761,6 @@ func (ec *executionContext) field_Repository_accessControlList_args(ctx context.
 	return args, nil
 }
 
-func (ec *executionContext) field_Repository_file_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 *string
-	if tmp, ok := rawArgs["revspec"]; ok {
-		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["revspec"] = arg0
-	var arg1 string
-	if tmp, ok := rawArgs["path"]; ok {
-		arg1, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["path"] = arg1
-	return args, nil
-}
-
 func (ec *executionContext) field_Repository_log_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1807,6 +1786,28 @@ func (ec *executionContext) field_Repository_objects_args(ctx context.Context, r
 		}
 	}
 	args["ids"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Repository_path_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *string
+	if tmp, ok := rawArgs["revspec"]; ok {
+		arg0, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["revspec"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["path"]; ok {
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["path"] = arg1
 	return args, nil
 }
 
@@ -4228,7 +4229,7 @@ func (ec *executionContext) _Repository_tree(ctx context.Context, field graphql.
 	return ec.marshalOTree2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTree(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Repository_file(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
+func (ec *executionContext) _Repository_path(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -4244,7 +4245,7 @@ func (ec *executionContext) _Repository_file(ctx context.Context, field graphql.
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Repository_file_args(ctx, rawArgs)
+	args, err := ec.field_Repository_path_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -4252,7 +4253,7 @@ func (ec *executionContext) _Repository_file(ctx context.Context, field graphql.
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Repository().File(rctx, obj, args["revspec"].(*string), args["path"].(string))
+		return ec.resolvers.Repository().Path(rctx, obj, args["revspec"].(*string), args["path"].(string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4261,9 +4262,9 @@ func (ec *executionContext) _Repository_file(ctx context.Context, field graphql.
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.Blob)
+	res := resTmp.(*model.TreeEntry)
 	fc.Result = res
-	return ec.marshalOBlob2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐBlob(ctx, field.Selections, res)
+	return ec.marshalOTreeEntry2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTreeEntry(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Repository_revparse_single(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
@@ -7441,7 +7442,7 @@ func (ec *executionContext) _Repository(ctx context.Context, sel ast.SelectionSe
 				res = ec._Repository_tree(ctx, field, obj)
 				return res
 			})
-		case "file":
+		case "path":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -7449,7 +7450,7 @@ func (ec *executionContext) _Repository(ctx context.Context, sel ast.SelectionSe
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Repository_file(ctx, field, obj)
+				res = ec._Repository_path(ctx, field, obj)
 				return res
 			})
 		case "revparse_single":
@@ -8874,17 +8875,6 @@ func (ec *executionContext) marshalOAccessMode2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋg
 		return graphql.Null
 	}
 	return v
-}
-
-func (ec *executionContext) marshalOBlob2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐBlob(ctx context.Context, sel ast.SelectionSet, v model.Blob) graphql.Marshaler {
-	return ec._Blob(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalOBlob2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐBlob(ctx context.Context, sel ast.SelectionSet, v *model.Blob) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Blob(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOBlobData2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐBlobData(ctx context.Context, sel ast.SelectionSet, v model.BlobData) graphql.Marshaler {

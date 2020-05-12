@@ -30,14 +30,7 @@ func LookupObject(repo *git.Repository, hash plumbing.Hash) (Object, error) {
 			repo:   repo,
 		}, nil
 	case *object.Tree:
-		return &Tree{
-			Type:    ObjectTypeTree,
-			ID:      obj.ID().String(),
-			ShortID: obj.ID().String()[:7],
-
-			tree: obj,
-			repo: repo,
-		}, nil
+		return TreeFromObject(repo, obj), nil
 	case *object.Blob:
 		return &Blob{
 			Type:    ObjectTypeBlob,
