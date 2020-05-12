@@ -5,10 +5,8 @@ package graph
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"sort"
-	"strconv"
 	"strings"
 
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/auth"
@@ -76,11 +74,6 @@ func (r *queryResolver) User(ctx context.Context, username string) (*model.User,
 }
 
 func (r *queryResolver) Repositories(ctx context.Context, cursor *model.Cursor, filter *model.Filter) (*model.RepositoryCursor, error) {
-	var (
-		err  error
-		rows *sql.Rows
-	)
-
 	if cursor == nil {
 		cursor = model.NewCursor(filter)
 	}
@@ -90,34 +83,8 @@ func (r *queryResolver) Repositories(ctx context.Context, cursor *model.Cursor, 
 		Select(ctx, repo).
 		From(`repository repo`).
 		Where(`repo.owner_id = ?`, auth.ForContext(ctx).ID)
-	query = repo.ApplyCursor(query, cursor)
 
-	if rows, err = query.RunWith(r.DB).QueryContext(ctx); err != nil {
-		panic(err)
-	}
-	defer rows.Close()
-
-	var repos []*model.Repository
-	for rows.Next() {
-		var repo model.Repository
-		if err := rows.Scan(repo.Fields(ctx)...); err != nil {
-			panic(err)
-		}
-		repos = append(repos, &repo)
-	}
-
-	if len(repos) > cursor.Count {
-		cursor = &model.Cursor{
-			Count:   cursor.Count,
-			Next:    strconv.Itoa(repos[len(repos)-1].ID),
-			OrderBy: `id DESC`,
-			Search:  "",
-		}
-		repos = repos[:cursor.Count]
-	} else {
-		cursor = nil
-	}
-
+	repos, cursor := repo.QueryWithCursor(ctx, r.DB, query, cursor)
 	return &model.RepositoryCursor{repos, cursor}, nil
 }
 
@@ -173,11 +140,6 @@ func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *mod
 }
 
 func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor *model.Cursor, filter *model.Filter) (*model.RepositoryCursor, error) {
-	var (
-		err  error
-		rows *sql.Rows
-	)
-
 	if cursor == nil {
 		cursor = model.NewCursor(filter)
 	}
@@ -187,34 +149,8 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor
 		Select(ctx, repo).
 		From(`repository repo`).
 		Where(`repo.owner_id = ?`, obj.ID)
-	query = repo.ApplyCursor(query, cursor)
 
-	if rows, err = query.RunWith(r.DB).QueryContext(ctx); err != nil {
-		panic(err)
-	}
-	defer rows.Close()
-
-	var repos []*model.Repository
-	for rows.Next() {
-		var repo model.Repository
-		if err := rows.Scan(repo.Fields(ctx)...); err != nil {
-			panic(err)
-		}
-		repos = append(repos, &repo)
-	}
-
-	if len(repos) > cursor.Count {
-		cursor = &model.Cursor{
-			Count:   cursor.Count,
-			Next:    strconv.Itoa(repos[len(repos)-1].ID),
-			OrderBy: `id DESC`,
-			Search:  "",
-		}
-		repos = repos[:cursor.Count]
-	} else {
-		cursor = nil
-	}
-
+	repos, cursor := repo.QueryWithCursor(ctx, r.DB, query, cursor)
 	return &model.RepositoryCursor{repos, cursor}, nil
 }
 

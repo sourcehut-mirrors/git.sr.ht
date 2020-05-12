@@ -12,7 +12,6 @@ import (
 type Cursor struct {
 	Count   int    `json:"count"`
 	Next    string `json:"next"`
-	OrderBy string `json:"order_by"`
 	Search  string `json:"search"`
 }
 
@@ -53,18 +52,14 @@ func derefOrInt(i *int, d int) int {
 func NewCursor(filter *Filter) *Cursor {
 	if filter != nil {
 		return &Cursor{
-			Next: "",
-
-			Count: derefOrInt(filter.Count, 25),
-			// TODO:
-			OrderBy: "",
-			Search:  "",
+			Next:   "",
+			Count:  derefOrInt(filter.Count, 25),
+			Search: "", // TODO
 		}
 	}
 	return &Cursor{
 		Count:   25,
 		Next:    "",
-		OrderBy: "",
 		Search:  "",
 	}
 }

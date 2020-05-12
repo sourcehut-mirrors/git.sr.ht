@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+	"database/sql"
 	"time"
 	"strconv"
 
@@ -64,7 +65,8 @@ func (r *Repository) Select(ctx context.Context) []string {
 		"upstreamUrl": "upstream_uri",
 	}),
 		database.WithAlias(r.alias, "path"),
-		database.WithAlias(r.alias, "owner_id"))
+		database.WithAlias(r.alias, "owner_id"),
+		database.WithAlias(r.alias, "updated"))
 }
 
 func (r *Repository) As(alias string) *Repository {
@@ -82,20 +84,51 @@ func (r *Repository) Fields(ctx context.Context) []interface{} {
 		"visibility":   &r.Visibility,
 		"upstream_url": &r.UpstreamURL,
 	})
-	return append(fields, &r.Path, &r.OwnerID)
+	return append(fields, &r.Path, &r.OwnerID, &r.Updated)
 }
 
-func (r *Repository) ApplyCursor(q sq.SelectBuilder, c *Cursor) sq.SelectBuilder {
-	if c.Next != "" {
-		id, _ := strconv.Atoi(c.Next)
-		q = q.Where(r.alias + `.id <= ?`, id)
+func (r *Repository) QueryWithCursor(ctx context.Context,
+	db *sql.DB, q sq.SelectBuilder, cur *Cursor) ([]*Repository, *Cursor) {
+	var (
+		err  error
+		rows *sql.Rows
+	)
+
+	if cur.Next != "" {
+		ts, _ := strconv.ParseInt(cur.Next, 10, 64)
+		updated := time.Unix(ts, 0)
+		q = q.Where(database.WithAlias(r.alias, "updated") + "<= ?", updated)
 	}
-	if c.OrderBy != "" {
-		q = q.OrderBy(c.OrderBy)
+	q = q.
+		OrderBy(database.WithAlias(r.alias, "updated") + " DESC").
+		Limit(uint64(cur.Count + 1))
+
+	if rows, err = q.RunWith(db).QueryContext(ctx); err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	var repos []*Repository
+	for rows.Next() {
+		var repo Repository
+		if err := rows.Scan(repo.Fields(ctx)...); err != nil {
+			panic(err)
+		}
+		repos = append(repos, &repo)
+	}
+
+	if len(repos) > cur.Count {
+		cur = &Cursor{
+			Count:  cur.Count,
+			Next:   strconv.FormatInt(repos[len(repos)-1].Updated.Unix(), 10),
+			Search: cur.Search,
+		}
+		repos = repos[:cur.Count]
 	} else {
-		q = q.OrderBy(r.alias + `.id DESC`)
+		cur = nil
 	}
-	return q.Limit(uint64(c.Count + 1))
+
+	return repos, cur
 }
 
 func (r *Repository) DefaultSearch(query sq.SelectBuilder,
