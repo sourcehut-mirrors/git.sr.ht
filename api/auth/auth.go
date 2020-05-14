@@ -69,16 +69,16 @@ func Middleware(db *sql.DB) func(http.Handler) http.Handler {
 				return
 			}
 
-			auth := r.Header.Get("Authentication")
+			auth := r.Header.Get("Authorization")
 			if auth == "" {
-				authError(w, `Authentication header is required.
-Expected 'Authentication: Bearer <token>'`, http.StatusForbidden)
+				authError(w, `Authorization header is required.
+Expected 'Authorization: Bearer <token>'`, http.StatusForbidden)
 				return
 			}
 
 			z := strings.SplitN(auth, " ", 2)
 			if len(z) != 2 {
-				authError(w, "Invalid Authentication header", http.StatusBadRequest)
+				authError(w, "Invalid Authorization header", http.StatusBadRequest)
 				return
 			}
 
@@ -95,7 +95,7 @@ Expected 'Authentication: Bearer <token>'`, http.StatusForbidden)
 			case "Internal":
 				panic(errors.New("TODO"))
 			default:
-				authError(w, "Invalid Authentication header", http.StatusBadRequest)
+				authError(w, "Invalid Authorization header", http.StatusBadRequest)
 				return
 			}
 
