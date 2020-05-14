@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 
 	"git.sr.ht/~sircmpwn/getopt"
 	"git.sr.ht/~sircmpwn/gqlgen/handler"
@@ -75,9 +76,19 @@ func main() {
 	}
 	graph.ApplyComplexity(&gqlConfig)
 
+	var complexity int
+	if limit, ok := config.Get("git.sr.ht::api", "max-complexity"); ok {
+		complexity, err = strconv.Atoi(limit)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		complexity = 200
+	}
+
 	srv := handler.GraphQL(
 		api.NewExecutableSchema(gqlConfig),
-		handler.ComplexityLimit(100))
+		handler.ComplexityLimit(complexity))
 
 	router.Handle("/query", srv)
 
