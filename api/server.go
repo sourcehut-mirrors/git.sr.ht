@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"git.sr.ht/~sircmpwn/getopt"
 	"git.sr.ht/~sircmpwn/gqlgen/handler"
@@ -66,10 +67,21 @@ func main() {
 		log.Fatalf("Failed to open a database connection: %v", err)
 	}
 
+	var timeout time.Duration
+	if to, ok := config.Get("git.sr.ht::api", "max-duration"); ok {
+		timeout, err = time.ParseDuration(to)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		timeout = 3 * time.Second
+	}
+
 	router := chi.NewRouter()
 	router.Use(auth.Middleware(db))
 	router.Use(loaders.Middleware(db))
 	router.Use(middleware.Logger)
+	router.Use(middleware.Timeout(timeout))
 
 	gqlConfig := api.Config{
 		Resolvers: &graph.Resolver{DB: db},
