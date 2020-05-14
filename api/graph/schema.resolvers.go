@@ -168,6 +168,19 @@ func (r *repositoryResolver) AccessControlList(ctx context.Context, obj *model.R
 	return &model.ACLCursor{acls, cursor}, nil
 }
 
+func (r *repositoryResolver) Objects(ctx context.Context, obj *model.Repository, ids []string) ([]model.Object, error) {
+	var objects []model.Object
+	for _, id := range ids {
+		hash := plumbing.NewHash(id)
+		o, err := model.LookupObject(obj.Repo(), hash)
+		if err != nil {
+			return nil, err
+		}
+		objects = append(objects, o)
+	}
+	return objects, nil
+}
+
 func (r *repositoryResolver) References(ctx context.Context, obj *model.Repository, cursor *model.Cursor) (*model.ReferenceCursor, error) {
 	iter, err := obj.Repo().References()
 	if err != nil {
@@ -212,10 +225,6 @@ func (r *repositoryResolver) References(ctx context.Context, obj *model.Reposito
 	}
 
 	return &model.ReferenceCursor{refs, cursor}, nil
-}
-
-func (r *repositoryResolver) Objects(ctx context.Context, obj *model.Repository, ids []*string) ([]model.Object, error) {
-	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *repositoryResolver) Log(ctx context.Context, obj *model.Repository, cursor *model.Cursor, from *string) (*model.CommitCursor, error) {

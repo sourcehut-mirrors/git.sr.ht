@@ -71,8 +71,8 @@ type Repository {
 
   ## Plumbing API:
 
+  objects(ids: [String!]): [Object]!
   references(cursor: Cursor): ReferenceCursor!
-  objects(ids: [String]): [Object]!
 
   ## Porcelain API:
 
