@@ -27,6 +27,7 @@ func main() {
 	var (
 		addr   string = defaultAddr
 		config ini.File
+		debug  bool
 		err    error
 	)
 	opts, _, err := getopt.Getopts(os.Args, "b:d")
@@ -37,6 +38,8 @@ func main() {
 		switch opt.Option {
 		case 'b':
 			addr = opt.Value
+		case 'd':
+			debug = true
 		}
 	}
 
@@ -71,7 +74,9 @@ func main() {
 		Resolvers: &graph.Resolver{DB: db},
 	}))
 
-	router.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	if debug {
+		router.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	}
 	router.Handle("/query", srv)
 
 	log.Printf("running on %s", addr)
