@@ -11,7 +11,7 @@ import (
 
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/auth"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/database"
-	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/generated"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
 	"git.sr.ht/~sircmpwn/gqlgen/graphql"
@@ -371,26 +371,26 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor
 	return &model.RepositoryCursor{repos, cursor}, nil
 }
 
-// ACL returns generated.ACLResolver implementation.
-func (r *Resolver) ACL() generated.ACLResolver { return &aCLResolver{r} }
+// ACL returns api.ACLResolver implementation.
+func (r *Resolver) ACL() api.ACLResolver { return &aCLResolver{r} }
 
-// Commit returns generated.CommitResolver implementation.
-func (r *Resolver) Commit() generated.CommitResolver { return &commitResolver{r} }
+// Commit returns api.CommitResolver implementation.
+func (r *Resolver) Commit() api.CommitResolver { return &commitResolver{r} }
 
-// Mutation returns generated.MutationResolver implementation.
-func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
+// Mutation returns api.MutationResolver implementation.
+func (r *Resolver) Mutation() api.MutationResolver { return &mutationResolver{r} }
 
-// Query returns generated.QueryResolver implementation.
-func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
+// Query returns api.QueryResolver implementation.
+func (r *Resolver) Query() api.QueryResolver { return &queryResolver{r} }
 
-// Repository returns generated.RepositoryResolver implementation.
-func (r *Resolver) Repository() generated.RepositoryResolver { return &repositoryResolver{r} }
+// Repository returns api.RepositoryResolver implementation.
+func (r *Resolver) Repository() api.RepositoryResolver { return &repositoryResolver{r} }
 
-// Tree returns generated.TreeResolver implementation.
-func (r *Resolver) Tree() generated.TreeResolver { return &treeResolver{r} }
+// Tree returns api.TreeResolver implementation.
+func (r *Resolver) Tree() api.TreeResolver { return &treeResolver{r} }
 
-// User returns generated.UserResolver implementation.
-func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
+// User returns api.UserResolver implementation.
+func (r *Resolver) User() api.UserResolver { return &userResolver{r} }
 
 type aCLResolver struct{ *Resolver }
 type commitResolver struct{ *Resolver }

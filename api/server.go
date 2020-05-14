@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"git.sr.ht/~sircmpwn/getopt"
-	"git.sr.ht/~sircmpwn/gqlgen/graphql/handler"
+	"git.sr.ht/~sircmpwn/gqlgen/handler"
 	"git.sr.ht/~sircmpwn/gqlgen/graphql/playground"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -17,11 +17,11 @@ import (
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/auth"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/crypto"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph"
-	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/generated"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
 )
 
-const defaultAddr = ":8080"
+const defaultAddr = ":5101"
 
 func main() {
 	var (
@@ -70,14 +70,18 @@ func main() {
 	router.Use(loaders.Middleware(db))
 	router.Use(middleware.Logger)
 
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{
+	gqlConfig := api.Config{
 		Resolvers: &graph.Resolver{DB: db},
-	}))
+	}
+	srv := handler.GraphQL(
+		api.NewExecutableSchema(gqlConfig),
+		handler.ComplexityLimit(50))
+
+	router.Handle("/query", srv)
 
 	if debug {
 		router.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	}
-	router.Handle("/query", srv)
 
 	log.Printf("running on %s", addr)
 	log.Fatal(http.ListenAndServe(addr, router))
