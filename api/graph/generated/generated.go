@@ -194,6 +194,11 @@ type ComplexityRoot struct {
 		Object func(childComplexity int) int
 	}
 
+	TreeEntryCursor struct {
+		Cursor  func(childComplexity int) int
+		Results func(childComplexity int) int
+	}
+
 	User struct {
 		Bio           func(childComplexity int) int
 		CanonicalName func(childComplexity int) int
@@ -252,7 +257,7 @@ type RepositoryResolver interface {
 	RevparseSingle(ctx context.Context, obj *model.Repository, revspec string) (*model.Commit, error)
 }
 type TreeResolver interface {
-	Entries(ctx context.Context, obj *model.Tree, cursor *model.Cursor) ([]*model.TreeEntry, error)
+	Entries(ctx context.Context, obj *model.Tree, cursor *model.Cursor) (*model.TreeEntryCursor, error)
 }
 type UserResolver interface {
 	Repositories(ctx context.Context, obj *model.User, cursor *model.Cursor, filter *model.Filter) (*model.RepositoryCursor, error)
@@ -1024,6 +1029,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TreeEntry.Object(childComplexity), true
 
+	case "TreeEntryCursor.cursor":
+		if e.complexity.TreeEntryCursor.Cursor == nil {
+			break
+		}
+
+		return e.complexity.TreeEntryCursor.Cursor(childComplexity), true
+
+	case "TreeEntryCursor.results":
+		if e.complexity.TreeEntryCursor.Results == nil {
+			break
+		}
+
+		return e.complexity.TreeEntryCursor.Results(childComplexity), true
+
 	case "User.bio":
 		if e.complexity.User.Bio == nil {
 			break
@@ -1230,7 +1249,7 @@ interface Entity {
   # prefixed with '~'. Additional entity types will be supported in the future.
   canonicalName: String!
 
-  repositories(cursor: Cursor, filter: Filter): RepositoryCursor
+  repositories(cursor: Cursor, filter: Filter): RepositoryCursor!
 }
 
 type User implements Entity {
@@ -1244,7 +1263,7 @@ type User implements Entity {
   location: String
   bio: String
 
-  repositories(cursor: Cursor, filter: Filter): RepositoryCursor
+  repositories(cursor: Cursor, filter: Filter): RepositoryCursor!
 }
 
 type Repository {
@@ -1260,11 +1279,11 @@ type Repository {
   # clone URL.
   upstreamUrl: String
 
-  accessControlList(cursor: Cursor): ACLCursor
+  accessControlList(cursor: Cursor): ACLCursor!
 
   ## Plumbing API:
 
-  references(cursor: Cursor): ReferenceCursor
+  references(cursor: Cursor): ReferenceCursor!
   objects(ids: [String]): [Object]!
 
   ## Porcelain API:
@@ -1280,7 +1299,7 @@ type Repository {
   # If ` + "`" + `from` + "`" + ` is specified, it is interpreted as a revspec to start logging
   # from. A clever reader may notice that using commits[-1].from + "^" as the
   # from parameter is equivalent to passing the cursor to the next call.
-  log(cursor: Cursor, from: String): CommitCursor
+  log(cursor: Cursor, from: String): CommitCursor!
 
   # Returns a tree entry for a given path, at the given revspec.
   path(revspec: String = "HEAD", path: String!): TreeEntry
@@ -1309,7 +1328,6 @@ type ACLCursor {
   cursor: Cursor
 }
 
-
 # A cursor for enumerating a list of references
 #
 # If there are additional results available, the cursor object may be passed
@@ -1327,6 +1345,16 @@ type ReferenceCursor {
 # there are no remaining results to return.
 type CommitCursor {
   results: [Commit]!
+  cursor: Cursor
+}
+
+# A cursor for enumerating tree entries
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type TreeEntryCursor {
+  results: [TreeEntry]!
   cursor: Cursor
 }
 
@@ -1395,7 +1423,7 @@ type Tree implements Object {
   shortId: String!
   raw: String!
   # TODO: add globbing
-  entries(cursor: Cursor): [TreeEntry!]!
+  entries(cursor: Cursor): TreeEntryCursor!
 
   entry(path: String): TreeEntry
 }
@@ -4059,11 +4087,14 @@ func (ec *executionContext) _Repository_accessControlList(ctx context.Context, f
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.ACLCursor)
 	fc.Result = res
-	return ec.marshalOACLCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACLCursor(ctx, field.Selections, res)
+	return ec.marshalNACLCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACLCursor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Repository_references(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
@@ -4097,11 +4128,14 @@ func (ec *executionContext) _Repository_references(ctx context.Context, field gr
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.ReferenceCursor)
 	fc.Result = res
-	return ec.marshalOReferenceCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐReferenceCursor(ctx, field.Selections, res)
+	return ec.marshalNReferenceCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐReferenceCursor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Repository_objects(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
@@ -4207,11 +4241,14 @@ func (ec *executionContext) _Repository_log(ctx context.Context, field graphql.C
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.CommitCursor)
 	fc.Result = res
-	return ec.marshalOCommitCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCommitCursor(ctx, field.Selections, res)
+	return ec.marshalNCommitCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCommitCursor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Repository_path(ctx context.Context, field graphql.CollectedField, obj *model.Repository) (ret graphql.Marshaler) {
@@ -5068,9 +5105,9 @@ func (ec *executionContext) _Tree_entries(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.TreeEntry)
+	res := resTmp.(*model.TreeEntryCursor)
 	fc.Result = res
-	return ec.marshalNTreeEntry2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTreeEntryᚄ(ctx, field.Selections, res)
+	return ec.marshalNTreeEntryCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTreeEntryCursor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Tree_entry(ctx context.Context, field graphql.CollectedField, obj *model.Tree) (ret graphql.Marshaler) {
@@ -5245,6 +5282,71 @@ func (ec *executionContext) _TreeEntry_mode(ctx context.Context, field graphql.C
 	res := resTmp.(int)
 	fc.Result = res
 	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TreeEntryCursor_results(ctx context.Context, field graphql.CollectedField, obj *model.TreeEntryCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "TreeEntryCursor",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Results, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.TreeEntry)
+	fc.Result = res
+	return ec.marshalNTreeEntry2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTreeEntry(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TreeEntryCursor_cursor(ctx context.Context, field graphql.CollectedField, obj *model.TreeEntryCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "TreeEntryCursor",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Cursor)
+	fc.Result = res
+	return ec.marshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCursor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
@@ -5575,11 +5677,14 @@ func (ec *executionContext) _User_repositories(ctx context.Context, field graphq
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.RepositoryCursor)
 	fc.Result = res
-	return ec.marshalORepositoryCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepositoryCursor(ctx, field.Selections, res)
+	return ec.marshalNRepositoryCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepositoryCursor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Version_major(ctx context.Context, field graphql.CollectedField, obj *model.Version) (ret graphql.Marshaler) {
@@ -7524,6 +7629,9 @@ func (ec *executionContext) _Repository(ctx context.Context, sel ast.SelectionSe
 					}
 				}()
 				res = ec._Repository_accessControlList(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			})
 		case "references":
@@ -7535,6 +7643,9 @@ func (ec *executionContext) _Repository(ctx context.Context, sel ast.SelectionSe
 					}
 				}()
 				res = ec._Repository_references(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			})
 		case "objects":
@@ -7562,6 +7673,9 @@ func (ec *executionContext) _Repository(ctx context.Context, sel ast.SelectionSe
 					}
 				}()
 				res = ec._Repository_log(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			})
 		case "path":
@@ -7869,6 +7983,35 @@ func (ec *executionContext) _TreeEntry(ctx context.Context, sel ast.SelectionSet
 	return out
 }
 
+var treeEntryCursorImplementors = []string{"TreeEntryCursor"}
+
+func (ec *executionContext) _TreeEntryCursor(ctx context.Context, sel ast.SelectionSet, obj *model.TreeEntryCursor) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, treeEntryCursorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TreeEntryCursor")
+		case "results":
+			out.Values[i] = ec._TreeEntryCursor_results(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "cursor":
+			out.Values[i] = ec._TreeEntryCursor_cursor(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var userImplementors = []string{"User", "Entity"}
 
 func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *model.User) graphql.Marshaler {
@@ -7925,6 +8068,9 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 					}
 				}()
 				res = ec._User_repositories(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			})
 		default:
@@ -8273,6 +8419,20 @@ func (ec *executionContext) marshalNACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsr
 	return ec._ACL(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNACLCursor2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACLCursor(ctx context.Context, sel ast.SelectionSet, v model.ACLCursor) graphql.Marshaler {
+	return ec._ACLCursor(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNACLCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACLCursor(ctx context.Context, sel ast.SelectionSet, v *model.ACLCursor) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._ACLCursor(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNAccessMode2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessMode(ctx context.Context, v interface{}) (model.AccessMode, error) {
 	var res model.AccessMode
 	return res, res.UnmarshalGQL(v)
@@ -8396,6 +8556,20 @@ func (ec *executionContext) marshalNCommit2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgit�
 		return graphql.Null
 	}
 	return ec._Commit(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNCommitCursor2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCommitCursor(ctx context.Context, sel ast.SelectionSet, v model.CommitCursor) graphql.Marshaler {
+	return ec._CommitCursor(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCommitCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCommitCursor(ctx context.Context, sel ast.SelectionSet, v *model.CommitCursor) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._CommitCursor(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx context.Context, sel ast.SelectionSet, v model.Entity) graphql.Marshaler {
@@ -8529,6 +8703,20 @@ func (ec *executionContext) marshalNReference2ᚕᚖgitᚗsrᚗhtᚋאsircmpwn�
 	return ret
 }
 
+func (ec *executionContext) marshalNReferenceCursor2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐReferenceCursor(ctx context.Context, sel ast.SelectionSet, v model.ReferenceCursor) graphql.Marshaler {
+	return ec._ReferenceCursor(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNReferenceCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐReferenceCursor(ctx context.Context, sel ast.SelectionSet, v *model.ReferenceCursor) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._ReferenceCursor(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNRepository2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx context.Context, sel ast.SelectionSet, v model.Repository) graphql.Marshaler {
 	return ec._Repository(ctx, sel, &v)
 }
@@ -8578,6 +8766,20 @@ func (ec *executionContext) marshalNRepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋg
 		return graphql.Null
 	}
 	return ec._Repository(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNRepositoryCursor2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepositoryCursor(ctx context.Context, sel ast.SelectionSet, v model.RepositoryCursor) graphql.Marshaler {
+	return ec._RepositoryCursor(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNRepositoryCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepositoryCursor(ctx context.Context, sel ast.SelectionSet, v *model.RepositoryCursor) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._RepositoryCursor(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNSignature2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSignature(ctx context.Context, sel ast.SelectionSet, v model.Signature) graphql.Marshaler {
@@ -8636,11 +8838,7 @@ func (ec *executionContext) marshalNTree2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗs
 	return ec._Tree(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNTreeEntry2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTreeEntry(ctx context.Context, sel ast.SelectionSet, v model.TreeEntry) graphql.Marshaler {
-	return ec._TreeEntry(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNTreeEntry2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTreeEntryᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TreeEntry) graphql.Marshaler {
+func (ec *executionContext) marshalNTreeEntry2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTreeEntry(ctx context.Context, sel ast.SelectionSet, v []*model.TreeEntry) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -8664,7 +8862,7 @@ func (ec *executionContext) marshalNTreeEntry2ᚕᚖgitᚗsrᚗhtᚋאsircmpwn�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNTreeEntry2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTreeEntry(ctx, sel, v[i])
+			ret[i] = ec.marshalOTreeEntry2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTreeEntry(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -8677,14 +8875,18 @@ func (ec *executionContext) marshalNTreeEntry2ᚕᚖgitᚗsrᚗhtᚋאsircmpwn�
 	return ret
 }
 
-func (ec *executionContext) marshalNTreeEntry2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTreeEntry(ctx context.Context, sel ast.SelectionSet, v *model.TreeEntry) graphql.Marshaler {
+func (ec *executionContext) marshalNTreeEntryCursor2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTreeEntryCursor(ctx context.Context, sel ast.SelectionSet, v model.TreeEntryCursor) graphql.Marshaler {
+	return ec._TreeEntryCursor(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNTreeEntryCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTreeEntryCursor(ctx context.Context, sel ast.SelectionSet, v *model.TreeEntryCursor) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
 		}
 		return graphql.Null
 	}
-	return ec._TreeEntry(ctx, sel, v)
+	return ec._TreeEntryCursor(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNUpload2gitᚗsrᚗhtᚋאsircmpwnᚋgqlgenᚋgraphqlᚐUpload(ctx context.Context, v interface{}) (graphql.Upload, error) {
@@ -8975,17 +9177,6 @@ func (ec *executionContext) marshalOACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsr
 	return ec._ACL(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOACLCursor2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACLCursor(ctx context.Context, sel ast.SelectionSet, v model.ACLCursor) graphql.Marshaler {
-	return ec._ACLCursor(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalOACLCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACLCursor(ctx context.Context, sel ast.SelectionSet, v *model.ACLCursor) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._ACLCursor(ctx, sel, v)
-}
-
 func (ec *executionContext) unmarshalOAccessMode2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessMode(ctx context.Context, v interface{}) (model.AccessMode, error) {
 	var res model.AccessMode
 	return res, res.UnmarshalGQL(v)
@@ -9042,17 +9233,6 @@ func (ec *executionContext) marshalOCommit2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgit�
 		return graphql.Null
 	}
 	return ec._Commit(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOCommitCursor2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCommitCursor(ctx context.Context, sel ast.SelectionSet, v model.CommitCursor) graphql.Marshaler {
-	return ec._CommitCursor(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalOCommitCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCommitCursor(ctx context.Context, sel ast.SelectionSet, v *model.CommitCursor) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._CommitCursor(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOCursor2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐCursor(ctx context.Context, v interface{}) (model.Cursor, error) {
@@ -9130,17 +9310,6 @@ func (ec *executionContext) marshalOReference2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgi
 		return graphql.Null
 	}
 	return ec._Reference(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOReferenceCursor2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐReferenceCursor(ctx context.Context, sel ast.SelectionSet, v model.ReferenceCursor) graphql.Marshaler {
-	return ec._ReferenceCursor(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalOReferenceCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐReferenceCursor(ctx context.Context, sel ast.SelectionSet, v *model.ReferenceCursor) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._ReferenceCursor(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalORepoInput2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepoInput(ctx context.Context, v interface{}) (model.RepoInput, error) {

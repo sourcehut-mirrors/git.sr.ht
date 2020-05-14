@@ -294,7 +294,6 @@ func (r *repositoryResolver) Path(ctx context.Context, obj *model.Repository, re
 	} else {
 		tree = model.TreeFromObject(obj.Repo(), treeObj)
 	}
-	// TODO: Cursor
 	return tree.Entry(path), nil
 }
 
@@ -315,19 +314,37 @@ func (r *repositoryResolver) RevparseSingle(ctx context.Context, obj *model.Repo
 	return commit, nil
 }
 
-func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *model.Cursor) ([]*model.TreeEntry, error) {
+func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *model.Cursor) (*model.TreeEntryCursor, error) {
 	if cursor == nil {
 		// TODO: Filter?
 		cursor = model.NewCursor(nil)
 	}
 
-	// TODO: Implement cursor properly
 	entries := obj.GetEntries()
-	if len(entries) > cursor.Count {
-		entries = entries[:cursor.Count]
+
+	if cursor.Next != "" {
+		i := sort.Search(len(entries), func(n int) bool {
+			return entries[n].Name > cursor.Next
+		})
+		if i != len(entries) {
+			entries = entries[i+1:]
+		} else {
+			entries = nil
+		}
 	}
 
-	return entries, nil
+	if len(entries) > cursor.Count {
+		cursor = &model.Cursor{
+			Count:  cursor.Count,
+			Next:   entries[cursor.Count].Name,
+			Search: cursor.Search,
+		}
+		entries = entries[:cursor.Count]
+	} else {
+		cursor = nil
+	}
+
+	return &model.TreeEntryCursor{entries, cursor}, nil
 }
 
 func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor *model.Cursor, filter *model.Filter) (*model.RepositoryCursor, error) {

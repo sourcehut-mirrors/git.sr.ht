@@ -77,6 +77,11 @@ type Tag struct {
 
 func (Tag) IsObject() {}
 
+type TreeEntryCursor struct {
+	Results []*TreeEntry `json:"results"`
+	Cursor  *Cursor      `json:"cursor"`
+}
+
 type Version struct {
 	Major           int        `json:"major"`
 	Minor           int        `json:"minor"`

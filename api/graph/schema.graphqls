@@ -37,7 +37,7 @@ interface Entity {
   # prefixed with '~'. Additional entity types will be supported in the future.
   canonicalName: String!
 
-  repositories(cursor: Cursor, filter: Filter): RepositoryCursor
+  repositories(cursor: Cursor, filter: Filter): RepositoryCursor!
 }
 
 type User implements Entity {
@@ -51,7 +51,7 @@ type User implements Entity {
   location: String
   bio: String
 
-  repositories(cursor: Cursor, filter: Filter): RepositoryCursor
+  repositories(cursor: Cursor, filter: Filter): RepositoryCursor!
 }
 
 type Repository {
@@ -67,11 +67,11 @@ type Repository {
   # clone URL.
   upstreamUrl: String
 
-  accessControlList(cursor: Cursor): ACLCursor
+  accessControlList(cursor: Cursor): ACLCursor!
 
   ## Plumbing API:
 
-  references(cursor: Cursor): ReferenceCursor
+  references(cursor: Cursor): ReferenceCursor!
   objects(ids: [String]): [Object]!
 
   ## Porcelain API:
@@ -87,7 +87,7 @@ type Repository {
   # If `from` is specified, it is interpreted as a revspec to start logging
   # from. A clever reader may notice that using commits[-1].from + "^" as the
   # from parameter is equivalent to passing the cursor to the next call.
-  log(cursor: Cursor, from: String): CommitCursor
+  log(cursor: Cursor, from: String): CommitCursor!
 
   # Returns a tree entry for a given path, at the given revspec.
   path(revspec: String = "HEAD", path: String!): TreeEntry
@@ -116,7 +116,6 @@ type ACLCursor {
   cursor: Cursor
 }
 
-
 # A cursor for enumerating a list of references
 #
 # If there are additional results available, the cursor object may be passed
@@ -134,6 +133,16 @@ type ReferenceCursor {
 # there are no remaining results to return.
 type CommitCursor {
   results: [Commit]!
+  cursor: Cursor
+}
+
+# A cursor for enumerating tree entries
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type TreeEntryCursor {
+  results: [TreeEntry]!
   cursor: Cursor
 }
 
@@ -202,7 +211,7 @@ type Tree implements Object {
   shortId: String!
   raw: String!
   # TODO: add globbing
-  entries(cursor: Cursor): [TreeEntry!]!
+  entries(cursor: Cursor): TreeEntryCursor!
 
   entry(path: String): TreeEntry
 }
