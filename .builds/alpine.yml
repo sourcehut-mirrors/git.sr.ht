@@ -42,3 +42,5 @@ tasks:
   - deploy: |
       ssh $master doas apk upgrade -U
       ssh $master doas service $project restart
+      ssh $master doas service $project-api restart
+      ssh $master doas service $project-webhooks restart
