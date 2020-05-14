@@ -83,7 +83,7 @@ func main() {
 			panic(err)
 		}
 	} else {
-		complexity = 200
+		complexity = 100
 	}
 
 	srv := handler.GraphQL(
