@@ -7,7 +7,7 @@ import (
 	"github.com/lib/pq"
 	"github.com/vektah/gqlparser/v2/ast"
 
-	"git.sr.ht/~sircmpwn/gqlgen/graphql"
+	"github.com/99designs/gqlgen/graphql"
 )
 
 func collectFields(ctx context.Context) []graphql.CollectedField {

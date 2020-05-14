@@ -45,15 +45,15 @@ autobind:
 models:
   ID:
     model:
-      - git.sr.ht/~sircmpwn/gqlgen/graphql.ID
-      - git.sr.ht/~sircmpwn/gqlgen/graphql.Int
-      - git.sr.ht/~sircmpwn/gqlgen/graphql.Int64
-      - git.sr.ht/~sircmpwn/gqlgen/graphql.Int32
+      - github.com/99designs/gqlgen/graphql.ID
+      - github.com/99designs/gqlgen/graphql.Int
+      - github.com/99designs/gqlgen/graphql.Int64
+      - github.com/99designs/gqlgen/graphql.Int32
   Int:
     model:
-      - git.sr.ht/~sircmpwn/gqlgen/graphql.Int
-      - git.sr.ht/~sircmpwn/gqlgen/graphql.Int64
-      - git.sr.ht/~sircmpwn/gqlgen/graphql.Int32
+      - github.com/99designs/gqlgen/graphql.Int
+      - github.com/99designs/gqlgen/graphql.Int64
+      - github.com/99designs/gqlgen/graphql.Int32
   Cursor:
     model:
       - git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model.Cursor

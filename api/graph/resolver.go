@@ -1,6 +1,6 @@
 package graph
 
-//go:generate go run git.sr.ht/~sircmpwn/gqlgen
+//go:generate go run github.com/99designs/gqlgen
 
 import (
 	"database/sql"

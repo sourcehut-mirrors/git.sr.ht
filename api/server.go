@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"git.sr.ht/~sircmpwn/getopt"
-	"git.sr.ht/~sircmpwn/gqlgen/handler"
-	"git.sr.ht/~sircmpwn/gqlgen/graphql/playground"
+	"github.com/99designs/gqlgen/handler"
+	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	_ "github.com/lib/pq"
