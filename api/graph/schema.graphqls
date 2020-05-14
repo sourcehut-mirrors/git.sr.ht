@@ -1,0 +1,317 @@
+scalar Cursor
+scalar Time
+scalar Upload
+
+# https://semver.org
+type Version {
+  major: Int!
+  minor: Int!
+  patch: Int!
+  # If this API version is scheduled for deprecation, this is the date on which
+  # it will stop working; or null if this API version is not scheduled for
+  # deprecation.
+  deprecationDate: Time
+}
+
+enum AccessMode {
+  # Read-only
+  RO
+  # Read/write
+  RW
+}
+
+enum Visibility {
+  # Visible to everyone, listed on your profile
+  PUBLIC
+  # Visible to everyone (if they know the URL), not listed on your profile
+  UNLISTED
+  # Not visible to anyone except those explicitly added to the access list
+  PRIVATE
+}
+
+interface Entity {
+  id: Int!
+  created: Time!
+  updated: Time!
+  # The canonical name of this entity. For users, this is their username
+  # prefixed with '~'. Additional entity types will be supported in the future.
+  canonicalName: String!
+
+  repositories(cursor: Cursor, filter: Filter): RepositoryCursor!
+}
+
+type User implements Entity {
+  id: Int!
+  created: Time!
+  updated: Time!
+  canonicalName: String!
+  username: String!
+  email: String!
+  url: String
+  location: String
+  bio: String
+
+  repositories(cursor: Cursor, filter: Filter): RepositoryCursor!
+}
+
+type Repository {
+  id: Int!
+  created: Time!
+  updated: Time!
+  owner: Entity!
+  name: String!
+  description: String
+  visibility: Visibility!
+
+  # If this repository was cloned from another, this is set to the original
+  # clone URL.
+  upstreamUrl: String
+
+  accessControlList(cursor: Cursor): ACLCursor!
+
+  ## Plumbing API:
+
+  objects(ids: [String!]): [Object]!
+  references(cursor: Cursor): ReferenceCursor!
+
+  ## Porcelain API:
+
+  # NOTE: revspecs are git-compatible, e.g. "HEAD~4", "master", "9790b10")
+  
+  # The HEAD reference for this repository (equivalent to the default branch)
+  HEAD: Reference
+
+  # Returns a list of comments sorted by committer time (similar to `git log`'s
+  # default ordering).
+  #
+  # If `from` is specified, it is interpreted as a revspec to start logging
+  # from. A clever reader may notice that using commits[-1].from + "^" as the
+  # from parameter is equivalent to passing the cursor to the next call.
+  log(cursor: Cursor, from: String): CommitCursor!
+
+  # Returns a tree entry for a given path, at the given revspec.
+  path(revspec: String = "HEAD", path: String!): TreeEntry
+
+  # Returns the commit for a given revspec.
+  revparse_single(revspec: String!): Commit
+}
+
+# A cursor for enumerating a list of repositories
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type RepositoryCursor {
+  results: [Repository]!
+  cursor: Cursor
+}
+
+# A cursor for enumerating access control list entries
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type ACLCursor {
+  results: [ACL]!
+  cursor: Cursor
+}
+
+# A cursor for enumerating a list of references
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type ReferenceCursor {
+  results: [Reference]!
+  cursor: Cursor
+}
+
+# A cursor for enumerating commits
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type CommitCursor {
+  results: [Commit]!
+  cursor: Cursor
+}
+
+# A cursor for enumerating tree entries
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type TreeEntryCursor {
+  results: [TreeEntry]!
+  cursor: Cursor
+}
+
+type ACL {
+  id: Int!
+  created: Time!
+  repository: Repository!
+  entity: Entity!
+  mode: AccessMode
+}
+
+# Arbitrary file attached to a git repository
+type Artifact {
+  id: Int!
+  created: Time!
+  repository: Repository!
+  filename: String!
+  checksum: String!
+  size: Int!
+  url: String!
+}
+
+type Reference {
+  name: String!
+  target: String!
+  follow: Object
+}
+
+enum ObjectType {
+  COMMIT
+  TREE
+  BLOB
+  TAG
+}
+
+interface Object {
+  type: ObjectType!
+  id: String!
+  shortId: String!
+  # Raw git object, base64 encoded
+  raw: String!
+}
+
+type Signature {
+  name: String!
+  email: String!
+  time: Time!
+}
+
+type Commit implements Object {
+  type: ObjectType!
+  id: String!
+  shortId: String!
+  raw: String!
+  author: Signature!
+  committer: Signature!
+  message: String!
+  tree: Tree!
+  parents: [Commit!]!
+  diff: String!
+}
+
+type Tree implements Object {
+  type: ObjectType!
+  id: String!
+  shortId: String!
+  raw: String!
+  # TODO: add globbing
+  entries(cursor: Cursor): TreeEntryCursor!
+
+  entry(path: String): TreeEntry
+}
+
+type TreeEntry {
+  id: String!
+  name: String!
+  object: Object!
+  # Unix-style file mode, i.e. 0755 or 0644 (octal)
+  mode: Int!
+}
+
+interface Blob {
+  id: String!
+}
+
+type TextBlob implements Object & Blob {
+  type: ObjectType!
+  id: String!
+  shortId: String!
+  raw: String!
+
+  # TODO: Consider adding a range specifier
+  text: String!
+}
+
+type BinaryBlob implements Object & Blob {
+  type: ObjectType!
+  id: String!
+  shortId: String!
+  raw: String!
+
+  # TODO: Consider adding a range specifier
+  base64: String!
+}
+
+type Tag implements Object {
+  type: ObjectType!
+  id: String!
+  shortId: String!
+  raw: String!
+  target: Object!
+  name: String!
+  tagger: Signature!
+  message: String
+}
+
+input Filter {
+  # Number of results to return.
+  count: Int = 20
+
+  # Search terms. The exact meaning varies by usage, but generally these are
+  # compatible with the web UI's search syntax.
+  search: String
+}
+
+type Query {
+  # Returns API version information.
+  version: Version!
+
+  # Returns the authenticated user.
+  me: User!
+
+  # Returns a specific user.
+  user(username: String!): User
+
+  # Returns repositories that the authenticated user has access to.
+  #
+  # NOTE: in this version of the API, only repositories owned by the
+  # authenticated user are returned, but in the future the default behavior
+  # will be to return all repositories that the user either (1) has been given
+  # explicit access to via ACLs or (2) has implicit access to either by
+  # ownership or group membership.
+  repositories(cursor: Cursor, filter: Filter): RepositoryCursor
+
+  # Returns a specific repository by ID.
+  repository(id: Int!): Repository
+
+  # Returns a specific repository, owned by the authenticated user.
+  repositoryByName(name: String!): Repository
+
+  # Returns a specific repository, owned by the given canonical name (e.g.
+  # "~sircmpwn").
+  repositoryByOwner(owner: String!, repo: String!): Repository
+}
+
+input RepoInput {
+  name: String!
+  description: String
+  visibility: Visibility
+}
+
+type Mutation {
+  createRepository(params: RepoInput): Repository!
+  updateRepository(id: ID!, params: RepoInput): Repository!
+  deleteRepository(id: ID!): Repository!
+
+  updateACL(repoId: ID!, mode: AccessMode!, entity: ID!): ACL!
+  deleteACL(repoId: Int!, entity: ID!): ACL!
+
+  uploadArtifact(repoId: Int!, revspec: String!, file: Upload!): Artifact!
+  deleteArtifact(id: Int!): Artifact!
+}
