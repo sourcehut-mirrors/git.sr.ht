@@ -238,7 +238,7 @@ Expected 'Authorization: Bearer <token>'`, http.StatusForbidden)
 				return
 			}
 
-			if scopes != "*" {
+			if scopes != "*" && scopes != "*:read" && scopes != "*:write" {
 				authError(w, "Presently, OAuth authentication to the GraphQL API is only supported for OAuth tokens with all permissions, namely '*'.", http.StatusForbidden)
 				return
 			}
