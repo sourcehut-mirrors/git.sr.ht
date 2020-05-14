@@ -73,9 +73,11 @@ func main() {
 	gqlConfig := api.Config{
 		Resolvers: &graph.Resolver{DB: db},
 	}
+	graph.ApplyComplexity(&gqlConfig)
+
 	srv := handler.GraphQL(
 		api.NewExecutableSchema(gqlConfig),
-		handler.ComplexityLimit(50))
+		handler.ComplexityLimit(100))
 
 	router.Handle("/query", srv)
 
