@@ -238,7 +238,11 @@ Expected 'Authorization: Bearer <token>'`, http.StatusForbidden)
 				return
 			}
 
-			// TODO: Validate scopes
+			if scopes != "*" {
+				authError(w, "Presently, OAuth authentication to the GraphQL API is only supported for OAuth tokens with all permissions, namely '*'.", http.StatusForbidden)
+				return
+			}
+
 			ctx := context.WithValue(r.Context(), userCtxKey, &user)
 
 			r = r.WithContext(ctx)
