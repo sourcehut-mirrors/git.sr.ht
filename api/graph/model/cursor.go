@@ -51,9 +51,13 @@ func derefOrInt(i *int, d int) int {
 
 func NewCursor(filter *Filter) *Cursor {
 	if filter != nil {
+		count := derefOrInt(filter.Count, 25)
+		if count <= 0 {
+			count = 25
+		}
 		return &Cursor{
 			Next:   "",
-			Count:  derefOrInt(filter.Count, 25),
+			Count:  count,
 			Search: "", // TODO
 		}
 	}
