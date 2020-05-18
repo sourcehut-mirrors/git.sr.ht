@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"database/sql"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -111,11 +112,20 @@ func main() {
 	srv := handler.GraphQL(
 		api.NewExecutableSchema(gqlConfig),
 		handler.ComplexityLimit(complexity),
-		handler.RecoverFunc(func(ctx context.Context, origErr interface{}) error {
-			if _, ok := origErr.(error); !ok {
+		handler.RecoverFunc(func(ctx context.Context, _origErr interface{}) error {
+			var origErr error
+			if origErr, ok = _origErr.(error); !ok {
 				log.Printf("Unexpected error in recover: %v\n", origErr)
 				return fmt.Errorf("internal system error")
 			}
+
+			if errors.Is(origErr, context.Canceled) {
+				return origErr
+			}
+			if errors.Is(origErr, context.DeadlineExceeded) {
+				return origErr
+			}
+
 			stack := make([]byte, 32768) // 32 KiB
 			i := runtime.Stack(stack, false)
 			log.Println(string(stack[:i]))
