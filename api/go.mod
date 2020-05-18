@@ -14,6 +14,7 @@ require (
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/lib/pq v1.3.0
+	github.com/martinlindhe/base36 v1.0.0 // indirect
 	github.com/matryer/moq v0.0.0-20200310130814-7721994d1b54 // indirect
 	github.com/mitchellh/mapstructure v1.3.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -24,5 +25,6 @@ require (
 	github.com/vektah/gqlparser/v2 v2.0.1
 	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
 	golang.org/x/tools v0.0.0-20200513201620-d5fe73897c97 // indirect
+	gopkg.in/mail.v2 v2.3.1 // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 )

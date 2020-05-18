@@ -1,20 +1,30 @@
 package main
 
 import (
+	"bytes"
+	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/binary"
+	"fmt"
 	"log"
 	"net/http"
+	"net/mail"
 	"os"
+	"runtime"
 	"strconv"
 	"time"
 
 	"git.sr.ht/~sircmpwn/getopt"
-	"github.com/99designs/gqlgen/handler"
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/99designs/gqlgen/handler"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	_ "github.com/lib/pq"
+	"github.com/martinlindhe/base36"
 	"github.com/vaughan0/go-ini"
+	_ "github.com/lib/pq"
+	gomail "gopkg.in/mail.v2"
 
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/auth"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/crypto"
@@ -100,7 +110,69 @@ func main() {
 
 	srv := handler.GraphQL(
 		api.NewExecutableSchema(gqlConfig),
-		handler.ComplexityLimit(complexity))
+		handler.ComplexityLimit(complexity),
+		handler.RecoverFunc(func(ctx context.Context, origErr interface{}) error {
+			if _, ok := origErr.(error); !ok {
+				log.Printf("Unexpected error in recover: %v\n", origErr)
+				return fmt.Errorf("internal system error")
+			}
+			stack := make([]byte, 32768) // 32 KiB
+			i := runtime.Stack(stack, false)
+			log.Println(string(stack[:i]))
+			if debug {
+				return fmt.Errorf("internal system error")
+			}
+
+			to, ok := config.Get("mail", "error-to")
+			if !ok {
+				return fmt.Errorf("internal system error")
+			}
+			from, _ := config.Get("mail", "error-from")
+			portStr, ok := config.Get("mail", "smtp-port")
+			if !ok {
+				return fmt.Errorf("internal system error")
+			}
+			port, _ := strconv.Atoi(portStr)
+			host, _ := config.Get("mail", "smtp-host")
+			user, _ := config.Get("mail", "smtp-user")
+			pass, _ := config.Get("mail", "smtp-password")
+
+			m := gomail.NewMessage()
+			sender, err := mail.ParseAddress(from)
+			if err != nil {
+				log.Fatalf("Failed to parse sender address")
+			}
+			m.SetAddressHeader("From", sender.Address, sender.Name)
+			recipient, err := mail.ParseAddress(to)
+			if err != nil {
+				log.Fatalf("Failed to parse recipient address")
+			}
+			m.SetAddressHeader("To", recipient.Address, recipient.Name)
+			m.SetHeader("Message-ID", GenerateMessageID())
+			m.SetHeader("Subject", fmt.Sprintf(
+				"[git.sr.ht] GraphQL query error: %v", origErr))
+
+			quser := auth.ForContext(ctx)
+			octx := graphql.GetOperationContext(ctx)
+
+			m.SetBody("text/plain", fmt.Sprintf(`Error occured processing GraphQL request:
+
+%v
+
+When running the following query on behalf of %s <%s>:
+
+%s
+
+The following stack trace was produced:
+
+%s`, origErr, quser.Username, quser.Email, octx.RawQuery, string(stack[:i])))
+
+			d := gomail.NewDialer(host, port, user, pass)
+			if err := d.DialAndSend(m); err != nil {
+				log.Printf("Error sending email: %v\n", err)
+			}
+			return fmt.Errorf("internal system error")
+		}))
 
 	router.Handle("/query", srv)
 
@@ -110,4 +182,24 @@ func main() {
 
 	log.Printf("running on %s", addr)
 	log.Fatal(http.ListenAndServe(addr, router))
+}
+
+// Generates an RFC 2822-compliant Message-Id based on the informational draft
+// "Recommendations for generating Message IDs", for lack of a better
+// authoritative source.
+func GenerateMessageID() string {
+	var (
+		now   bytes.Buffer
+		nonce []byte = make([]byte, 8)
+	)
+	binary.Write(&now, binary.BigEndian, time.Now().UnixNano())
+	rand.Read(nonce)
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "localhost"
+	}
+	return fmt.Sprintf("<%s.%s@%s>",
+		base36.EncodeBytes(now.Bytes()),
+		base36.EncodeBytes(nonce),
+		hostname)
 }
