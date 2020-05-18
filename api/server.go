@@ -122,7 +122,12 @@ func main() {
 			if errors.Is(origErr, context.Canceled) {
 				return origErr
 			}
+
 			if errors.Is(origErr, context.DeadlineExceeded) {
+				return origErr
+			}
+
+			if origErr.Error() == "pq: canceling statement due to user request" {
 				return origErr
 			}
 
