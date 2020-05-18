@@ -18,6 +18,7 @@ require (
 	github.com/matryer/moq v0.0.0-20200310130814-7721994d1b54 // indirect
 	github.com/mitchellh/mapstructure v1.3.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/prometheus/client_golang v1.6.0 // indirect
 	github.com/urfave/cli/v2 v2.2.0 // indirect
 	github.com/vaughan0/go-ini v0.0.0-20130923145212-a98ad7ee00ec
 	github.com/vektah/dataloaden v0.3.0 // indirect

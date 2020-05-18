@@ -13,6 +13,9 @@ import (
 	"github.com/99designs/gqlgen/handler"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/vaughan0/go-ini"
 	_ "github.com/lib/pq"
 
@@ -24,6 +27,18 @@ import (
 )
 
 const defaultAddr = ":5101"
+
+var (
+	requestsProcessed = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "git_api_requests_processed_total",
+		Help: "Total number of API requests processed",
+	})
+	requestDuration = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name:    "git_api_request_duration_millis",
+		Help:    "Duration of processed HTTP requests in milliseconds",
+		Buckets: []float64{10, 20, 40, 80, 120, 300, 600, 900, 1800},
+	})
+)
 
 func main() {
 	var (
@@ -78,6 +93,16 @@ func main() {
 	}
 
 	router := chi.NewRouter()
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
+			next.ServeHTTP(w, r)
+			end := time.Now()
+			elapsed := end.Sub(start)
+			requestDuration.Observe(float64(elapsed.Milliseconds()))
+			requestsProcessed.Inc()
+		})
+	})
 	router.Use(auth.Middleware(db))
 	router.Use(loaders.Middleware(db))
 	router.Use(middleware.Logger)
@@ -104,6 +129,7 @@ func main() {
 		handler.RecoverFunc(graph.EmailRecover(config, debug)))
 
 	router.Handle("/query", srv)
+	router.Handle("/query/metrics", promhttp.Handler())
 
 	if debug {
 		router.Handle("/", playground.Handler("GraphQL playground", "/query"))
