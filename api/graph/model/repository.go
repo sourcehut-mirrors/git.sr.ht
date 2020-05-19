@@ -9,7 +9,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	sq "github.com/Masterminds/squirrel"
 
-	"git.sr.ht/~sircmpwn/git.sr.ht/api/database"
+	"git.sr.ht/~sircmpwn/gql.sr.ht/database"
 )
 
 type Repository struct {

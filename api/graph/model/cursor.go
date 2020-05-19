@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"git.sr.ht/~sircmpwn/git.sr.ht/api/crypto"
+	"git.sr.ht/~sircmpwn/gql.sr.ht/crypto"
 )
 
 // TODO: Add a field for the resource this is intended to be used with

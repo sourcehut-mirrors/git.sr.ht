@@ -16,8 +16,8 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 
-	"git.sr.ht/~sircmpwn/git.sr.ht/api/auth"
-	"git.sr.ht/~sircmpwn/git.sr.ht/api/database"
+	"git.sr.ht/~sircmpwn/gql.sr.ht/auth"
+	"git.sr.ht/~sircmpwn/gql.sr.ht/database"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 )
 
@@ -258,40 +258,39 @@ func fetchRepositoriesByOwnerRepoName(ctx context.Context,
 	}
 }
 
-func Middleware(db *sql.DB) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := context.WithValue(r.Context(), loadersCtxKey, &Loaders{
-				UsersByID: UsersByIDLoader{
-					maxBatch: 100,
-					wait:     1 * time.Millisecond,
-					fetch:    fetchUsersByID(r.Context(), db),
-				},
-				UsersByName: UsersByNameLoader{
-					maxBatch: 100,
-					wait:     1 * time.Millisecond,
-					fetch:    fetchUsersByName(r.Context(), db),
-				},
-				RepositoriesByID: RepositoriesByIDLoader{
-					maxBatch: 100,
-					wait:     1 * time.Millisecond,
-					fetch:    fetchRepositoriesByID(r.Context(), db),
-				},
-				RepositoriesByName: RepositoriesByNameLoader{
-					maxBatch: 100,
-					wait:     1 * time.Millisecond,
-					fetch:    fetchRepositoriesByName(r.Context(), db),
-				},
-				RepositoriesByOwnerRepoName: RepositoriesByOwnerRepoNameLoader{
-					maxBatch: 100,
-					wait:     1 * time.Millisecond,
-					fetch:    fetchRepositoriesByOwnerRepoName(r.Context(), db),
-				},
-			})
-			r = r.WithContext(ctx)
-			next.ServeHTTP(w, r)
+func Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		db := database.ForContext(r.Context())
+		ctx := context.WithValue(r.Context(), loadersCtxKey, &Loaders{
+			UsersByID: UsersByIDLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchUsersByID(r.Context(), db),
+			},
+			UsersByName: UsersByNameLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchUsersByName(r.Context(), db),
+			},
+			RepositoriesByID: RepositoriesByIDLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchRepositoriesByID(r.Context(), db),
+			},
+			RepositoriesByName: RepositoriesByNameLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchRepositoriesByName(r.Context(), db),
+			},
+			RepositoriesByOwnerRepoName: RepositoriesByOwnerRepoNameLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchRepositoriesByOwnerRepoName(r.Context(), db),
+			},
 		})
-	}
+		r = r.WithContext(ctx)
+		next.ServeHTTP(w, r)
+	})
 }
 
 func ForContext(ctx context.Context) *Loaders {

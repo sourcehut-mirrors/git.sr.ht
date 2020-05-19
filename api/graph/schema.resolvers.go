@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strings"
 
-	"git.sr.ht/~sircmpwn/git.sr.ht/api/auth"
-	"git.sr.ht/~sircmpwn/git.sr.ht/api/database"
+	"git.sr.ht/~sircmpwn/gql.sr.ht/auth"
+	"git.sr.ht/~sircmpwn/gql.sr.ht/database"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
@@ -31,7 +31,7 @@ func (r *aCLResolver) Repository(ctx context.Context, obj *model.ACL) (*model.Re
 		From(`repository repo`).
 		Join(`access acl ON acl.repo_id = repo.id`).
 		Where(`acl.id = ?`, obj.ID)
-	row := query.RunWith(r.DB).QueryRow()
+	row := query.RunWith(database.ForContext(ctx)).QueryRow()
 	if err := row.Scan(repo.Fields(ctx)...); err != nil {
 		panic(err)
 	}
@@ -48,7 +48,7 @@ func (r *aCLResolver) Entity(ctx context.Context, obj *model.ACL) (model.Entity,
 		From(`"user" u`).
 		Join(`access acl ON acl.user_id = u.id`).
 		Where(`acl.id = ?`, obj.ID)
-	row := query.RunWith(r.DB).QueryRow()
+	row := query.RunWith(database.ForContext(ctx)).QueryRow()
 	if err := row.Scan(user.Fields(ctx)...); err != nil {
 		panic(err)
 	}
@@ -125,7 +125,7 @@ func (r *queryResolver) Repositories(ctx context.Context, cursor *model.Cursor, 
 		From(`repository repo`).
 		Where(`repo.owner_id = ?`, auth.ForContext(ctx).ID)
 
-	repos, cursor := repo.QueryWithCursor(ctx, r.DB, query, cursor)
+	repos, cursor := repo.QueryWithCursor(ctx, database.ForContext(ctx), query, cursor)
 	return &model.RepositoryCursor{repos, cursor}, nil
 }
 
@@ -164,7 +164,7 @@ func (r *repositoryResolver) AccessControlList(ctx context.Context, obj *model.R
 		Where(`acl.repo_id = ?`, obj.ID).
 		Where(`repo.owner_id = ?`, auth.ForContext(ctx).ID)
 
-	acls, cursor := acl.QueryWithCursor(ctx, r.DB, query, cursor)
+	acls, cursor := acl.QueryWithCursor(ctx, database.ForContext(ctx), query, cursor)
 	return &model.ACLCursor{acls, cursor}, nil
 }
 
@@ -367,7 +367,7 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor
 		From(`repository repo`).
 		Where(`repo.owner_id = ?`, obj.ID)
 
-	repos, cursor := repo.QueryWithCursor(ctx, r.DB, query, cursor)
+	repos, cursor := repo.QueryWithCursor(ctx, database.ForContext(ctx), query, cursor)
 	return &model.RepositoryCursor{repos, cursor}, nil
 }
 

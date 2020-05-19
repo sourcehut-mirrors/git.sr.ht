@@ -8,7 +8,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 
-	"git.sr.ht/~sircmpwn/git.sr.ht/api/database"
+	"git.sr.ht/~sircmpwn/gql.sr.ht/database"
 )
 
 // TODO: Drop updated column from database

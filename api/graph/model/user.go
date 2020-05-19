@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"git.sr.ht/~sircmpwn/git.sr.ht/api/database"
+	"git.sr.ht/~sircmpwn/gql.sr.ht/database"
 )
 
 type User struct {
