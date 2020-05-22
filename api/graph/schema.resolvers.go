@@ -9,11 +9,12 @@ import (
 	"sort"
 	"strings"
 
-	"git.sr.ht/~sircmpwn/gql.sr.ht/auth"
-	"git.sr.ht/~sircmpwn/gql.sr.ht/database"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
+	"git.sr.ht/~sircmpwn/gql.sr.ht/auth"
+	"git.sr.ht/~sircmpwn/gql.sr.ht/database"
+	gqlmodel "git.sr.ht/~sircmpwn/gql.sr.ht/model"
 	"github.com/99designs/gqlgen/graphql"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -114,9 +115,9 @@ func (r *queryResolver) User(ctx context.Context, username string) (*model.User,
 	return loaders.ForContext(ctx).UsersByName.Load(username)
 }
 
-func (r *queryResolver) Repositories(ctx context.Context, cursor *model.Cursor, filter *model.Filter) (*model.RepositoryCursor, error) {
+func (r *queryResolver) Repositories(ctx context.Context, cursor *gqlmodel.Cursor, filter *gqlmodel.Filter) (*model.RepositoryCursor, error) {
 	if cursor == nil {
-		cursor = model.NewCursor(filter)
+		cursor = gqlmodel.NewCursor(filter)
 	}
 
 	repo := (&model.Repository{}).As(`repo`)
@@ -151,9 +152,9 @@ func (r *repositoryResolver) Owner(ctx context.Context, obj *model.Repository) (
 	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
 }
 
-func (r *repositoryResolver) AccessControlList(ctx context.Context, obj *model.Repository, cursor *model.Cursor) (*model.ACLCursor, error) {
+func (r *repositoryResolver) AccessControlList(ctx context.Context, obj *model.Repository, cursor *gqlmodel.Cursor) (*model.ACLCursor, error) {
 	if cursor == nil {
-		cursor = model.NewCursor(nil)
+		cursor = gqlmodel.NewCursor(nil)
 	}
 
 	acl := (&model.ACL{}).As(`acl`)
@@ -181,7 +182,7 @@ func (r *repositoryResolver) Objects(ctx context.Context, obj *model.Repository,
 	return objects, nil
 }
 
-func (r *repositoryResolver) References(ctx context.Context, obj *model.Repository, cursor *model.Cursor) (*model.ReferenceCursor, error) {
+func (r *repositoryResolver) References(ctx context.Context, obj *model.Repository, cursor *gqlmodel.Cursor) (*model.ReferenceCursor, error) {
 	iter, err := obj.Repo().References()
 	if err != nil {
 		return nil, err
@@ -189,7 +190,7 @@ func (r *repositoryResolver) References(ctx context.Context, obj *model.Reposito
 	defer iter.Close()
 
 	if cursor == nil {
-		cursor = model.NewCursor(nil)
+		cursor = gqlmodel.NewCursor(nil)
 	}
 
 	var refs []*model.Reference
@@ -214,7 +215,7 @@ func (r *repositoryResolver) References(ctx context.Context, obj *model.Reposito
 	}
 
 	if len(refs) > cursor.Count {
-		cursor = &model.Cursor{
+		cursor = &gqlmodel.Cursor{
 			Count:  cursor.Count,
 			Next:   refs[cursor.Count].Name(),
 			Search: cursor.Search,
@@ -227,9 +228,9 @@ func (r *repositoryResolver) References(ctx context.Context, obj *model.Reposito
 	return &model.ReferenceCursor{refs, cursor}, nil
 }
 
-func (r *repositoryResolver) Log(ctx context.Context, obj *model.Repository, cursor *model.Cursor, from *string) (*model.CommitCursor, error) {
+func (r *repositoryResolver) Log(ctx context.Context, obj *model.Repository, cursor *gqlmodel.Cursor, from *string) (*model.CommitCursor, error) {
 	if cursor == nil {
-		cursor = model.NewCursor(nil)
+		cursor = gqlmodel.NewCursor(nil)
 		if from != nil {
 			cursor.Next = *from
 		}
@@ -264,7 +265,7 @@ func (r *repositoryResolver) Log(ctx context.Context, obj *model.Repository, cur
 	})
 
 	if len(commits) > cursor.Count {
-		cursor = &model.Cursor{
+		cursor = &gqlmodel.Cursor{
 			Count:  cursor.Count,
 			Next:   commits[cursor.Count].ID,
 			Search: "",
@@ -323,10 +324,10 @@ func (r *repositoryResolver) RevparseSingle(ctx context.Context, obj *model.Repo
 	return commit, nil
 }
 
-func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *model.Cursor) (*model.TreeEntryCursor, error) {
+func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *gqlmodel.Cursor) (*model.TreeEntryCursor, error) {
 	if cursor == nil {
 		// TODO: Filter?
-		cursor = model.NewCursor(nil)
+		cursor = gqlmodel.NewCursor(nil)
 	}
 
 	entries := obj.GetEntries()
@@ -343,7 +344,7 @@ func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *mod
 	}
 
 	if len(entries) > cursor.Count {
-		cursor = &model.Cursor{
+		cursor = &gqlmodel.Cursor{
 			Count:  cursor.Count,
 			Next:   entries[cursor.Count].Name,
 			Search: cursor.Search,
@@ -356,9 +357,9 @@ func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *mod
 	return &model.TreeEntryCursor{entries, cursor}, nil
 }
 
-func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor *model.Cursor, filter *model.Filter) (*model.RepositoryCursor, error) {
+func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor *gqlmodel.Cursor, filter *gqlmodel.Filter) (*model.RepositoryCursor, error) {
 	if cursor == nil {
-		cursor = model.NewCursor(filter)
+		cursor = gqlmodel.NewCursor(filter)
 	}
 
 	repo := (&model.Repository{}).As(`repo`)

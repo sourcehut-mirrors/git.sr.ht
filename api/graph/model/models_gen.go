@@ -7,6 +7,8 @@ import (
 	"io"
 	"strconv"
 	"time"
+
+	"git.sr.ht/~sircmpwn/gql.sr.ht/model"
 )
 
 type Blob interface {
@@ -18,8 +20,8 @@ type Entity interface {
 }
 
 type ACLCursor struct {
-	Results []*ACL  `json:"results"`
-	Cursor  *Cursor `json:"cursor"`
+	Results []*ACL        `json:"results"`
+	Cursor  *model.Cursor `json:"cursor"`
 }
 
 type Artifact struct {
@@ -33,18 +35,13 @@ type Artifact struct {
 }
 
 type CommitCursor struct {
-	Results []*Commit `json:"results"`
-	Cursor  *Cursor   `json:"cursor"`
-}
-
-type Filter struct {
-	Count  *int    `json:"count"`
-	Search *string `json:"search"`
+	Results []*Commit     `json:"results"`
+	Cursor  *model.Cursor `json:"cursor"`
 }
 
 type ReferenceCursor struct {
-	Results []*Reference `json:"results"`
-	Cursor  *Cursor      `json:"cursor"`
+	Results []*Reference  `json:"results"`
+	Cursor  *model.Cursor `json:"cursor"`
 }
 
 type RepoInput struct {
@@ -55,7 +52,7 @@ type RepoInput struct {
 
 type RepositoryCursor struct {
 	Results []*Repository `json:"results"`
-	Cursor  *Cursor       `json:"cursor"`
+	Cursor  *model.Cursor `json:"cursor"`
 }
 
 type Signature struct {
@@ -78,8 +75,8 @@ type Tag struct {
 func (Tag) IsObject() {}
 
 type TreeEntryCursor struct {
-	Results []*TreeEntry `json:"results"`
-	Cursor  *Cursor      `json:"cursor"`
+	Results []*TreeEntry  `json:"results"`
+	Cursor  *model.Cursor `json:"cursor"`
 }
 
 type Version struct {

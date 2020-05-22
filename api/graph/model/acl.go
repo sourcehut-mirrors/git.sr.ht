@@ -9,6 +9,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 
 	"git.sr.ht/~sircmpwn/gql.sr.ht/database"
+	"git.sr.ht/~sircmpwn/gql.sr.ht/model"
 )
 
 // TODO: Drop updated column from database
@@ -50,7 +51,7 @@ func (acl *ACL) Fields(ctx context.Context) []interface{} {
 }
 
 func (acl *ACL) QueryWithCursor(ctx context.Context,
-	db *sql.DB, q sq.SelectBuilder, cur *Cursor) ([]*ACL, *Cursor) {
+	db *sql.DB, q sq.SelectBuilder, cur *model.Cursor) ([]*ACL, *model.Cursor) {
 	var (
 		err  error
 		rows *sql.Rows
@@ -79,7 +80,7 @@ func (acl *ACL) QueryWithCursor(ctx context.Context,
 	}
 
 	if len(acls) > cur.Count {
-		cur = &Cursor{
+		cur = &model.Cursor{
 			Count:  cur.Count,
 			Next:   strconv.Itoa(acls[len(acls)-1].ID),
 			Search: cur.Search,

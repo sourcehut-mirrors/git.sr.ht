@@ -56,4 +56,7 @@ models:
       - github.com/99designs/gqlgen/graphql.Int32
   Cursor:
     model:
-      - git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model.Cursor
+      - git.sr.ht/~sircmpwn/gql.sr.ht/model.Cursor
+  Filter:
+    model:
+      - git.sr.ht/~sircmpwn/gql.sr.ht/model.Filter

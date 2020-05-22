@@ -11,6 +11,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 
 	"git.sr.ht/~sircmpwn/gql.sr.ht/database"
+	"git.sr.ht/~sircmpwn/gql.sr.ht/model"
 )
 
 type Repository struct {
@@ -20,7 +21,6 @@ type Repository struct {
 	Name           string     `json:"name"`
 	Description    *string    `json:"description"`
 	Visibility     Visibility `json:"visibility"`
-	Cursor         *Cursor    `json:"cursor"`
 	UpstreamURL    *string    `json:"upstreamUrl"`
 
 	Path    string
@@ -87,8 +87,8 @@ func (r *Repository) Fields(ctx context.Context) []interface{} {
 	return append(fields, &r.Path, &r.OwnerID, &r.Updated)
 }
 
-func (r *Repository) QueryWithCursor(ctx context.Context,
-	db *sql.DB, q sq.SelectBuilder, cur *Cursor) ([]*Repository, *Cursor) {
+func (r *Repository) QueryWithCursor(ctx context.Context, db *sql.DB,
+	q sq.SelectBuilder, cur *model.Cursor) ([]*Repository, *model.Cursor) {
 	var (
 		err  error
 		rows *sql.Rows
@@ -118,7 +118,7 @@ func (r *Repository) QueryWithCursor(ctx context.Context,
 	}
 
 	if len(repos) > cur.Count {
-		cur = &Cursor{
+		cur = &model.Cursor{
 			Count:  cur.Count,
 			Next:   strconv.FormatInt(repos[len(repos)-1].Updated.Unix(), 10),
 			Search: cur.Search,
