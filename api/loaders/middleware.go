@@ -21,7 +21,7 @@ import (
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 )
 
-var loadersCtxKey = &contextKey{"user"}
+var loadersCtxKey = &contextKey{"loaders"}
 
 type contextKey struct {
 	name string

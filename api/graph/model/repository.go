@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	sq "github.com/Masterminds/squirrel"
 
 	"git.sr.ht/~sircmpwn/gql.sr.ht/database"
@@ -44,6 +45,9 @@ func (r *Repository) Repo() *git.Repository {
 func (r *Repository) Head() *Reference {
 	ref, err := r.Repo().Head()
 	if err != nil {
+		if err == plumbing.ErrReferenceNotFound {
+			return nil
+		}
 		panic(err)
 	}
 	return &Reference{Ref: ref, Repo: r.repo}

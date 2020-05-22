@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	git.sr.ht/~sircmpwn/getopt v0.0.0-20191230200459-23622cc906b3
-	git.sr.ht/~sircmpwn/gql.sr.ht v0.0.0-20200519155752-5492494ccefa
+	git.sr.ht/~sircmpwn/gql.sr.ht v0.0.0-20200522165442-58de263ab370
 	github.com/99designs/gqlgen v0.11.4-0.20200512031635-40570d1b4d70
 	github.com/Masterminds/squirrel v1.4.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
@@ -18,7 +18,7 @@ require (
 	github.com/lib/pq v1.5.2
 	github.com/martinlindhe/base36 v1.0.0
 	github.com/matryer/moq v0.0.0-20200310130814-7721994d1b54 // indirect
-	github.com/mitchellh/mapstructure v1.3.0 // indirect
+	github.com/mitchellh/mapstructure v1.3.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.6.0 // indirect
 	github.com/prometheus/common v0.10.0 // indirect
