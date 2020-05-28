@@ -27,6 +27,7 @@ class GitApp(ScmSrhtFlask):
         from gitsrht.blueprints.email import mail
         from gitsrht.blueprints.repo import repo
         from gitsrht.blueprints.stats import stats
+        from srht.graphql import gql_blueprint
 
         self.register_blueprint(plumbing)
         self.register_blueprint(porcelain)
@@ -34,6 +35,7 @@ class GitApp(ScmSrhtFlask):
         self.register_blueprint(repo)
         self.register_blueprint(stats)
         self.register_blueprint(webhooks_notify)
+        self.register_blueprint(gql_blueprint)
 
         from gitsrht.repos import object_storage_enabled
         if object_storage_enabled:
