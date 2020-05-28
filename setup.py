@@ -38,7 +38,9 @@ setup(
           'templates/*.html',
           'static/*',
           'static/icons/*',
-          'hooks/*'
+          'hooks/*',
+          'schema.graphqls',
+          'default_query.graphql',
       ]
   },
   scripts = [
