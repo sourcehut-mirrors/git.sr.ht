@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	git.sr.ht/~sircmpwn/getopt v0.0.0-20191230200459-23622cc906b3
-	git.sr.ht/~sircmpwn/gql.sr.ht v0.0.0-20200525161308-f95a9bea7eb4
+	git.sr.ht/~sircmpwn/gql.sr.ht v0.0.0-20200602201631-8bc022f06640
 	github.com/99designs/gqlgen v0.11.4-0.20200512031635-40570d1b4d70
 	github.com/Masterminds/squirrel v1.4.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
