@@ -146,6 +146,16 @@ type TreeEntryCursor {
   cursor: Cursor
 }
 
+# A cursor for enumerating artifacts
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type ArtifactCursor {
+  results: [Artifact]!
+  cursor: Cursor
+}
+
 type ACL {
   id: Int!
   created: Time!
@@ -158,7 +168,6 @@ type ACL {
 type Artifact {
   id: Int!
   created: Time!
-  repository: Repository!
   filename: String!
   checksum: String!
   size: Int!
@@ -169,6 +178,8 @@ type Reference {
   name: String!
   target: String!
   follow: Object
+
+  artifacts(cursor: Cursor): ArtifactCursor!
 }
 
 enum ObjectType {

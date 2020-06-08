@@ -1,7 +1,6 @@
 package model
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/go-git/go-git/v5"
@@ -27,6 +26,6 @@ func LookupObject(repo *git.Repository, hash plumbing.Hash) (Object, error) {
 	case *object.Blob:
 		return BlobFromObject(repo, obj), nil
 	default:
-		return nil, errors.New("Unknown object type")
+		return nil, fmt.Errorf("Unknown object type %T", obj)
 	}
 }

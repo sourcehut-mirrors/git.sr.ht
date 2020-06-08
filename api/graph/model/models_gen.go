@@ -24,14 +24,9 @@ type ACLCursor struct {
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
-type Artifact struct {
-	ID         int         `json:"id"`
-	Created    time.Time   `json:"created"`
-	Repository *Repository `json:"repository"`
-	Filename   string      `json:"filename"`
-	Checksum   string      `json:"checksum"`
-	Size       int         `json:"size"`
-	URL        string      `json:"url"`
+type ArtifactCursor struct {
+	Results []*Artifact   `json:"results"`
+	Cursor  *model.Cursor `json:"cursor"`
 }
 
 type CommitCursor struct {

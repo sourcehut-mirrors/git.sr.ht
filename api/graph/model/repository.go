@@ -50,7 +50,7 @@ func (r *Repository) Head() *Reference {
 		}
 		panic(err)
 	}
-	return &Reference{Ref: ref, Repo: r.repo}
+	return &Reference{Ref: ref, Repo: r}
 }
 
 func (r *Repository) As(alias string) *Repository {

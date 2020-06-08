@@ -39,9 +39,11 @@ type Config struct {
 
 type ResolverRoot interface {
 	ACL() ACLResolver
+	Artifact() ArtifactResolver
 	Commit() CommitResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
+	Reference() ReferenceResolver
 	Repository() RepositoryResolver
 	Tree() TreeResolver
 	User() UserResolver
@@ -65,13 +67,17 @@ type ComplexityRoot struct {
 	}
 
 	Artifact struct {
-		Checksum   func(childComplexity int) int
-		Created    func(childComplexity int) int
-		Filename   func(childComplexity int) int
-		ID         func(childComplexity int) int
-		Repository func(childComplexity int) int
-		Size       func(childComplexity int) int
-		URL        func(childComplexity int) int
+		Checksum func(childComplexity int) int
+		Created  func(childComplexity int) int
+		Filename func(childComplexity int) int
+		ID       func(childComplexity int) int
+		Size     func(childComplexity int) int
+		URL      func(childComplexity int) int
+	}
+
+	ArtifactCursor struct {
+		Cursor  func(childComplexity int) int
+		Results func(childComplexity int) int
 	}
 
 	BinaryBlob struct {
@@ -121,9 +127,10 @@ type ComplexityRoot struct {
 	}
 
 	Reference struct {
-		Follow func(childComplexity int) int
-		Name   func(childComplexity int) int
-		Target func(childComplexity int) int
+		Artifacts func(childComplexity int, cursor *model1.Cursor) int
+		Follow    func(childComplexity int) int
+		Name      func(childComplexity int) int
+		Target    func(childComplexity int) int
 	}
 
 	ReferenceCursor struct {
@@ -225,6 +232,9 @@ type ACLResolver interface {
 	Repository(ctx context.Context, obj *model.ACL) (*model.Repository, error)
 	Entity(ctx context.Context, obj *model.ACL) (model.Entity, error)
 }
+type ArtifactResolver interface {
+	URL(ctx context.Context, obj *model.Artifact) (string, error)
+}
 type CommitResolver interface {
 	Diff(ctx context.Context, obj *model.Commit) (string, error)
 }
@@ -245,6 +255,9 @@ type QueryResolver interface {
 	Repository(ctx context.Context, id int) (*model.Repository, error)
 	RepositoryByName(ctx context.Context, name string) (*model.Repository, error)
 	RepositoryByOwner(ctx context.Context, owner string, repo string) (*model.Repository, error)
+}
+type ReferenceResolver interface {
+	Artifacts(ctx context.Context, obj *model.Reference, cursor *model1.Cursor) (*model.ArtifactCursor, error)
 }
 type RepositoryResolver interface {
 	Owner(ctx context.Context, obj *model.Repository) (model.Entity, error)
@@ -356,13 +369,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Artifact.ID(childComplexity), true
 
-	case "Artifact.repository":
-		if e.complexity.Artifact.Repository == nil {
-			break
-		}
-
-		return e.complexity.Artifact.Repository(childComplexity), true
-
 	case "Artifact.size":
 		if e.complexity.Artifact.Size == nil {
 			break
@@ -376,6 +382,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Artifact.URL(childComplexity), true
+
+	case "ArtifactCursor.cursor":
+		if e.complexity.ArtifactCursor.Cursor == nil {
+			break
+		}
+
+		return e.complexity.ArtifactCursor.Cursor(childComplexity), true
+
+	case "ArtifactCursor.results":
+		if e.complexity.ArtifactCursor.Results == nil {
+			break
+		}
+
+		return e.complexity.ArtifactCursor.Results(childComplexity), true
 
 	case "BinaryBlob.base64":
 		if e.complexity.BinaryBlob.Base64 == nil {
@@ -653,6 +673,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Version(childComplexity), true
+
+	case "Reference.artifacts":
+		if e.complexity.Reference.Artifacts == nil {
+			break
+		}
+
+		args, err := ec.field_Reference_artifacts_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Reference.Artifacts(childComplexity, args["cursor"].(*model1.Cursor)), true
 
 	case "Reference.follow":
 		if e.complexity.Reference.Follow == nil {
@@ -1359,6 +1391,16 @@ type TreeEntryCursor {
   cursor: Cursor
 }
 
+# A cursor for enumerating artifacts
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type ArtifactCursor {
+  results: [Artifact]!
+  cursor: Cursor
+}
+
 type ACL {
   id: Int!
   created: Time!
@@ -1371,7 +1413,6 @@ type ACL {
 type Artifact {
   id: Int!
   created: Time!
-  repository: Repository!
   filename: String!
   checksum: String!
   size: Int!
@@ -1382,6 +1423,8 @@ type Reference {
   name: String!
   target: String!
   follow: Object
+
+  artifacts(cursor: Cursor): ArtifactCursor!
 }
 
 enum ObjectType {
@@ -1779,6 +1822,20 @@ func (ec *executionContext) field_Query_user_args(ctx context.Context, rawArgs m
 		}
 	}
 	args["username"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Reference_artifacts_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model1.Cursor
+	if tmp, ok := rawArgs["cursor"]; ok {
+		arg0, err = ec.unmarshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgqlᚗsrᚗhtᚋmodelᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["cursor"] = arg0
 	return args, nil
 }
 
@@ -2268,40 +2325,6 @@ func (ec *executionContext) _Artifact_created(ctx context.Context, field graphql
 	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Artifact_repository(ctx context.Context, field graphql.CollectedField, obj *model.Artifact) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:   "Artifact",
-		Field:    field,
-		Args:     nil,
-		IsMethod: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Repository, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.Repository)
-	fc.Result = res
-	return ec.marshalNRepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Artifact_filename(ctx context.Context, field graphql.CollectedField, obj *model.Artifact) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2415,13 +2438,13 @@ func (ec *executionContext) _Artifact_url(ctx context.Context, field graphql.Col
 		Object:   "Artifact",
 		Field:    field,
 		Args:     nil,
-		IsMethod: false,
+		IsMethod: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.URL, nil
+		return ec.resolvers.Artifact().URL(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2436,6 +2459,71 @@ func (ec *executionContext) _Artifact_url(ctx context.Context, field graphql.Col
 	res := resTmp.(string)
 	fc.Result = res
 	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ArtifactCursor_results(ctx context.Context, field graphql.CollectedField, obj *model.ArtifactCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ArtifactCursor",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Results, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Artifact)
+	fc.Result = res
+	return ec.marshalNArtifact2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐArtifact(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ArtifactCursor_cursor(ctx context.Context, field graphql.CollectedField, obj *model.ArtifactCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "ArtifactCursor",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model1.Cursor)
+	fc.Result = res
+	return ec.marshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgqlᚗsrᚗhtᚋmodelᚐCursor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _BinaryBlob_type(ctx context.Context, field graphql.CollectedField, obj *model.BinaryBlob) (ret graphql.Marshaler) {
@@ -3724,6 +3812,47 @@ func (ec *executionContext) _Reference_follow(ctx context.Context, field graphql
 	res := resTmp.(model.Object)
 	fc.Result = res
 	return ec.marshalOObject2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐObject(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Reference_artifacts(ctx context.Context, field graphql.CollectedField, obj *model.Reference) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Reference",
+		Field:    field,
+		Args:     nil,
+		IsMethod: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Reference_artifacts_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Reference().Artifacts(rctx, obj, args["cursor"].(*model1.Cursor))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.ArtifactCursor)
+	fc.Result = res
+	return ec.marshalNArtifactCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐArtifactCursor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ReferenceCursor_results(ctx context.Context, field graphql.CollectedField, obj *model.ReferenceCursor) (ret graphql.Marshaler) {
@@ -7130,38 +7259,71 @@ func (ec *executionContext) _Artifact(ctx context.Context, sel ast.SelectionSet,
 		case "id":
 			out.Values[i] = ec._Artifact_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "created":
 			out.Values[i] = ec._Artifact_created(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "repository":
-			out.Values[i] = ec._Artifact_repository(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "filename":
 			out.Values[i] = ec._Artifact_filename(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "checksum":
 			out.Values[i] = ec._Artifact_checksum(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "size":
 			out.Values[i] = ec._Artifact_size(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "url":
-			out.Values[i] = ec._Artifact_url(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Artifact_url(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var artifactCursorImplementors = []string{"ArtifactCursor"}
+
+func (ec *executionContext) _ArtifactCursor(ctx context.Context, sel ast.SelectionSet, obj *model.ArtifactCursor) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, artifactCursorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ArtifactCursor")
+		case "results":
+			out.Values[i] = ec._ArtifactCursor_results(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "cursor":
+			out.Values[i] = ec._ArtifactCursor_cursor(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7518,15 +7680,29 @@ func (ec *executionContext) _Reference(ctx context.Context, sel ast.SelectionSet
 		case "name":
 			out.Values[i] = ec._Reference_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "target":
 			out.Values[i] = ec._Reference_target(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "follow":
 			out.Values[i] = ec._Reference_follow(ctx, field, obj)
+		case "artifacts":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Reference_artifacts(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8447,6 +8623,43 @@ func (ec *executionContext) marshalNArtifact2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗ
 	return ec._Artifact(ctx, sel, &v)
 }
 
+func (ec *executionContext) marshalNArtifact2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐArtifact(ctx context.Context, sel ast.SelectionSet, v []*model.Artifact) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalOArtifact2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐArtifact(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
 func (ec *executionContext) marshalNArtifact2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐArtifact(ctx context.Context, sel ast.SelectionSet, v *model.Artifact) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -8455,6 +8668,20 @@ func (ec *executionContext) marshalNArtifact2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgit
 		return graphql.Null
 	}
 	return ec._Artifact(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNArtifactCursor2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐArtifactCursor(ctx context.Context, sel ast.SelectionSet, v model.ArtifactCursor) graphql.Marshaler {
+	return ec._ArtifactCursor(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNArtifactCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐArtifactCursor(ctx context.Context, sel ast.SelectionSet, v *model.ArtifactCursor) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._ArtifactCursor(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
@@ -9200,6 +9427,17 @@ func (ec *executionContext) marshalOAccessMode2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋg
 		return graphql.Null
 	}
 	return v
+}
+
+func (ec *executionContext) marshalOArtifact2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐArtifact(ctx context.Context, sel ast.SelectionSet, v model.Artifact) graphql.Marshaler {
+	return ec._Artifact(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalOArtifact2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐArtifact(ctx context.Context, sel ast.SelectionSet, v *model.Artifact) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Artifact(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {

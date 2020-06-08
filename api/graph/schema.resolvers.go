@@ -13,6 +13,7 @@ import (
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
 	"git.sr.ht/~sircmpwn/gql.sr.ht/auth"
+	"git.sr.ht/~sircmpwn/gql.sr.ht/config"
 	"git.sr.ht/~sircmpwn/gql.sr.ht/database"
 	gqlmodel "git.sr.ht/~sircmpwn/gql.sr.ht/model"
 	"github.com/99designs/gqlgen/graphql"
@@ -54,6 +55,23 @@ func (r *aCLResolver) Entity(ctx context.Context, obj *model.ACL) (model.Entity,
 		panic(err)
 	}
 	return user, nil
+}
+
+func (r *artifactResolver) URL(ctx context.Context, obj *model.Artifact) (string, error) {
+	conf := config.ForContext(ctx)
+	upstream, ok := conf.Get("objects", "s3-upstream")
+	if !ok {
+		return "", fmt.Errorf("S3 upstream not configured for this server")
+	}
+	bucket, ok := conf.Get("git.sr.ht", "s3-bucket")
+	if !ok {
+		return "", fmt.Errorf("S3 bucket not configured for this server")
+	}
+	prefix, ok := conf.Get("git.sr.ht", "s3-prefix")
+	if !ok {
+		return "", fmt.Errorf("S3 prefix not configured for this server")
+	}
+	return fmt.Sprintf("https://%s/%s/%s/%s", upstream, bucket, prefix, obj.Filename), nil
 }
 
 func (r *commitResolver) Diff(ctx context.Context, obj *model.Commit) (string, error) {
@@ -148,6 +166,38 @@ func (r *queryResolver) RepositoryByOwner(ctx context.Context, owner string, rep
 		RepositoriesByOwnerRepoName.Load([2]string{owner, repo})
 }
 
+func (r *referenceResolver) Artifacts(ctx context.Context, obj *model.Reference, cursor *gqlmodel.Cursor) (*model.ArtifactCursor, error) {
+	// XXX: This could utilize a loader if it ever becomes a bottleneck
+	if cursor == nil {
+		cursor = gqlmodel.NewCursor(nil)
+	}
+
+	ref, err := obj.Repo.Repo().Reference(obj.Ref.Name(), true)
+	if err != nil {
+		return nil, err
+	}
+	o, err := obj.Repo.Repo().Object(plumbing.TagObject, ref.Hash())
+	if err == plumbing.ErrObjectNotFound {
+		return &model.ArtifactCursor{nil, cursor}, nil
+	} else if err != nil {
+		return nil, err
+	}
+	tag, ok := o.(*object.Tag)
+	if !ok {
+		panic(fmt.Errorf("Expected artifact to be attached to tag"))
+	}
+
+	artifact := (&model.Artifact{}).As(`art`)
+	query := database.
+		Select(ctx, artifact).
+		From(`artifacts art`).
+		Where(`art.repo_id = ?`, obj.Repo.ID).
+		Where(`art.commit = ?`, tag.Target.String())
+
+	arts, cursor := artifact.QueryWithCursor(ctx, database.ForContext(ctx), query, cursor)
+	return &model.ArtifactCursor{arts, cursor}, nil
+}
+
 func (r *repositoryResolver) Owner(ctx context.Context, obj *model.Repository) (model.Entity, error) {
 	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
 }
@@ -195,7 +245,7 @@ func (r *repositoryResolver) References(ctx context.Context, obj *model.Reposito
 
 	var refs []*model.Reference
 	iter.ForEach(func(ref *plumbing.Reference) error {
-		refs = append(refs, &model.Reference{obj.Repo(), ref})
+		refs = append(refs, &model.Reference{obj, ref})
 		return nil
 	})
 
@@ -375,6 +425,9 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor
 // ACL returns api.ACLResolver implementation.
 func (r *Resolver) ACL() api.ACLResolver { return &aCLResolver{r} }
 
+// Artifact returns api.ArtifactResolver implementation.
+func (r *Resolver) Artifact() api.ArtifactResolver { return &artifactResolver{r} }
+
 // Commit returns api.CommitResolver implementation.
 func (r *Resolver) Commit() api.CommitResolver { return &commitResolver{r} }
 
@@ -383,6 +436,9 @@ func (r *Resolver) Mutation() api.MutationResolver { return &mutationResolver{r}
 
 // Query returns api.QueryResolver implementation.
 func (r *Resolver) Query() api.QueryResolver { return &queryResolver{r} }
+
+// Reference returns api.ReferenceResolver implementation.
+func (r *Resolver) Reference() api.ReferenceResolver { return &referenceResolver{r} }
 
 // Repository returns api.RepositoryResolver implementation.
 func (r *Resolver) Repository() api.RepositoryResolver { return &repositoryResolver{r} }
@@ -394,9 +450,11 @@ func (r *Resolver) Tree() api.TreeResolver { return &treeResolver{r} }
 func (r *Resolver) User() api.UserResolver { return &userResolver{r} }
 
 type aCLResolver struct{ *Resolver }
+type artifactResolver struct{ *Resolver }
 type commitResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type referenceResolver struct{ *Resolver }
 type repositoryResolver struct{ *Resolver }
 type treeResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }

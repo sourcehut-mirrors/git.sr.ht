@@ -1,22 +1,22 @@
 package model
 
 import (
-	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
 type Reference struct {
-	Repo *git.Repository
+	Repo *Repository
 	Ref  *plumbing.Reference
 }
 
 func (r *Reference) Follow() Object {
-	ref, err := r.Repo.Reference(r.Ref.Name(), true)
+	ref, err := r.Repo.Repo().Reference(r.Ref.Name(), true)
 	if err != nil {
 		panic(err)
 	}
-	obj, err := LookupObject(r.Repo, ref.Hash())
+	obj, err := LookupObject(r.Repo.Repo(), ref.Hash())
 	if err != nil {
+		println(err)
 		panic(err)
 	}
 	return obj
