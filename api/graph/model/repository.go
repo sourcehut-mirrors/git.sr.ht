@@ -76,13 +76,13 @@ func (r *Repository) Select(ctx context.Context) []string {
 
 func (r *Repository) Fields(ctx context.Context) []interface{} {
 	fields := database.FieldsFor(ctx, map[string]interface{}{
-		"id":           &r.ID,
-		"created":      &r.Created,
-		"updated":      &r.Updated,
-		"name":         &r.Name,
-		"description":  &r.Description,
-		"visibility":   &r.Visibility,
-		"upstream_url": &r.UpstreamURL,
+		"id":          &r.ID,
+		"created":     &r.Created,
+		"updated":     &r.Updated,
+		"name":        &r.Name,
+		"description": &r.Description,
+		"visibility":  &r.Visibility,
+		"upstreamUrl": &r.UpstreamURL,
 	})
 	return append(fields, &r.Path, &r.OwnerID, &r.Updated)
 }
