@@ -5,8 +5,9 @@ import re
 import smtplib
 import subprocess
 import sys
-from email.policy import SMTPUTF8
+from email.policy import SMTPUTF8, SMTP
 from email.utils import make_msgid, parseaddr
+from email.message import EmailMessage
 from flask import Blueprint, render_template, abort, request, url_for, session
 from flask import redirect
 from gitsrht.git import Repository as GitRepository, commit_time, diffstat
@@ -295,17 +296,30 @@ def send_email_send(owner, repo):
         if not emails:
             abort(400) # Should work by this point
 
+        # git-format-patch doesn't encode messages, this is done by
+        # git-send-email. Since we're parsing the message Python doesn't do it
+        # automatically for us, it keeps the unencoded message as-is. Re-create
+        # the message with the same header and body to fix that.
+        # TODO: remove cte_type once [1] is merged
+        # [1]: https://github.com/python/cpython/pull/8303
+        for i, email in enumerate(emails):
+            encoded = EmailMessage(policy=SMTP.clone(cte_type='7bit'))
+            for (k, v) in email.items():
+                encoded.add_header(k, v)
+            body = email.get_payload(decode=True).decode()
+            encoded.set_content(body)
+            emails[i] = encoded
+
         # TODO: Send emails asyncronously
         smtp = smtplib.SMTP(smtp_host, smtp_port)
         smtp.ehlo()
         if smtp_user and smtp_password:
             smtp.starttls()
             smtp.login(smtp_user, smtp_password)
-        print("Sending to receipients", recipients)
+        print("Sending to recipients", recipients)
         for i, email in enumerate(emails):
             session.pop("commentary_{i}", None)
-            smtp.sendmail(smtp_user, recipients,
-                    email.as_bytes(unixfrom=False))
+            smtp.send_message(email, smtp_user, recipients)
         smtp.quit()
 
         # TODO: If we're connected to a lists.sr.ht address, link to their URL
