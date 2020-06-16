@@ -319,7 +319,7 @@ def send_email_send(owner, repo):
         print("Sending to recipients", recipients)
         for i, email in enumerate(emails):
             session.pop("commentary_{i}", None)
-            smtp.send_message(email, smtp_user, recipients)
+            smtp.send_message(email, smtp_from, recipients)
         smtp.quit()
 
         # TODO: If we're connected to a lists.sr.ht address, link to their URL
