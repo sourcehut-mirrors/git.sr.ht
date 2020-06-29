@@ -8,7 +8,6 @@ import sys
 from datetime import timedelta
 from flask import Blueprint, render_template, abort, send_file, request
 from flask import Response, url_for, session, redirect
-from gitsrht.annotations import AnnotatedFormatter
 from gitsrht.editorconfig import EditorConfig
 from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
 from gitsrht.git import diffstat, get_log
@@ -53,16 +52,9 @@ def get_readme(repo, tip, link_prefix=None):
             link_prefix=link_prefix)
 
 def _highlight_file(repo, ref, name, data, blob_id, commit_id):
-    def get_annos():
-        annotations = redis.get("git.sr.ht:git:annotations:" +
-            f"{repo.id}:{blob_id}:{commit_id}")
-        if annotations:
-            return json.loads(annotations.decode())
-        return None
     link_prefix = url_for('repo.tree', owner=repo.owner,
             repo=repo.name, ref=ref)
-    return get_highlighted_file("git.sr.ht:git", name, blob_id, data,
-            formatter=AnnotatedFormatter(get_annos, link_prefix))
+    return get_highlighted_file("git.sr.ht:git", name, blob_id, data)
 
 def render_empty_repo(owner, repo):
     origin = cfg("git.sr.ht", "origin")

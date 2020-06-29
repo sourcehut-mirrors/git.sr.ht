@@ -2,7 +2,6 @@ import base64
 import json
 import pygit2
 from flask import Blueprint, current_app, request, send_file, abort
-from gitsrht.annotations import validate_annotation
 from gitsrht.blueprints.repo import lookup_ref, collect_refs
 from gitsrht.types import Artifact
 from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
@@ -199,51 +198,6 @@ def repo_tree_GET(username, reponame, ref, path):
         if not tree:
             abort(404)
         return tree_to_dict(tree)
-
-# TODO: remove fallback routes
-@porcelain.route("/api/repos/<reponame>/annotate", methods=["PUT"],
-        defaults={"username": None, "commit": "master"})
-@porcelain.route("/api/<username>/repos/<reponame>/annotate", methods=["PUT"],
-        defaults={"commit": "master"})
-@porcelain.route("/api/repos/<reponame>/<commit>/annotate", methods=["PUT"],
-        defaults={"username": None})
-@porcelain.route("/api/<username>/repos/<reponame>/<commit>/annotate", methods=["PUT"])
-@oauth("repo:write")
-def repo_annotate_PUT(username, reponame, commit):
-    user = get_user(username)
-    repo = get_repo(user, reponame, needs=UserAccess.manage)
-
-    valid = Validation(request)
-
-    with GitRepository(repo.path) as git_repo:
-        try:
-            commit = git_repo.revparse_single(commit)
-        except KeyError:
-            abort(404)
-        except ValueError:
-            abort(404)
-        if not isinstance(commit, pygit2.Commit):
-            abort(400)
-        commit = commit.id.hex
-
-    nblobs = 0
-    for oid, annotations in valid.source.items():
-        valid.expect(isinstance(oid, str), "blob keys must be strings")
-        valid.expect(isinstance(annotations, list),
-                "blob values must be lists of annotations")
-        if not valid.ok:
-            return valid.response
-        for anno in annotations:
-            validate_annotation(valid, anno)
-        if not valid.ok:
-            return valid.response
-        redis.set(f"git.sr.ht:git:annotations:{repo.id}:{oid}:{commit}",
-                json.dumps(annotations))
-        # Invalidate rendered markup cache
-        redis.delete(f"git.sr.ht:git:highlight:{oid}")
-        nblobs += 1
-
-    return { "updated": nblobs }, 200
 
 @porcelain.route("/api/repos/<reponame>/blob/<path:ref>",
         defaults={"username": None, "path": ""})
