@@ -23,7 +23,6 @@ from scmsrht.formatting import get_formatted_readme, get_highlighted_file
 from scmsrht.urls import get_clone_urls
 from srht.config import cfg, get_origin
 from srht.markdown import markdown
-from srht.redis import redis
 from urllib.parse import urlparse
 
 repo = Blueprint('repo', __name__)

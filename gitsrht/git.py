@@ -2,7 +2,6 @@ from collections import deque
 from datetime import datetime, timedelta, timezone
 from pygit2 import Repository as GitRepository, Tag
 from jinja2 import Markup, escape
-from srht.redis import redis
 from stat import filemode
 import pygit2
 import json
@@ -116,46 +115,6 @@ class AnnotatedTreeEntry:
 
 def annotate_tree(repo, tree, commit):
     return [AnnotatedTreeEntry(repo, entry).fetch_blob() for entry in tree]
-
-    # TODO: This is slow and broken
-    key = f"git.sr.ht:git:tree:{tree.id.hex}"
-    cache = redis.get(key)
-    if cache:
-        try:
-            cache = json.loads(cache.decode())
-            return [AnnotatedTreeEntry.deserialize(
-                e, repo).fetch_blob() for e in cache.values()]
-        except:
-            redis.delete(key)
-
-    tree = { entry.id.hex: AnnotatedTreeEntry(
-        repo, entry) for entry in tree }
-
-    parents = deque(commit.parents)
-    left_tree = set(v for v in tree.values())
-    unfinished = set(left_tree)
-    if not any(commit.parents):
-        return [entry.fetch_blob() for entry in tree.values()]
-    parent = commit
-    for commit in repo.walk(commit.id, pygit2.GIT_SORT_TIME):
-        if not any(unfinished):
-            break
-        right_tree = { entry.id.hex: AnnotatedTreeEntry(repo, entry)
-                for entry in parent.tree }
-        right_tree = set(v for v in right_tree.values())
-        diff = left_tree - right_tree
-        for entry in diff:
-            if entry.id in tree:
-                tree[entry.id].commit = commit
-        unfinished = unfinished - diff
-        left_tree = right_tree
-        parent = commit
-
-    cache = {entry.name: entry.serialize() for entry in tree.values()}
-    cache = json.dumps(cache)
-    redis.setex(key, timedelta(days=30), cache)
-
-    return [entry.fetch_blob() for entry in tree.values()]
 
 def _diffstat_name(delta, anchor):
     if delta.status == pygit2.GIT_DELTA_DELETED:

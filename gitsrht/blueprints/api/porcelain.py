@@ -15,7 +15,6 @@ from scmsrht.blueprints.api import get_user, get_repo
 from srht.api import paginated_response
 from srht.database import db
 from srht.oauth import current_token, oauth
-from srht.redis import redis
 from srht.validation import Validation
 
 porcelain = Blueprint("api.porcelain", __name__)
