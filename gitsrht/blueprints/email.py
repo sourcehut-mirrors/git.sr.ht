@@ -8,6 +8,7 @@ import sys
 from email.policy import SMTPUTF8, SMTP
 from email.utils import make_msgid, parseaddr
 from email.message import EmailMessage
+from email.header import decode_header, make_header
 from flask import Blueprint, render_template, abort, request, url_for, session
 from flask import redirect
 from gitsrht.git import Repository as GitRepository, commit_time, diffstat
@@ -305,6 +306,7 @@ def send_email_send(owner, repo):
         for i, email in enumerate(emails):
             encoded = EmailMessage(policy=SMTP.clone(cte_type='7bit'))
             for (k, v) in email.items():
+                v = str(make_header(decode_header(v)))
                 encoded.add_header(k, v)
             body = email.get_payload(decode=True).decode()
             encoded.set_content(body)
