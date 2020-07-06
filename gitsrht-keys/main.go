@@ -51,8 +51,8 @@ func main() {
 		logger.Fatalf("Failed to load config file: %v", err)
 	}
 
-	redisHost, ok := config.Get("sr.ht", "redis-host")
-	if !ok {
+	redisHost, _ := config.Get("sr.ht", "redis-host")
+	if redisHost == "" {
 		redisHost = "redis://localhost:6379"
 	}
 	ropts, err := goredis.ParseURL(redisHost)
