@@ -228,7 +228,7 @@ def tree(owner, repo, ref, path):
                     blob_prefix = url_for(
                         'repo.raw_blob', owner=repo.owner, repo=repo.name,
                         ref=ref, path=os.path.dirname("/".join(path)))
-                    md = markdown(data, ["h1", "h2", "h3", "h4", "h5"],
+                    md = markdown(data,
                             link_prefix=[link_prefix, blob_prefix])
                 force_source = "view-source" in request.args
                 return render_template("blob.html", view="blob",
