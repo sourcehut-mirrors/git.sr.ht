@@ -4,9 +4,12 @@ go 1.14
 
 require (
 	git.sr.ht/~sircmpwn/getopt v0.0.0-20191230200459-23622cc906b3
-	git.sr.ht/~sircmpwn/gql.sr.ht v0.0.0-20200608172945-9ecf6d2cf9c2
+	git.sr.ht/~sircmpwn/go-bare v0.0.0-20200623145341-debb068b456a // indirect
+	git.sr.ht/~sircmpwn/gql.sr.ht v0.0.0-20200612165341-a069568d2138
 	github.com/99designs/gqlgen v0.11.4-0.20200512031635-40570d1b4d70
 	github.com/Masterminds/squirrel v1.4.0
+	github.com/agnivade/levenshtein v1.1.0 // indirect
+	github.com/alexbrainman/sspi v0.0.0-20180613141037-e580b900e9f5 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
 	github.com/fernet/fernet-go v0.0.0-20191111064656-eff2850e6001
 	github.com/go-chi/chi v4.1.2+incompatible
@@ -15,25 +18,29 @@ require (
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
-	github.com/jcmturner/gokrb5/v8 v8.3.0 // indirect
-	github.com/lib/pq v1.6.0
-	github.com/martinlindhe/base36 v1.0.0
+	github.com/jcmturner/gokrb5/v8 v8.4.0 // indirect
+	github.com/lib/pq v1.7.0
+	github.com/martinlindhe/base36 v1.1.0
 	github.com/matryer/moq v0.0.0-20200310130814-7721994d1b54 // indirect
 	github.com/mitchellh/mapstructure v1.3.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/prometheus/client_golang v1.6.0 // indirect
+	github.com/prometheus/client_golang v1.7.1 // indirect
 	github.com/prometheus/common v0.10.0 // indirect
-	github.com/prometheus/procfs v0.1.0 // indirect
 	github.com/urfave/cli/v2 v2.2.0 // indirect
 	github.com/vaughan0/go-ini v0.0.0-20130923145212-a98ad7ee00ec
 	github.com/vektah/dataloaden v0.3.0 // indirect
 	github.com/vektah/gqlparser v1.3.1
 	github.com/vektah/gqlparser/v2 v2.0.1
-	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
-	golang.org/x/net v0.0.0-20200602114024-627f9648deb9 // indirect
-	golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980 // indirect
-	google.golang.org/protobuf v1.24.0 // indirect
+	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
+	golang.org/x/net v0.0.0-20200707034311-ab3426394381 // indirect
+	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae // indirect
+	google.golang.org/protobuf v1.25.0 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
+	gopkg.in/jcmturner/aescts.v1 v1.0.1 // indirect
+	gopkg.in/jcmturner/dnsutils.v1 v1.0.1 // indirect
+	gopkg.in/jcmturner/goidentity.v3 v3.0.0 // indirect
+	gopkg.in/jcmturner/gokrb5.v7 v7.5.0 // indirect
+	gopkg.in/jcmturner/rpc.v1 v1.1.0 // indirect
 	gopkg.in/mail.v2 v2.3.1
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 )
