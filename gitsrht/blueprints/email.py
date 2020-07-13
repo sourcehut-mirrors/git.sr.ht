@@ -1,14 +1,13 @@
 import email
+import email.policy
 import mailbox
 import pygit2
 import re
 import smtplib
 import subprocess
 import sys
-from email.policy import SMTPUTF8, SMTP
 from email.utils import make_msgid, parseaddr
 from email.message import EmailMessage
-from email.header import decode_header, make_header
 from flask import Blueprint, render_template, abort, request, url_for, session
 from flask import redirect
 from gitsrht.git import Repository as GitRepository, commit_time, diffstat
@@ -142,9 +141,13 @@ def prepare_patchset(repo, git_repo, cover_letter=None, extra_headers=False,
         ntf.write(p.stdout)
         ntf.flush()
 
-        policy = SMTPUTF8.clone(max_line_length=998)
-        factory = lambda f: email.message_from_bytes(f.read(), policy=policy)
-        mbox = mailbox.mbox(ntf.name)
+        # By default mailbox.mbox creates email.Message objects. We want the
+        # more modern email.EmailMessage class which handles things like header
+        # continuation lines better. For this reason we need to explicitly
+        # specify a policy via a factory.
+        policy = email.policy.default
+        factory = lambda f: email.message_from_binary_file(f, policy=policy)
+        mbox = mailbox.mbox(ntf.name, factory=factory)
         emails = list(mbox)
 
         if cover_letter:
@@ -152,36 +155,36 @@ def prepare_patchset(repo, git_repo, cover_letter=None, extra_headers=False,
             del emails[0]["Subject"]
             emails[0]["Subject"] = (subject
                     .replace("*** SUBJECT HERE ***", cover_letter_subject))
-            body = emails[0].get_payload(decode=True).decode()
+            body = emails[0].get_content()
             cover_letter = "\n".join(wrapper.wrap(cover_letter))
             body = body.replace("*** BLURB HERE ***", cover_letter)
-            emails[0].set_payload(body)
+            emails[0].set_content(body)
 
-        for i, email in enumerate(emails[(1 if cover_letter else 0):]):
+        for i, msg in enumerate(emails[(1 if cover_letter else 0):]):
             commentary = valid.optional(f"commentary_{i}")
             if not commentary:
                 commentary = session.get(f"commentary_{i}")
             if not commentary:
                 continue
             commentary = "\n".join(wrapper.wrap(commentary))
-            body = email.get_payload(decode=True).decode()
+            body = msg.get_payload(decode=True).decode()
             body = commentary_re.sub(r"---\n" + commentary.replace(
                 "\\", r"\\") + r"\n\n\g<context>", body, count=1)
-            email.set_payload(body)
+            msg.set_payload(body)
 
         if extra_headers:
             msgid = make_msgid().split("@")
-            for i, email in enumerate(emails):
-                email["Message-ID"] = f"{msgid[0]}-{i}@{msgid[1]}"
-                email["X-Mailer"] = "git.sr.ht"
-                email["Reply-to"] = (f"{current_user.canonical_name} " +
+            for i, msg in enumerate(emails):
+                msg["Message-ID"] = f"{msgid[0]}-{i}@{msgid[1]}"
+                msg["X-Mailer"] = "git.sr.ht"
+                msg["Reply-to"] = (f"{current_user.canonical_name} " +
                     f"<{current_user.email}>")
                 if i != 0:
-                    email["In-Reply-To"] = f"{msgid[0]}-{0}@{msgid[1]}"
+                    msg["In-Reply-To"] = f"{msgid[0]}-{0}@{msgid[1]}"
                 if to:
-                    email["To"] = to
+                    msg["To"] = to
                 if cc:
-                    email["Cc"] = cc
+                    msg["Cc"] = cc
 
         return emails
 
@@ -303,13 +306,12 @@ def send_email_send(owner, repo):
         # the message with the same header and body to fix that.
         # TODO: remove cte_type once [1] is merged
         # [1]: https://github.com/python/cpython/pull/8303
-        for i, email in enumerate(emails):
-            encoded = EmailMessage(policy=SMTP.clone(cte_type='7bit'))
-            for (k, v) in email.items():
-                v = str(make_header(decode_header(v)))
+        policy = email.policy.SMTP.clone(cte_type="7bit")
+        for i, msg in enumerate(emails):
+            encoded = EmailMessage(policy=policy)
+            for (k, v) in msg.items():
                 encoded.add_header(k, v)
-            body = email.get_payload(decode=True).decode()
-            encoded.set_content(body)
+            encoded.set_content(msg.get_content())
             emails[i] = encoded
 
         # TODO: Send emails asyncronously
@@ -319,9 +321,9 @@ def send_email_send(owner, repo):
             smtp.starttls()
             smtp.login(smtp_user, smtp_password)
         print("Sending to recipients", recipients)
-        for i, email in enumerate(emails):
+        for i, msg in enumerate(emails):
             session.pop("commentary_{i}", None)
-            smtp.send_message(email, smtp_from, recipients)
+            smtp.send_message(msg, smtp_from, recipients)
         smtp.quit()
 
         # TODO: If we're connected to a lists.sr.ht address, link to their URL
