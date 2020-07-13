@@ -5,7 +5,7 @@ go 1.14
 require (
 	git.sr.ht/~sircmpwn/getopt v0.0.0-20191230200459-23622cc906b3
 	git.sr.ht/~sircmpwn/go-bare v0.0.0-20200623145341-debb068b456a // indirect
-	git.sr.ht/~sircmpwn/gql.sr.ht v0.0.0-20200612165341-a069568d2138
+	git.sr.ht/~sircmpwn/gql.sr.ht v0.0.0-20200713173736-e357c3b281fd
 	github.com/99designs/gqlgen v0.11.4-0.20200512031635-40570d1b4d70
 	github.com/Masterminds/squirrel v1.4.0
 	github.com/agnivade/levenshtein v1.1.0 // indirect

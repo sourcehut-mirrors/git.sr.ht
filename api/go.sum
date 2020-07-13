@@ -7,6 +7,8 @@ git.sr.ht/~sircmpwn/gql.sr.ht v0.0.0-20200608172945-9ecf6d2cf9c2 h1:gEkvj5toEIU9
 git.sr.ht/~sircmpwn/gql.sr.ht v0.0.0-20200608172945-9ecf6d2cf9c2/go.mod h1:V38DHc2+k1GmbNT4pE6OH/2fOXYcZHn9o/PUAEXH1P0=
 git.sr.ht/~sircmpwn/gql.sr.ht v0.0.0-20200612165341-a069568d2138 h1:z7xo4KIDE1HDEHpSN4Vop8p0iG43RAkGdRVxXbCvblM=
 git.sr.ht/~sircmpwn/gql.sr.ht v0.0.0-20200612165341-a069568d2138/go.mod h1:V38DHc2+k1GmbNT4pE6OH/2fOXYcZHn9o/PUAEXH1P0=
+git.sr.ht/~sircmpwn/gql.sr.ht v0.0.0-20200713173736-e357c3b281fd h1:ZP3ZPyWOQw+g2q9tfYKjahA7mPDAjk+5c0kNpDW8RwY=
+git.sr.ht/~sircmpwn/gql.sr.ht v0.0.0-20200713173736-e357c3b281fd/go.mod h1:V38DHc2+k1GmbNT4pE6OH/2fOXYcZHn9o/PUAEXH1P0=
 github.com/99designs/gqlgen v0.11.4-0.20200512031635-40570d1b4d70 h1:bZj4qAWfwu0SFTx5QsEI+y7JTji7L7ndm6snyDEIVLs=
 github.com/99designs/gqlgen v0.11.4-0.20200512031635-40570d1b4d70/go.mod h1:RgX5GRRdDWNkh4pBrdzNpNPFVsdoUFY2+adM6nb1N+4=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
