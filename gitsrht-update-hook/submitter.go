@@ -271,7 +271,7 @@ func SubmitBuild(submitter BuildSubmitter) ([]BuildSubmission, error) {
 			Tags     []string `json:"tags"`
 		}{
 			Manifest: yaml,
-			Tags:     []string{submitter.GetRepoName(), name},
+			Tags:     []string{submitter.GetRepoName(), "commits", name},
 			Note:     submitter.GetCommitNote(),
 		}
 		bodyBytes, err := json.Marshal(&submission)
