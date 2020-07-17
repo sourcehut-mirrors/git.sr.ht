@@ -170,6 +170,7 @@ func postUpdate() {
 	if err != nil {
 		logger.Fatalf("Failed to parse redis host: %v", err)
 	}
+	nbuilds := 0
 	redis := goredis.NewClient(ropts)
 	for i, refname := range refs {
 		var oldref, newref string
@@ -233,7 +234,7 @@ func postUpdate() {
 		}
 		oids[commit.Hash.String()] = nil
 
-		if buildOrigin != "" {
+		if buildOrigin != "" && nbuilds < 4 {
 			submitter := GitBuildSubmitter{
 				BuildOrigin: buildOrigin,
 				Commit:      commit,
@@ -260,6 +261,7 @@ func postUpdate() {
 			for _, result := range results {
 				log.Printf("\033[94m%s\033[0m [%s]", result.Url, result.Name)
 			}
+			nbuilds += len(results)
 		}
 	}
 
