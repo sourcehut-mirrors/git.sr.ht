@@ -231,7 +231,7 @@ func main() {
 
 		if err := row.Scan(&repoId, &repoName, &repoOwnerId, &repoOwnerName,
 			&repoVisibility, &pusherType, &pusherSuspendNotice,
-			&accessGrant); err != nil {
+			&accessGrant); err == sql.ErrNoRows {
 
 			logger.Printf("Lookup failed: %v", err)
 
@@ -312,6 +312,9 @@ func main() {
 
 				logger.Printf("Autocreated repo %s", path)
 			}
+		} else if err != nil {
+			log.Println("A temporary error has occured. Please try again.")
+			logger.Fatal("Error occured looking up repo: %v", err)
 		} else {
 			log.Printf("\033[93mNOTICE\033[0m: This repository has moved.")
 			log.Printf("Please update your remote to:")
