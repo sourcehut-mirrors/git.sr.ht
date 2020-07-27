@@ -14,7 +14,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/fernet/fernet-go"
-	"github.com/microcosm-cc/bluemonday"
 	"github.com/pkg/errors"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
@@ -169,14 +168,13 @@ func indent(indent, s string) string {
 }
 
 func (submitter GitBuildSubmitter) GetCommitNote() string {
-	policy := bluemonday.StrictPolicy()
 	commitUrl := fmt.Sprintf("%s/~%s/%s/commit/%s", submitter.GitOrigin,
 		submitter.OwnerName, submitter.RepoName,
 		submitter.GetCommitId())
 	return fmt.Sprintf("[%s][0] — [%s][1]\n\n%s\n\n[0]: %s\n[1]: mailto:%s",
 		submitter.GetCommitId()[:7],
 		submitter.Commit.Author.Name,
-		indent("    ", policy.Sanitize(firstLine(submitter.Commit.Message))),
+		indent("    ", firstLine(submitter.Commit.Message)),
 		commitUrl, submitter.Commit.Author.Email)
 }
 
