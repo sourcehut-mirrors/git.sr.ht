@@ -62,15 +62,13 @@ def render_empty_repo(owner, repo):
     return render_template("empty-repo.html", owner=owner, repo=repo,
             clone_urls=urls)
 
-def get_last_3_commits(commit):
-    commits = [commit]
-    for parent in commit.parents:
-        commits.append(parent)
-        for grandparent in parent.parents:
-            commits.append(grandparent)
-
-    commits = sorted(commits, key=lambda c: commit_time(c), reverse=True)
-    return commits[:3]
+def get_last_3_commits(git_repo, commit):
+    commits = list()
+    for c in git_repo.walk(commit.id, pygit2.GIT_SORT_TOPOLOGICAL):
+        commits.append(c)
+        if len(commits) >= 3:
+            break
+    return commits
 
 @repo.route("/<owner>/<repo>")
 def summary(owner, repo):
@@ -82,7 +80,7 @@ def summary(owner, repo):
 
         default_branch = git_repo.default_branch()
         tip = git_repo.get(default_branch.target)
-        commits = get_last_3_commits(tip)
+        commits = get_last_3_commits(git_repo, tip)
         link_prefix = url_for(
             'repo.tree', owner=repo.owner, repo=repo.name,
             ref=f"{default_branch.name}/")  # Trailing slash needed
