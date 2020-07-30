@@ -417,7 +417,8 @@ def commit(owner, repo, ref):
         return render_template("commit.html", view="log",
             owner=owner, repo=repo, ref=ref, refs=refs,
             commit=commit, parent=parent,
-            diff=diff, diffstat=diffstat, pygit2=pygit2)
+            diff=diff, diffstat=diffstat, pygit2=pygit2,
+            default_branch=git_repo.default_branch())
 
 @repo.route("/<owner>/<repo>/commit/<path:ref>.patch")
 def patch(owner, repo, ref):
@@ -469,9 +470,9 @@ def refs(owner, repo):
                 git_repo.branches[branch],
                 git_repo.get(git_repo.branches[branch].target)
             ) for branch in git_repo.branches.local]
-        default_branch = git_repo.default_branch().name
+        default_branch = git_repo.default_branch()
         branches = sorted(branches,
-                key=lambda b: (b[1].name == default_branch, b[2].commit_time),
+                key=lambda b: (b[1].name == default_branch.name, b[2].commit_time),
                 reverse=True)
 
         results_per_page = 10
@@ -493,7 +494,8 @@ def refs(owner, repo):
         return render_template("refs.html", view="refs",
                 owner=owner, repo=repo, tags=tags, branches=branches,
                 git_repo=git_repo, isinstance=isinstance, pygit2=pygit2,
-                page=page + 1, total_pages=total_pages)
+                page=page + 1, total_pages=total_pages,
+                default_branch=default_branch)
 
 
 @repo.route("/<owner>/<repo>/refs/rss.xml")
@@ -540,4 +542,4 @@ def ref(owner, repo, ref):
                 .filter(Artifact.commit == tag.target.hex)).all()
         return render_template("ref.html", view="refs",
                 owner=owner, repo=repo, git_repo=git_repo, tag=tag,
-                artifacts=artifacts)
+                artifacts=artifacts, default_branch=git_repo.default_branch())

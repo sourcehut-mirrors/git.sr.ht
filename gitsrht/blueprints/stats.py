@@ -38,4 +38,5 @@ def contributors(owner, repo):
         chart_data = get_contrib_chart_data(contributions)
 
     return render_template("contributors.html", view="contributors",
-        owner=owner, repo=repo, chart_data=chart_data)
+        owner=owner, repo=repo, chart_data=chart_data,
+        default_branch=default_branch)
