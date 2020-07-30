@@ -1,0 +1,29 @@
+{% set info_action=url_for("manage_git.settings_info_git_POST",
+                    owner_name=owner.canonical_name, repo_name=repo.name) %}
+{% extends "bases/scmsettings_info.html" %}
+
+{% block extrafields %}
+<div class="form-group">
+  <label for="default_branch_name">
+    Default branch
+  </label>
+  <select
+    class="form-control {{valid.cls('default_branch_name')}}"
+    id="default_branch_name"
+    name="default_branch_name"
+    {% if repo.git_repo.is_empty %}disabled{% endif %}
+  >
+    {% set default_branch_name = repo.git_repo.default_branch_name() or "" %}
+    {% for branch in repo.git_repo.branches %}
+      <option
+        value="{{branch}}"
+        {% if branch == default_branch_name %}
+          selected
+        {% endif %}>{{branch}}</option>
+    {% else %}
+      <option>No branches</option>
+    {% endfor %}
+  </select>
+  {{valid.summary('default_branch_name')}}
+</div>
+{% endblock %}

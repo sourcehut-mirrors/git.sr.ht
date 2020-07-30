@@ -25,6 +25,7 @@ class GitApp(ScmSrhtFlask):
         from gitsrht.blueprints.api import plumbing, porcelain
         from gitsrht.blueprints.artifacts import artifacts
         from gitsrht.blueprints.email import mail
+        from gitsrht.blueprints.manage import manage
         from gitsrht.blueprints.repo import repo
         from gitsrht.blueprints.stats import stats
         from srht.graphql import gql_blueprint
@@ -32,6 +33,7 @@ class GitApp(ScmSrhtFlask):
         self.register_blueprint(plumbing)
         self.register_blueprint(porcelain)
         self.register_blueprint(mail)
+        self.register_blueprint(manage)
         self.register_blueprint(repo)
         self.register_blueprint(stats)
         self.register_blueprint(webhooks_notify)
