@@ -3,6 +3,7 @@ import sqlalchemy as sa
 from sqlalchemy import event
 from srht.database import Base
 from srht.oauth import ExternalUserMixin, ExternalOAuthTokenMixin
+from gitsrht.git import Repository as GitRepository
 from scmsrht.repos import BaseAccessMixin, BaseRedirectMixin
 from scmsrht.repos import BaseRepositoryMixin, RepoVisibility
 
@@ -19,6 +20,8 @@ class Redirect(Base, BaseRedirectMixin):
     pass
 
 class Repository(Base, BaseRepositoryMixin):
+    _git_repo = None
+
     def update_visibility(self):
         if not os.path.exists(self.path):
             # Repo dir not initialized yet
@@ -33,6 +36,12 @@ class Repository(Base, BaseRepositoryMixin):
                 pass
         elif not should_exist and os.path.exists(path):
             os.unlink(path)
+
+    @property
+    def git_repo(self):
+        if not self._git_repo:
+            self._git_repo = GitRepository(self.path)
+        return self._git_repo
 
 def update_visibility_event(mapper, connection, target):
     target.update_visibility()

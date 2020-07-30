@@ -60,6 +60,13 @@ class Repository(GitRepository):
             branch = self.branches.get(branch)
         return branch
 
+    def default_branch_name(self):
+        branch = self.default_branch()
+        if branch:
+            return branch.name[len("refs/heads/"):]
+        else:
+            return None
+
     @property
     def is_empty(self):
         return len(list(self.branches.local)) == 0

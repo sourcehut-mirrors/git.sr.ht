@@ -1,6 +1,5 @@
 {% macro breadcrumb(ref, repo, path, path_join) %}
-{# TODO: Default branches other than master #}
-{% if ref != "master" %}
+{% if ref != repo.git_repo.default_branch_name() %}
 <span style="margin-right: 1rem">
   <span class="text-muted">ref:</span> {{ ref }}
 </span>
