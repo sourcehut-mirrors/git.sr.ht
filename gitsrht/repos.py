@@ -90,6 +90,11 @@ class GitRepoApi(SimpleRepoApi):
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.run(["git", "config", "srht.repo-id", str(repo.id)], check=True,
             cwd=repo.path, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # We handle this ourselves in the post-update hook, and git's
+        # default behaviour is to print a large notice and reject the push entirely
+        subprocess.run(["git", "config", "receive.denyDeleteCurrent", "ignore"],
+            check=True, cwd=repo.path,
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.run(["ln", "-s",
                 post_update,
                 os.path.join(repo.path, "hooks", "pre-receive")
