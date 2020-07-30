@@ -14,6 +14,7 @@ import (
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"gopkg.in/src-d/go-git.v4/plumbing/storer"
 )
 
 func printAutocreateInfo(context PushContext) {
@@ -265,6 +266,51 @@ func postUpdate() {
 				log.Printf("\033[94m%s\033[0m [%s]", result.Url, result.Name)
 			}
 			nbuilds += len(results)
+		}
+	}
+
+	// Check if HEAD's dangling (i.e. the default branch doesn't exist)
+	// if so, try to find a branch from this push to set as the default
+	// if none were found, set the first branch in iteration order as default
+	head, err := repo.Reference("HEAD", false)
+	if err != nil {
+		logger.Fatalf("repo.Reference(\"HEAD\"): %v", err)
+	}
+
+	danglingHead := false
+	if _, err = repo.Reference(head.Target(), false); err != nil {
+		danglingHead = true
+	}
+
+	if danglingHead {
+		logger.Printf("HEAD dangling at %s", head.Target())
+
+		cbk := func(ref *plumbing.Reference) error {
+			if ref == nil {
+				return nil
+			}
+
+			logger.Printf("Setting HEAD to %s", ref.Name())
+			log.Printf("Default branch updated to %s", ref.Name()[len("refs/heads/"):])
+			repo.Storer.SetReference(plumbing.NewSymbolicReference("HEAD", ref.Name()))
+			danglingHead = false
+			return storer.ErrStop
+		}
+		for _, refName := range refs {
+			if !strings.HasPrefix(refName, "refs/heads/") {
+				continue
+			}
+
+			ref, _ := repo.Reference(plumbing.ReferenceName(refName), false)
+			if cbk(ref) != nil {
+				break
+			}
+		}
+
+		if danglingHead {
+			if branches, _ := repo.Branches(); branches != nil {
+				branches.ForEach(cbk)
+			}
 		}
 	}
 
