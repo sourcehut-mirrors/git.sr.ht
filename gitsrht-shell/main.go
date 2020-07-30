@@ -300,9 +300,14 @@ func main() {
 					notFound("git init", err)
 				}
 				if err = exec.Command("git", "-C", path, "config",
+					"srht.repo-id", strconv.Itoa(repoId)).Run(); err != nil {
+
+					notFound("git config srht.repo-id", err)
+				}
+				if err = exec.Command("git", "-C", path, "config",
 					"receive.denyDeleteCurrent", "ignore").Run(); err != nil {
 
-					notFound("git config", err)
+					notFound("git config receive.denyDeleteCurrent", err)
 				}
 				if err = exec.Command("ln", "-s", postUpdate,
 					gopath.Join(path, "hooks", "update")).Run(); err != nil {
