@@ -387,6 +387,7 @@ def log_rss(owner, repo, ref):
         if not isinstance(commit, pygit2.Commit):
             abort(404)
         commits = get_log(git_repo, commit)
+        default_branch = git_repo.default_branch_name()
 
     repo_name = f"{repo.owner.canonical_name}/{repo.name}"
     title = f"{repo_name} log"
@@ -394,7 +395,7 @@ def log_rss(owner, repo, ref):
     link = cfg("git.sr.ht", "origin") + url_for("repo.log",
         owner=repo.owner.canonical_name,
         repo=repo.name,
-        ref=ref if ref != "master" else None)
+        ref=ref if ref != default_branch else None)
 
     return generate_feed(repo, commits, title, link, description)
 
