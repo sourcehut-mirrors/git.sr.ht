@@ -13,7 +13,7 @@ def clone_urls(repo):
     ]
 
 def log_rss_url(repo, ref=None):
-    ref = ref if ref != "master" else None
+    ref = ref if ref != repo.git_repo.default_branch_name() else None
     return url_for("repo.log_rss",
         owner=repo.owner.canonical_name,
         repo=repo.name,
