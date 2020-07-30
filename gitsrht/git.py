@@ -52,13 +52,8 @@ class Repository(GitRepository):
         return super().get(ref)
 
     def default_branch(self):
-        branch = self.branches.get("master")
-        if not branch:
-            if not any(self.branches.local):
-                return None
-            branch = list(self.branches.local)[0]
-            branch = self.branches.get(branch)
-        return branch
+        head_ref = self.lookup_reference("HEAD")
+        return self.branches.get(head_ref.target[len("refs/heads/"):])
 
     def default_branch_name(self):
         branch = self.default_branch()
