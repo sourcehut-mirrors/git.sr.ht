@@ -259,7 +259,9 @@ func postUpdate() {
 			logger.Printf("Submitted %d builds for %s",
 				len(results), refname)
 			for _, result := range results {
-				log.Printf("[debug] builds.sr.ht response: \n%s", result.Response)
+				if _, ok := options["debug"]; ok {
+					log.Printf("[debug] builds.sr.ht response: \n%s", result.Response)
+				}
 				log.Printf("\033[94m%s\033[0m [%s]", result.Url, result.Name)
 			}
 			nbuilds += len(results)
