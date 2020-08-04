@@ -208,8 +208,9 @@ func (submitter GitBuildSubmitter) GetOwnerName() string {
 type BuildSubmission struct {
 	// TODO: Move errors into this struct and set up per-submission error
 	// tracking
-	Name string
-	Url  string
+	Name     string
+	Response string
+	Url      string
 }
 
 func configureRequestAuthorization(submitter BuildSubmitter,
@@ -319,6 +320,7 @@ func SubmitBuild(submitter BuildSubmitter) ([]BuildSubmission, error) {
 				submitter.GetBuildsOrigin(),
 				submitter.GetOwnerName(),
 				job.Id),
+			Response: string(respBytes),
 		})
 	}
 
