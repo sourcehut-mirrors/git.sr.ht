@@ -83,11 +83,15 @@ class GitRepoApi(SimpleRepoApi):
                 repository_class=Repository)
 
     def do_init_repo(self, owner, repo):
-        # Note: update gitsrht-shell when changing this
+        # Note: update gitsrht-shell when changing this,
+        # do_clone_repo(), or _repo_config_init()
         subprocess.run(["mkdir", "-p", repo.path], check=True,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.run(["git", "init", "--bare"], cwd=repo.path, check=True,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self._repo_config_init(repo)
+
+    def _repo_config_init(self, repo):
         subprocess.run(["git", "config", "srht.repo-id", str(repo.id)], check=True,
             cwd=repo.path, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         # We handle this ourselves in the post-update hook, and git's
@@ -123,13 +127,4 @@ class GitRepoApi(SimpleRepoApi):
         subprocess.run(["mkdir", "-p", repo.path], check=True,
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.run(["git", "clone", "--bare", source, repo.path])
-        subprocess.run(["git", "config", "srht.repo-id", str(repo.id)], check=True,
-            cwd=repo.path, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        subprocess.run(["ln", "-s",
-                post_update,
-                os.path.join(repo.path, "hooks", "update")
-            ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        subprocess.run(["ln", "-s",
-                post_update,
-                os.path.join(repo.path, "hooks", "post-update")
-            ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self._repo_config_init(repo)
