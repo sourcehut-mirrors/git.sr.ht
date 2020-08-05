@@ -29,8 +29,7 @@ def upgrade():
     print("Setting receive.denyDeleteCurrent=ignore")
     for repo in tqdm(session.query(Repository).all()):
         subprocess.run(["git", "config", "receive.denyDeleteCurrent", "ignore"],
-            check=True, cwd=repo.path,
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            cwd=repo.path, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 def downgrade():
@@ -38,5 +37,4 @@ def downgrade():
     session = Session(bind=bind)
     for repo in tqdm(session.query(Repository).all()):
         subprocess.run(["git", "config", "--unset", "receive.denyDeleteCurrent"],
-            check=True, cwd=repo.path,
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            cwd=repo.path, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
