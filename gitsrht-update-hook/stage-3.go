@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"os"
+	"strconv"
 
 	_ "github.com/lib/pq"
 )
@@ -30,10 +31,26 @@ func stage3() {
 
 	var subscriptions []WebhookSubscription
 	var deliveries []WebhookDelivery
-	if err := json.Unmarshal([]byte(os.Args[1]), &deliveries); err != nil {
+	deliveriesJsonLen, err := strconv.Atoi(os.Args[1])
+	if err != nil {
+		logger.Fatalf("deliveriesJson length \"%v\": %v", string(os.Args[1]), err)
+	}
+	deliveriesJson := make([]byte, deliveriesJsonLen)
+	if read, err := os.Stdin.Read(deliveriesJson); read != len(deliveriesJson) {
+		logger.Fatalf("Failed to read deliveries: %v, %v", read, err)
+	}
+	if err := json.Unmarshal(deliveriesJson, &deliveries); err != nil {
 		logger.Fatalf("Unable to unmarhsal delivery array: %v", err)
 	}
-	payload := []byte(os.Args[2])
+
+	payloadLen, err := strconv.Atoi(os.Args[2])
+	if err != nil {
+		logger.Fatalf("payload length \"%v\": %v", string(os.Args[2]), err)
+	}
+	payload := make([]byte, payloadLen)
+	if read, err := os.Stdin.Read(payload); read != len(payload) {
+		logger.Fatalf("Failed to read payload: %v, %v", read, err)
+	}
 
 	var rows *sql.Rows
 	if rows, err = db.Query(`

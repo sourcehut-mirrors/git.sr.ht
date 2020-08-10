@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -335,25 +336,35 @@ func postUpdate() {
 		return
 	}
 
-	// Run stage 3 asyncronously - the last few tasks can be done without
+	// Run stage 3 asynchronously - the last few tasks can be done without
 	// blocking the pusher's terminal.
-	wd, err := os.Getwd()
-	if err != nil {
+	var stage3Pipe [2]int
+	if err := syscall.Pipe(stage3Pipe[:]); err != nil {
 		log.Fatalf("Failed to execute stage 3: %v", err)
 	}
+	syscall.CloseOnExec(stage3Pipe[1])
 
 	procAttr := syscall.ProcAttr{
-		Dir:   wd,
-		Files: []uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd()},
+		Dir:   "",
+		Files: []uintptr{uintptr(stage3Pipe[0]), os.Stdout.Fd(), os.Stderr.Fd()},
 		Env:   os.Environ(),
 		Sys: &syscall.SysProcAttr{
 			Foreground: false,
 		},
 	}
 	pid, err := syscall.ForkExec(hook, []string{
-		"hooks/stage-3", string(deliveriesJson), string(payloadBytes),
+		"hooks/stage-3",
+		strconv.Itoa(len(deliveriesJson)), strconv.Itoa(len(payloadBytes)),
 	}, &procAttr)
 	if err != nil {
+		log.Fatalf("Failed to execute stage 3: %v", err)
+	}
+
+	stage3File := os.NewFile(uintptr(stage3Pipe[1]), "stage3 IPC")
+	if _, err = stage3File.Write(deliveriesJson); err != nil {
+		log.Fatalf("Failed to execute stage 3: %v", err)
+	}
+	if _, err = stage3File.Write(payloadBytes); err != nil {
 		log.Fatalf("Failed to execute stage 3: %v", err)
 	}
 
