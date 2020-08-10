@@ -10,6 +10,8 @@ import gitsrht.alembic
 import gitsrht.types
 import gitsrht.webhooks
 
+import srht.alembic
+
 from alembic import command
 from alembic.config import Config
 from srht.config import cfg
@@ -23,5 +25,10 @@ db.create()
 
 config = Config()
 config.set_main_option("sqlalchemy.url", connection_string)
+config.set_main_option("script_location", alembic_path)
+command.stamp(config, "head")
+
+alembic_path = list(srht.alembic.__path__)[0]
+
 config.set_main_option("script_location", alembic_path)
 command.stamp(config, "head")
