@@ -9,6 +9,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
+	"regexp"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -67,6 +69,8 @@ func initWebhookKey() {
 	}
 	privkey = ed25519.NewKeyFromSeed(seed)
 }
+
+var ansi = regexp.MustCompile("\x1B\\[[0-?]*[ -/]*[@-~]")
 
 func deliverWebhooks(subs []WebhookSubscription,
 	payload []byte, printResponse bool) []WebhookDelivery {
@@ -135,7 +139,10 @@ func deliverWebhooks(subs []WebhookSubscription,
 			continue
 		}
 		if printResponse {
-			log.Println(runewidth.Truncate(string(respBody), 1024, "..."))
+			u, _ := url.Parse(sub.Url) // Errors will have happened earlier
+			log.Println("Response from %s:", u.Host)
+			log.Println(runewidth.Truncate(ansi.ReplaceAllString(
+				string(respBody), ""), 1024, "..."))
 		}
 		logger.Printf("Delivered webhook to %s (sub %d), got %d",
 			sub.Url, sub.Id, resp.StatusCode)
