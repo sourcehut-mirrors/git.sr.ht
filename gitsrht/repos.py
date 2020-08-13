@@ -1,5 +1,6 @@
 import hashlib
 import os.path
+import pygit2
 import subprocess
 from gitsrht.types import Artifact, Repository, Redirect
 from minio import Minio
@@ -85,38 +86,28 @@ class GitRepoApi(SimpleRepoApi):
     def do_init_repo(self, owner, repo):
         # Note: update gitsrht-shell when changing this,
         # do_clone_repo(), or _repo_config_init()
-        subprocess.run(["mkdir", "-p", repo.path], check=True,
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        subprocess.run(["git", "init", "--bare"], cwd=repo.path, check=True,
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        self._repo_config_init(repo)
+        git_repo = pygit2.init_repository(repo.path, bare=True,
+            flags=pygit2.GIT_REPOSITORY_INIT_BARE |
+                  pygit2.GIT_REPOSITORY_INIT_MKPATH)
+        self._repo_config_init(repo, git_repo)
 
-    def _repo_config_init(self, repo):
-        subprocess.run(["git", "config", "srht.repo-id", str(repo.id)], check=True,
-            cwd=repo.path, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    def _repo_config_init(self, repo, git_repo):
+        git_repo.config["srht.repo-id"] = repo.id
         # We handle this ourselves in the post-update hook, and git's
         # default behaviour is to print a large notice and reject the push entirely
-        subprocess.run(["git", "config", "receive.denyDeleteCurrent", "ignore"],
-            check=True, cwd=repo.path,
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        subprocess.run(["ln", "-s",
-                post_update,
-                os.path.join(repo.path, "hooks", "pre-receive")
-            ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        subprocess.run(["ln", "-s",
-                post_update,
-                os.path.join(repo.path, "hooks", "update")
-            ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        subprocess.run(["ln", "-s",
-                post_update,
-                os.path.join(repo.path, "hooks", "post-update")
-            ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        git_repo.config["receive.denyDeleteCurrent"] = "ignore"
+        os.unlink(os.path.join(repo.path, "info", "exclude"))
+        os.unlink(os.path.join(repo.path, "hooks", "README.sample"))
+        os.unlink(os.path.join(repo.path, "description"))
+        os.symlink(post_update, os.path.join(repo.path, "hooks", "pre-receive"))
+        os.symlink(post_update, os.path.join(repo.path, "hooks", "update"))
+        os.symlink(post_update, os.path.join(repo.path, "hooks", "post-update"))
 
     def do_delete_repo(self, repo):
         from gitsrht.webhooks import RepoWebhook
         RepoWebhook.Subscription.query.filter(
                 RepoWebhook.Subscription.repo_id == repo.id).delete()
-        # TODO: Should we delete these asyncronously?
+        # TODO: Should we delete these asynchronously?
         for artifact in (Artifact.query
                 .filter(Artifact.user_id == repo.owner_id)
                 .filter(Artifact.repo_id == repo.id)):
@@ -124,7 +115,5 @@ class GitRepoApi(SimpleRepoApi):
         super().do_delete_repo(repo)
 
     def do_clone_repo(self, source, repo):
-        subprocess.run(["mkdir", "-p", repo.path], check=True,
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        subprocess.run(["git", "clone", "--bare", source, repo.path])
-        self._repo_config_init(repo)
+        git_repo = pygit2.clone_repository(source, repo.path, bare=True)
+        self._repo_config_init(repo, git_repo)

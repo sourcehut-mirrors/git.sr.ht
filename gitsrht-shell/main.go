@@ -17,6 +17,7 @@ import (
 	"github.com/google/shlex"
 	_ "github.com/lib/pq"
 	"github.com/vaughan0/go-ini"
+	"github.com/go-git/go-git/v5"
 )
 
 const (
@@ -299,33 +300,31 @@ func main() {
 				}
 
 				// Note: update gitsrht/repos.py when changing this
-				if err = exec.Command("mkdir", "-p", path).Run(); err != nil {
-					notFound("mkdir", err)
-				}
-				if err = exec.Command("git", "init",
-					"--bare", path).Run(); err != nil {
-
+				repo, err := git.PlainInit(path, true)
+				if err != nil {
 					notFound("git init", err)
 				}
-				if err = exec.Command("git", "-C", path, "config",
-					"srht.repo-id", strconv.Itoa(repoId)).Run(); err != nil {
-
-					notFound("git config srht.repo-id", err)
+				config, err := repo.Config()
+				if err != nil {
+					notFound("git config load", err)
 				}
-				if err = exec.Command("git", "-C", path, "config",
-					"receive.denyDeleteCurrent", "ignore").Run(); err != nil {
-
-					notFound("git config receive.denyDeleteCurrent", err)
+				// These two are set by default by git(1) and libgit2
+				config.Raw.SetOption("core", "", "repositoryformatversion", "0")
+				config.Raw.SetOption("core", "", "filemode", "true")
+				config.Raw.SetOption("srht", "", "repo-id", strconv.Itoa(repoId))
+				config.Raw.SetOption("receive", "", "denyDeleteCurrent", "ignore")
+				if err = repo.Storer.SetConfig(config); err != nil {
+					notFound("git config save", err)
 				}
-				if err = exec.Command("ln", "-s", postUpdate,
-					gopath.Join(path, "hooks", "update")).Run(); err != nil {
 
-					notFound("ln update", err)
+				hookdir := gopath.Join(path, "hooks")
+				if err = os.Mkdir(hookdir, os.ModePerm); err != nil {
+					notFound("git hook directory", err)
 				}
-				if err = exec.Command("ln", "-s", postUpdate,
-					gopath.Join(path, "hooks", "post-update")).Run(); err != nil {
-
-					notFound("ln post-update", err)
+				for _, hook := range []string{"pre-receive", "update", "post-update"} {
+					if err = os.Symlink(postUpdate, gopath.Join(hookdir, hook)); err != nil {
+						notFound(fmt.Sprintf("linking git hook %v"), err)
+					}
 				}
 
 				logger.Printf("Autocreated repo %s", path)
