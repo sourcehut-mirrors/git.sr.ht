@@ -288,36 +288,18 @@ def archive(owner, repo, ref):
         if not isinstance(commit, pygit2.Commit):
             abort(404)
 
-        path = f"/tmp/{commit.id.hex}{binascii.hexlify(os.urandom(8))}.tar.gz"
-        try:
-            args = [
-                "git",
-                "--git-dir", repo.path,
-                "archive",
-                "--format=tar.gz",
-                "--prefix", f"{repo.name}-{ref}/",
-                "-o", path, ref
-            ]
-            subp = subprocess.run(args, timeout=30,
-                    stdout=sys.stdout, stderr=sys.stderr)
-        except:
-            try:
-                os.unlink(path)
-            except:
-                pass
-            raise
+        args = [
+            "git",
+            "--git-dir", repo.path,
+            "archive",
+            "--format=tar.gz",
+            "--prefix", f"{repo.name}-{ref}/",
+            ref
+        ]
+        subp = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=sys.stderr)
 
-        if subp.returncode != 0:
-            try:
-                os.unlink(path)
-            except:
-                pass
-            return "Error preparing archive", 500
-
-        f = open(path, "rb")
-        os.unlink(path)
-        return send_file(f, mimetype="application/tar+gzip", as_attachment=True,
-                attachment_filename=f"{repo.name}-{ref}.tar.gz")
+        return send_file(subp.stdout, mimetype="application/tar+gzip",
+                as_attachment=True, attachment_filename=f"{repo.name}-{ref}.tar.gz")
 
 class _AnnotatedRef:
     def __init__(self, repo, ref):
