@@ -26,6 +26,7 @@ smtp_port = cfgi("mail", "smtp-port", default=None)
 smtp_user = cfg("mail", "smtp-user", default=None)
 smtp_password = cfg("mail", "smtp-password", default=None)
 smtp_from = cfg("mail", "smtp-from", default=None)
+outgoing_domain = cfg("git.sr.ht", "outgoing-domain")
 
 @mail.route("/<owner>/<repo>/send-email")
 @loginrequired
@@ -118,20 +119,26 @@ def prepare_patchset(repo, git_repo, cover_letter=None, extra_headers=False,
         if not valid.ok:
             return None
 
-        outgoing_domain = cfg("git.sr.ht", "outgoing-domain")
         args = [
             "git",
             "--git-dir", repo.path,
-            "-c", f"user.name=~{current_user.username}",
+            "-c", f"user.name={current_user.canonical_name}",
             "-c", f"user.email={current_user.username}@{outgoing_domain}",
             "format-patch",
-            f"--from=~{current_user.username} <{current_user.username}@{outgoing_domain}>",
+            f"--from={current_user.canonical_name} <{current_user.username}@{outgoing_domain}>",
             f"--subject-prefix=PATCH {repo.name}",
             "--stdout",
         ]
         if cover_letter:
             args += ["--cover-letter"]
-        args += [f"{start_commit}^..{end_commit}"]
+
+        start_rev = git_repo.get(start_commit)
+        if not start_rev:
+            abort(404)
+        if start_rev.parent_ids:
+            args += [f"{start_commit}^..{end_commit}"]
+        else:
+            args += ["--root", end_commit]
         print(args)
         p = subprocess.run(args, timeout=30,
                 stdout=subprocess.PIPE, stderr=sys.stderr)
@@ -213,10 +220,9 @@ def send_email_review(owner, repo):
             readme = "README"
 
         emails = prepare_patchset(repo, git_repo)
+        start = git_repo.get(start_commit)
+        tip = git_repo.get(end_commit)
         if not emails or not valid.ok:
-            tip = git_repo.get(end_commit)
-            start = git_repo.get(start_commit)
-
             log = get_log(git_repo, tip, until=start)
             diffs = list()
             for commit in log:
@@ -243,8 +249,8 @@ def send_email_review(owner, repo):
         return render_template("send-email-review.html",
                 view="send-email", owner=owner, repo=repo,
                 readme=readme, emails=emails,
-                start=git_repo.get(start_commit),
-                end=git_repo.get(end_commit),
+                start=start,
+                end=tip,
                 cover_letter=bool(cover_letter),
                 cover_letter_subject=cover_letter_subject)
 
