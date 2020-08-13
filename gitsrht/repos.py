@@ -96,6 +96,7 @@ class GitRepoApi(SimpleRepoApi):
         # We handle this ourselves in the post-update hook, and git's
         # default behaviour is to print a large notice and reject the push entirely
         git_repo.config["receive.denyDeleteCurrent"] = "ignore"
+        git_repo.config["receive.advertisePushOptions"] = True
         os.unlink(os.path.join(repo.path, "info", "exclude"))
         os.unlink(os.path.join(repo.path, "hooks", "README.sample"))
         os.unlink(os.path.join(repo.path, "description"))

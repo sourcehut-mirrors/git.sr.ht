@@ -313,6 +313,7 @@ func main() {
 				config.Raw.SetOption("core", "", "filemode", "true")
 				config.Raw.SetOption("srht", "", "repo-id", strconv.Itoa(repoId))
 				config.Raw.SetOption("receive", "", "denyDeleteCurrent", "ignore")
+				config.Raw.SetOption("receive", "", "advertisePushOptions", "true")
 				if err = repo.Storer.SetConfig(config); err != nil {
 					notFound("git config save", err)
 				}
