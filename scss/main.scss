@@ -16,6 +16,10 @@ pre {
   background: transparent;
 }
 
+dt {
+  overflow-wrap: break-word;
+}
+
 .tree-list {
   display: grid;
   // mode name
