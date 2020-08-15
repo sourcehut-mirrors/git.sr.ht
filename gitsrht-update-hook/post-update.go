@@ -10,12 +10,12 @@ import (
 	"strings"
 	"syscall"
 
-	goredis "github.com/go-redis/redis"
-	_ "github.com/lib/pq"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/storer"
+	goredis "github.com/go-redis/redis"
+	_ "github.com/lib/pq"
 )
 
 func printAutocreateInfo(context PushContext) {
@@ -39,19 +39,22 @@ type DbInfo struct {
 	SyncWebhooks  []WebhookSubscription
 }
 
-func fetchInfoForPush(db *sql.DB, repoId int) (DbInfo, error) {
+func fetchInfoForPush(db *sql.DB, repoId int, newDescription *string,
+	newVisibility *string) (DbInfo, error) {
 	var dbinfo DbInfo = DbInfo{RepoId: repoId}
 
 	// With this query, we:
 	// 1. Fetch the owner's username and OAuth token
 	// 2. Fetch the repository's name and visibility
-	// 3. Update the repository's mtime
+	// 3. Update the repository's mtime, description, visibility
 	// 4. Determine how many webhooks this repo has: if there are zero sync
 	//    webhooks then we can defer looking them up until after we've sent the
 	//    user on their way.
 	query, err := db.Prepare(`
 		UPDATE repository repo
-		SET updated = NOW() AT TIME ZONE 'UTC'
+		SET updated     = NOW() AT TIME ZONE 'UTC',
+		    description = COALESCE($2, repo.description),
+		    visibility  = COALESCE($3, repo.visibility)
 		FROM (
 			SELECT "user".username, "user".oauth_token
 			FROM "user"
@@ -79,9 +82,9 @@ func fetchInfoForPush(db *sql.DB, repoId int) (DbInfo, error) {
 	defer query.Close()
 
 	var nasync, nsync int
-	if err = query.QueryRow(repoId).Scan(&dbinfo.RepoName, &dbinfo.Visibility,
-		&dbinfo.OwnerUsername, &dbinfo.OwnerToken,
-		&nsync, &nasync); err != nil {
+	if err = query.QueryRow(repoId, newDescription, newVisibility).Scan(
+		&dbinfo.RepoName, &dbinfo.Visibility, &dbinfo.OwnerUsername,
+		&dbinfo.OwnerToken, &nsync, &nasync); err != nil {
 
 		return dbinfo, err
 	}
@@ -117,6 +120,29 @@ func fetchInfoForPush(db *sql.DB, repoId int) (DbInfo, error) {
 	return dbinfo, nil
 }
 
+func parseUpdatables() (*string, *string) {
+	loadOptions()
+	var desc, vis *string
+
+	if newDescription, ok := options["description"]; ok {
+		desc = &newDescription
+	}
+	if newVisibility, ok := options["visibility"]; ok {
+		vis = &newVisibility
+	}
+
+	if vis != nil {
+		lvis := strings.ToLower(*vis)
+		vis = &lvis
+		if *vis != "public" && *vis != "unlisted" && *vis != "private" {
+			log.Printf("Invalid visibility %v, can be one of: public, unlisted, private", *vis)
+			vis = nil
+		}
+	}
+
+	return desc, vis
+}
+
 func postUpdate() {
 	var context PushContext
 	refs := os.Args[1:]
@@ -134,11 +160,12 @@ func postUpdate() {
 		logger.Fatalf("unmarshal SRHT_PUSH_CTX: %v", err)
 	}
 
-	if context.Repo.Visibility == "autocreated" {
+	initSubmitter()
+
+	newDescription, newVisibility := parseUpdatables()
+	if context.Repo.Visibility == "autocreated" && newVisibility == nil {
 		printAutocreateInfo(context)
 	}
-
-	initSubmitter()
 
 	loadOptions()
 	payload := WebhookPayload{
@@ -159,7 +186,7 @@ func postUpdate() {
 		logger.Fatalf("Failed to open a database connection: %v", err)
 	}
 
-	dbinfo, err := fetchInfoForPush(db, context.Repo.Id)
+	dbinfo, err := fetchInfoForPush(db, context.Repo.Id, newDescription, newVisibility)
 	if err != nil {
 		logger.Fatalf("Failed to fetch info from database: %v", err)
 	}

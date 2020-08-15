@@ -26,7 +26,7 @@ func update() {
 
 	if !utf8.ValidString(refname) {
 		logger.Printf("Refusing ref '%s': not UTF-8", refname)
-		log.Printf("%s not valid UTF-8, see https://github.com/libgit2/pygit2/issues/1028 for more information", refname);
+		log.Printf("%s not valid UTF-8, see https://github.com/libgit2/pygit2/issues/1028 for more information", refname)
 		os.Exit(1)
 	}
 

@@ -14,9 +14,9 @@ import (
 	"unicode/utf8"
 
 	"github.com/fernet/fernet-go"
-	"github.com/pkg/errors"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/pkg/errors"
 )
 
 var (
