@@ -3,7 +3,7 @@
 {% block title %}
 <title>{{repo.owner.canonical_name}}/{{repo.name}}: {{path_join(*path)}} - {{cfg("sr.ht", "site-name")}} git</title>
 {% endblock %}
-{% block content %}
+{% block head %}
 <style>
 pre {
   tab-size: {{editorconfig.tab_width()}}
@@ -13,6 +13,8 @@ pre, body {
   margin-bottom: 0;
 }
 </style>
+{% endblock %}
+{% block content %}
 <div class="header-extension" style="margin-bottom: 0;">
   <div class="blob container-fluid">
     <span>

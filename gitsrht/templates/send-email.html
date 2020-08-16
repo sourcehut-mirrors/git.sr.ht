@@ -3,7 +3,7 @@
 {% block title %}
 <title>Preparing patchset for {{repo.owner.canonical_name}}/{{repo.name}} - {{cfg("sr.ht", "site-name")}} git</title>
 {% endblock %}
-{% block body %} 
+{% block body %}
 <div class="header-tabbed">
   <div class="container">
     <ul class="nav nav-tabs">
@@ -112,7 +112,11 @@
   </div>
   <div class="clearfix"></div>
   {% endfor %}
-  <style>
+</form>
+{% endblock %}
+
+{% block head %}
+<style>
   .event-list.commit-list, .form-controls {
     display: none;
   }
@@ -126,6 +130,5 @@
     display: block;
   }
   {% endfor %}
-  </style>
-</form>
+</style>
 {% endblock %}

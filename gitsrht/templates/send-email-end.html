@@ -3,7 +3,7 @@
 {% block title %}
 <title>Preparing patchset for {{repo.owner.canonical_name}}/{{repo.name}} - {{cfg("sr.ht", "site-name")}} git</title>
 {% endblock %}
-{% block body %} 
+{% block body %}
 <div class="header-tabbed">
   <div class="container">
     <ul class="nav nav-tabs">
@@ -115,20 +115,23 @@
       <button class="btn btn-primary">Continue {{icon("caret-right")}}</a>
     </div>
   </div>
-  <style>
-    .commit-diff {
-      display: none;
-    }
-
-    {% for c in commits %}
-    {% for d in commits[loop.index-1:] %}
-    #commit-{{c.oid.hex}}:checked ~ #commit-diff-{{d.oid.hex}}
-    {%- if not loop.last %},{% endif %}
-    {% endfor %}
-    {
-      display: block;
-    }
-    {% endfor %}
-  </style>
 </form>
+{% endblock %}
+
+{% block head %}
+<style>
+  .commit-diff {
+    display: none;
+  }
+
+  {% for c in commits %}
+  {% for d in commits[loop.index-1:] %}
+  #commit-{{c.oid.hex}}:checked ~ #commit-diff-{{d.oid.hex}}
+  {%- if not loop.last %},{% endif %}
+  {% endfor %}
+  {
+    display: block;
+  }
+  {% endfor %}
+</style>
 {% endblock %}
