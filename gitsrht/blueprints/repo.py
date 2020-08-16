@@ -6,7 +6,7 @@ import pygments
 import subprocess
 import sys
 from datetime import timedelta
-from flask import Blueprint, render_template, abort, send_file, request
+from flask import Blueprint, render_template, abort, current_app, send_file, request
 from flask import Response, url_for, session, redirect
 from gitsrht.editorconfig import EditorConfig
 from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
@@ -245,40 +245,80 @@ def tree(owner, repo, ref, path):
         return render_template("tree.html", view="tree", owner=owner, repo=repo,
                 ref=ref, commit=commit, tree=tree, path=path)
 
+def resolve_blob(git_repo, ref, path):
+    commit, ref, path = lookup_ref(git_repo, ref, path)
+    if not isinstance(commit, pygit2.Commit):
+        abort(404)
+
+    blob = None
+    entry = None
+    tree = commit.tree
+    orig_commit = commit
+    path = path.split("/")
+    for part in path:
+        if part == "":
+            continue
+        if part not in tree:
+            abort(404)
+        entry = tree[part]
+        etype = (entry.type_str
+                if hasattr(entry, "type_str") else entry.type)
+        if etype == "blob":
+            tree = annotate_tree(git_repo, tree, commit)
+            commit = next(e.commit for e in tree if e.name == entry.name)
+            blob = git_repo.get(entry.id)
+            break
+        tree = git_repo.get(entry.id)
+
+    if not blob:
+        abort(404)
+
+    return orig_commit, ref, path, blob, entry
+
 @repo.route("/<owner>/<repo>/blob/<path:ref>/<path:path>")
 def raw_blob(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
-        commit, ref, path = lookup_ref(git_repo, ref, path)
-        if not isinstance(commit, pygit2.Commit):
-            abort(404)
-
-        blob = None
-        entry = None
-        tree = commit.tree
-        path = path.split("/")
-        for part in path:
-            if part == "":
-                continue
-            if part not in tree:
-                abort(404)
-            entry = tree[part]
-            etype = (entry.type_str
-                    if hasattr(entry, "type_str") else entry.type)
-            if etype == "blob":
-                tree = annotate_tree(git_repo, tree, commit)
-                commit = next(e.commit for e in tree if e.name == entry.name)
-                blob = git_repo.get(entry.id)
-                break
-            tree = git_repo.get(entry.id)
-
-        if not blob:
-            abort(404)
+        orig_commit, ref, path, blob, entry = resolve_blob(git_repo, ref, path)
 
         return send_file(BytesIO(blob.data),
                 as_attachment=blob.is_binary,
                 attachment_filename=entry.name,
                 mimetype="text/plain" if not blob.is_binary else None)
+
+def _lookup_user(email, cache):
+    if email not in cache:
+        cache[email] = current_app.lookup_user(email)
+    return cache[email]
+
+def lookup_user():
+    cache = {}
+    return lambda email: _lookup_user(email, cache)
+
+@repo.route("/<owner>/<repo>/blame/<path:ref>", defaults={"path": ""})
+@repo.route("/<owner>/<repo>/blame/<ref>/<path:path>")
+def blame(owner, repo, ref, path):
+    owner, repo = get_repo_or_redir(owner, repo)
+    with GitRepository(repo.path) as git_repo:
+        orig_commit, ref, path, blob, entry = resolve_blob(git_repo, ref, path)
+        if blob.is_binary:
+            return redirect(url_for("repo.log",
+                owner=repo.owner.canonical_name, repo=repo.name, ref=ref,
+                path="/".join(path)))
+
+        try:
+            blame = git_repo.blame("/".join(path), newest_commit=orig_commit.oid)
+        except KeyError as ke:  # Path not in the tree
+            abort(404)
+        except ValueError:
+            # ValueError: object at path 'hubsrht/' is not of the asked-for type 3
+            abort(400)
+
+        return render_template("blame.html", view="blame", owner=owner,
+                repo=repo, ref=ref, path=path, entry=entry, blob=blob,
+                blame=blame, commit=orig_commit, highlight_file=_highlight_file,
+                editorconfig=EditorConfig(git_repo, orig_commit.tree, path),
+                lookup_user=lookup_user())
 
 @repo.route("/<owner>/<repo>/archive/<path:ref>.tar.gz")
 def archive(owner, repo, ref):

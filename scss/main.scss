@@ -81,11 +81,37 @@ dt {
 
 .code-view {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto auto auto 1fr;
   grid-template-rows: auto;
 
-  .lines {
+  .blame-user {
     grid-column-start: 1;
+    grid-row-start: 1;
+    background: #ddd;
+
+    .hunk {
+      padding-left: 0.5rem;
+    }
+  }
+
+  .blame-time {
+    grid-column-start: 2;
+    grid-row-start: 1;
+    background: #ddd;
+    border-right: 1px solid #444;
+    text-align: right;
+
+    .hunk {
+      padding-right: 0.5rem;
+    }
+  }
+
+  .hunk:nth-child(2n) {
+    background: #eee;
+  }
+
+  .lines {
+    grid-column-start: 3;
     grid-row-start: 1;
     border-right: 1px solid #444;
     text-align: right;
@@ -106,7 +132,7 @@ dt {
   }
 
   .highlight {
-    grid-column-start: 2;
+    grid-column-start: 4;
     grid-row-start: 1;
     padding-left: 1rem;
     background: transparent;
@@ -119,7 +145,7 @@ dt {
 
   .ruler {
     background: transparent;
-    grid-column-start: 2;
+    grid-column-start: 4;
     grid-row-start: 1;
     display: block;
     padding-left: calc(1rem + 4px);
