@@ -57,11 +57,6 @@
           owner=repo.owner.canonical_name,
           repo=repo.name), "refs")}}
       </li>
-      <li class="nav-item">
-        {{link(url_for("stats.contributors",
-          owner=repo.owner.canonical_name,
-          repo=repo.name), "contributors")}}
-      </li>
       {% if current_user.id == repo.owner_id %}
       <li class="nav-item">
         {{link(url_for("manage.settings_info",
