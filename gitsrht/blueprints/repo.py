@@ -305,6 +305,12 @@ def blame(owner, repo, ref, path):
             return redirect(url_for("repo.log",
                 owner=repo.owner.canonical_name, repo=repo.name, ref=ref,
                 path="/".join(path)))
+        try:
+            data = blob.data.decode()
+        except:
+            return redirect(url_for("repo.log",
+                owner=repo.owner.canonical_name, repo=repo.name, ref=ref,
+                path="/".join(path)))
 
         try:
             blame = git_repo.blame("/".join(path), newest_commit=orig_commit.oid)
@@ -315,7 +321,7 @@ def blame(owner, repo, ref, path):
             abort(400)
 
         return render_template("blame.html", view="blame", owner=owner,
-                repo=repo, ref=ref, path=path, entry=entry, blob=blob,
+                repo=repo, ref=ref, path=path, entry=entry, blob=blob, data=data,
                 blame=blame, commit=orig_commit, highlight_file=_highlight_file,
                 editorconfig=EditorConfig(git_repo, orig_commit.tree, path),
                 lookup_user=lookup_user())
