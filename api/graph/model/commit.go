@@ -3,7 +3,6 @@ package model
 import (
 	"context"
 
-	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
@@ -14,7 +13,7 @@ type Commit struct {
 	Raw     string     `json:"raw"`
 
 	commit *object.Commit
-	repo   *git.Repository
+	repo   *RepoWrapper
 }
 
 func (Commit) IsObject() {}
@@ -70,7 +69,7 @@ func (c *Commit) Parents() []*Commit {
 	return parents
 }
 
-func CommitFromObject(repo *git.Repository, obj *object.Commit) *Commit {
+func CommitFromObject(repo *RepoWrapper, obj *object.Commit) *Commit {
 	return &Commit{
 		Type:    ObjectTypeCommit,
 		ID:      obj.ID().String(),

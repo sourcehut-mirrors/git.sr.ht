@@ -10,11 +10,14 @@ type Reference struct {
 }
 
 func (r *Reference) Follow() Object {
-	ref, err := r.Repo.Repo().Reference(r.Ref.Name(), true)
+	repo := r.Repo.Repo()
+	repo.Lock()
+	ref, err := repo.Reference(r.Ref.Name(), true)
+	repo.Unlock()
 	if err != nil {
 		panic(err)
 	}
-	obj, err := LookupObject(r.Repo.Repo(), ref.Hash())
+	obj, err := LookupObject(repo, ref.Hash())
 	if err != nil {
 		println(err)
 		panic(err)

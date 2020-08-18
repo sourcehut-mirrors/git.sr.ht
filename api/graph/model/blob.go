@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"unicode/utf8"
 
-	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
@@ -18,7 +17,7 @@ type BinaryBlob struct {
 	Base64 string `json:"base64"`
 
 	blob  *object.Blob
-	repo  *git.Repository
+	repo  *RepoWrapper
 }
 
 func (BinaryBlob) IsObject() {}
@@ -33,13 +32,13 @@ type TextBlob struct {
 	Text string `json:"text"`
 
 	blob  *object.Blob
-	repo  *git.Repository
+	repo  *RepoWrapper
 }
 
 func (TextBlob) IsObject() {}
 func (TextBlob) IsBlob() {}
 
-func BlobFromObject(repo *git.Repository, obj *object.Blob) Object {
+func BlobFromObject(repo *RepoWrapper, obj *object.Blob) Object {
 	reader, err := obj.Reader()
 	if err != nil {
 		panic(err)

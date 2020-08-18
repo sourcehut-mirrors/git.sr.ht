@@ -172,11 +172,14 @@ func (r *referenceResolver) Artifacts(ctx context.Context, obj *model.Reference,
 		cursor = gqlmodel.NewCursor(nil)
 	}
 
-	ref, err := obj.Repo.Repo().Reference(obj.Ref.Name(), true)
+	repo := obj.Repo.Repo()
+	repo.Lock()
+	defer repo.Unlock()
+	ref, err := repo.Reference(obj.Ref.Name(), true)
 	if err != nil {
 		return nil, err
 	}
-	o, err := obj.Repo.Repo().Object(plumbing.TagObject, ref.Hash())
+	o, err := repo.Object(plumbing.TagObject, ref.Hash())
 	if err == plumbing.ErrObjectNotFound {
 		return &model.ArtifactCursor{nil, cursor}, nil
 	} else if err != nil {
@@ -233,7 +236,10 @@ func (r *repositoryResolver) Objects(ctx context.Context, obj *model.Repository,
 }
 
 func (r *repositoryResolver) References(ctx context.Context, obj *model.Repository, cursor *gqlmodel.Cursor) (*model.ReferenceCursor, error) {
-	iter, err := obj.Repo().References()
+	repo := obj.Repo()
+	repo.Lock()
+	defer repo.Unlock()
+	iter, err := repo.References()
 	if err != nil {
 		return nil, err
 	}
@@ -286,11 +292,14 @@ func (r *repositoryResolver) Log(ctx context.Context, obj *model.Repository, cur
 		}
 	}
 
+	repo := obj.Repo()
 	opts := &git.LogOptions{
 		Order: git.LogOrderCommitterTime,
 	}
 	if cursor.Next != "" {
-		rev, err := obj.Repo().ResolveRevision(plumbing.Revision(cursor.Next))
+		repo.Lock()
+		rev, err := repo.ResolveRevision(plumbing.Revision(cursor.Next))
+		repo.Unlock()
 		if err != nil {
 			return nil, err
 		}
@@ -300,14 +309,16 @@ func (r *repositoryResolver) Log(ctx context.Context, obj *model.Repository, cur
 		opts.From = *rev
 	}
 
-	log, err := obj.Repo().Log(opts)
+	repo.Lock()
+	log, err := repo.Log(opts)
+	repo.Unlock()
 	if err != nil {
 		return nil, err
 	}
 
 	var commits []*model.Commit
 	log.ForEach(func(c *object.Commit) error {
-		commits = append(commits, model.CommitFromObject(obj.Repo(), c))
+		commits = append(commits, model.CommitFromObject(repo, c))
 		if len(commits) == cursor.Count+1 {
 			return storer.ErrStop
 		}
@@ -333,14 +344,19 @@ func (r *repositoryResolver) Path(ctx context.Context, obj *model.Repository, re
 	if revspec != nil {
 		rev = plumbing.Revision(*revspec)
 	}
-	hash, err := obj.Repo().ResolveRevision(rev)
+	repo := obj.Repo()
+	repo.Lock()
+	hash, err := repo.ResolveRevision(rev)
+	repo.Unlock()
 	if err != nil {
 		return nil, err
 	}
 	if hash == nil {
 		return nil, fmt.Errorf("No such object")
 	}
-	o, err := obj.Repo().Object(plumbing.CommitObject, *hash)
+	repo.Lock()
+	o, err := repo.Object(plumbing.CommitObject, *hash)
+	repo.Unlock()
 	if err != nil {
 		return nil, err
 	}
@@ -352,21 +368,24 @@ func (r *repositoryResolver) Path(ctx context.Context, obj *model.Repository, re
 	if treeObj, err := commit.Tree(); err != nil {
 		panic(err)
 	} else {
-		tree = model.TreeFromObject(obj.Repo(), treeObj)
+		tree = model.TreeFromObject(repo, treeObj)
 	}
 	return tree.Entry(path), nil
 }
 
 func (r *repositoryResolver) RevparseSingle(ctx context.Context, obj *model.Repository, revspec string) (*model.Commit, error) {
 	rev := plumbing.Revision(revspec)
-	hash, err := obj.Repo().ResolveRevision(rev)
+	repo := obj.Repo()
+	repo.Lock()
+	hash, err := repo.ResolveRevision(rev)
+	repo.Unlock()
 	if err != nil {
 		return nil, err
 	}
 	if hash == nil {
 		return nil, fmt.Errorf("No such object")
 	}
-	o, err := model.LookupObject(obj.Repo(), *hash)
+	o, err := model.LookupObject(repo, *hash)
 	if err != nil {
 		return nil, err
 	}

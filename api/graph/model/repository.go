@@ -27,23 +27,25 @@ type Repository struct {
 	OwnerID int
 
 	alias string
-	repo  *git.Repository
+	repo  *RepoWrapper
 }
 
-func (r *Repository) Repo() *git.Repository {
+func (r *Repository) Repo() *RepoWrapper {
 	if r.repo != nil {
 		return r.repo
 	}
-	var err error
-	r.repo, err = git.PlainOpen(r.Path)
+	repo, err := git.PlainOpen(r.Path)
 	if err != nil {
 		panic(err)
 	}
+	r.repo = WrapRepo(repo)
 	return r.repo
 }
 
 func (r *Repository) Head() *Reference {
+	r.Repo().Lock()
 	ref, err := r.Repo().Head()
+	r.repo.Unlock()
 	if err != nil {
 		if err == plumbing.ErrReferenceNotFound {
 			return nil

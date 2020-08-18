@@ -3,7 +3,6 @@ package model
 import (
 	"sort"
 
-	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
@@ -15,7 +14,7 @@ type Tree struct {
 	Raw     string     `json:"raw"`
 
 	tree *object.Tree
-	repo *git.Repository
+	repo *RepoWrapper
 }
 
 func (Tree) IsObject() {}
@@ -25,7 +24,7 @@ type TreeEntry struct {
 	Mode int    `json:"mode"`
 
 	hash plumbing.Hash
-	repo *git.Repository
+	repo *RepoWrapper
 }
 
 func (ent *TreeEntry) ID() string {
@@ -72,7 +71,7 @@ func (tree *Tree) GetEntries() []*TreeEntry {
 	return qlents
 }
 
-func TreeFromObject(repo *git.Repository, obj *object.Tree) *Tree {
+func TreeFromObject(repo *RepoWrapper, obj *object.Tree) *Tree {
 	return &Tree{
 		Type:    ObjectTypeTree,
 		ID:      obj.ID().String(),

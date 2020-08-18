@@ -3,7 +3,6 @@ package model
 import (
 	"fmt"
 
-	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
@@ -12,8 +11,10 @@ type Object interface {
 	IsObject()
 }
 
-func LookupObject(repo *git.Repository, hash plumbing.Hash) (Object, error) {
+func LookupObject(repo *RepoWrapper, hash plumbing.Hash) (Object, error) {
+	repo.Lock()
 	obj, err := repo.Object(plumbing.AnyObject, hash)
+	repo.Unlock()
 	if err != nil {
 		return nil, fmt.Errorf("lookup object %s: %w", hash.String(), err)
 	}
