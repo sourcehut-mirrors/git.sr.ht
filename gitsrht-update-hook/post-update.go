@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"syscall"
@@ -143,6 +144,18 @@ func parseUpdatables() (*string, *string) {
 	return desc, vis
 }
 
+// Must match gitsrht/types/__init__.py#update_visibility()
+func updateRepoVisibility(repoPath string, visibility string) {
+	daemonPath := path.Join(repoPath, "git-daemon-export-ok")
+	shouldExist := visibility == "public" || visibility == "unlisted"
+
+	if shouldExist {
+		os.Create(daemonPath)
+	} else {
+		os.Remove(daemonPath)
+	}
+}
+
 func postUpdate() {
 	var context PushContext
 	refs := os.Args[1:]
@@ -190,6 +203,7 @@ func postUpdate() {
 	if err != nil {
 		logger.Fatalf("Failed to fetch info from database: %v", err)
 	}
+	updateRepoVisibility(context.Repo.Path, dbinfo.Visibility)
 
 	redisHost, ok := config.Get("sr.ht", "redis-host")
 	if !ok {

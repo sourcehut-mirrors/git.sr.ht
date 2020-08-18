@@ -22,6 +22,7 @@ class Redirect(Base, BaseRedirectMixin):
 class Repository(Base, BaseRepositoryMixin):
     _git_repo = None
 
+    # Must match gitsrht-update-hook/post-update.go#updateRepoVisibility()
     def update_visibility(self):
         if not os.path.exists(self.path):
             # Repo dir not initialized yet
