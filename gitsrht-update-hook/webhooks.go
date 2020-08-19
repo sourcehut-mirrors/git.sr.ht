@@ -2,9 +2,6 @@ package main
 
 import (
 	"bytes"
-	"crypto/rand"
-	"encoding/base64"
-	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -17,11 +14,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/mattn/go-runewidth"
-	"golang.org/x/crypto/ed25519"
-)
-
-var (
-	privkey ed25519.PrivateKey
+	"git.sr.ht/~sircmpwn/core-go/crypto"
 )
 
 type WebhookSubscription struct {
@@ -58,38 +51,16 @@ type WebhookPayload struct {
 	Refs     []UpdatedRef      `json:"refs"`
 }
 
-func initWebhookKey() {
-	b64key, ok := config.Get("webhooks", "private-key")
-	if !ok {
-		logger.Fatalf("No webhook key configured")
-	}
-	seed, err := base64.StdEncoding.DecodeString(b64key)
-	if err != nil {
-		logger.Fatalf("base64 decode webhooks private key: %v", err)
-	}
-	privkey = ed25519.NewKeyFromSeed(seed)
-}
-
 var ansi = regexp.MustCompile("\x1B\\[[0-?]*[ -/]*[@-~]")
 
 func deliverWebhooks(subs []WebhookSubscription,
 	payload []byte, printResponse bool) []WebhookDelivery {
 
 	var deliveries []WebhookDelivery
-	initWebhookKey()
 	client := &http.Client{Timeout: 5 * time.Second}
 
 	for _, sub := range subs {
-		var (
-			nonceSeed []byte = make([]byte, 8)
-			nonceHex  []byte = make([]byte, 16)
-		)
-		_, err := rand.Read(nonceSeed)
-		if err != nil {
-			logger.Fatalf("generate nonce: %v", err)
-		}
-		hex.Encode(nonceHex, nonceSeed)
-		signature := ed25519.Sign(privkey, append(payload, nonceHex...))
+		nonce, signature := crypto.SignWebhookPayload(payload, logger, config)
 
 		deliveryUuid := uuid.New().String()
 		body := bytes.NewBuffer(payload)
@@ -97,9 +68,8 @@ func deliverWebhooks(subs []WebhookSubscription,
 		req.Header.Add("Content-Type", "application/json")
 		req.Header.Add("X-Webhook-Event", "repo:post-update")
 		req.Header.Add("X-Webhook-Delivery", deliveryUuid)
-		req.Header.Add("X-Payload-Nonce", string(nonceHex))
-		req.Header.Add("X-Payload-Signature",
-			base64.StdEncoding.EncodeToString(signature))
+		req.Header.Add("X-Payload-Nonce", nonce)
+		req.Header.Add("X-Payload-Signature", signature)
 
 		var requestHeaders bytes.Buffer
 		for name, values := range req.Header {

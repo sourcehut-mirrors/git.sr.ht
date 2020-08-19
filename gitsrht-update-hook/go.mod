@@ -11,6 +11,5 @@ require (
 	github.com/mattn/go-runewidth v0.0.9
 	github.com/pkg/errors v0.9.1
 	github.com/vaughan0/go-ini v0.0.0-20130923145212-a98ad7ee00ec
-	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
 	gopkg.in/yaml.v2 v2.3.0
 )
