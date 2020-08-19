@@ -29,7 +29,6 @@ func main() {
 		keyType  string
 		prefix   string
 	)
-	// TODO: update key last used timestamp on meta.sr.ht
 
 	logf, err := os.OpenFile(logFile,
 		os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
