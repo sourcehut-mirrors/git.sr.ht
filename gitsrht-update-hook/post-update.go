@@ -234,7 +234,13 @@ func postUpdate() {
 		}
 		newobj, err = repo.Object(plumbing.AnyObject, plumbing.NewHash(newref))
 		if err == plumbing.ErrObjectNotFound {
-			logger.Printf("new object %s not found", newref)
+			payload.Refs[i] = UpdatedRef{
+				Name: refname,
+				New:  nil,
+			}
+			if oldcommit, ok := oldobj.(*object.Commit); ok {
+				payload.Refs[i].Old = GitCommitToWebhookCommit(oldcommit)
+			}
 			continue
 		}
 
