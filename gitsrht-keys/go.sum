@@ -1,7 +1,17 @@
+git.sr.ht/~sircmpwn/core-go v0.0.0-20200820135923-98806e712f5e h1:TJqf/neVU5peFAS9WcR1aADXcflPOvAd7ABEirmU7m0=
+git.sr.ht/~sircmpwn/core-go v0.0.0-20200820135923-98806e712f5e/go.mod h1:aXSNgRsGoI3tTFKlwD0xm2htbEzKlR2xUm1osRxfhOM=
+git.sr.ht/~sircmpwn/scm.sr.ht v0.0.0-20200818140842-69dc60d7baaf h1:5qYB5U4zn97aUu1RA90ke0xi5SEn7F7+NPykkpeiRDM=
+git.sr.ht/~sircmpwn/scm.sr.ht/srht-keys v0.0.0-20200818140842-69dc60d7baaf h1:qFAjPhZDlKqQejSbloU+SHwiClcD8mwe135MzTU7+DA=
+git.sr.ht/~sircmpwn/scm.sr.ht/srht-keys v0.0.0-20200818140842-69dc60d7baaf/go.mod h1:Agf7zmDrTdkJ5BiCLb9jwpEiV3JCMAVFyzUtLVHUgOE=
+git.sr.ht/~sircmpwn/scm.sr.ht/srht-keys v0.0.0-20200820140830-14788ed2b332 h1:ATNQ3dAJWOtm4yguxwHeCh2p5qtIpYJmo/8jsnVTNTI=
+git.sr.ht/~sircmpwn/scm.sr.ht/srht-keys v0.0.0-20200820140830-14788ed2b332/go.mod h1:ARwiMukA8HXQ4lv54NglccZKTx+RcKAg5XXpkVH+fvQ=
+github.com/go-redis/redis v6.15.6+incompatible/go.mod h1:NAIEuMOZ/fxfXJIrKDQDz8wamY7mA7PouImQ2Jvg6kA=
 github.com/go-redis/redis v6.15.9+incompatible h1:K0pv1D7EQUjfyoMql+r/jZqCLizCGKFlFgcHWWmHQjg=
 github.com/go-redis/redis v6.15.9+incompatible/go.mod h1:NAIEuMOZ/fxfXJIrKDQDz8wamY7mA7PouImQ2Jvg6kA=
 github.com/google/uuid v1.1.1 h1:Gkbcsh/GbpXz7lPftLA3P6TYMwjCLYm83jiFQZF/3gY=
 github.com/google/uuid v1.1.1/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
+github.com/lib/pq v1.2.0 h1:LXpIM/LZ5xGFhOpXAQUIMM1HdyqzVYM13zNdjCEEcA0=
+github.com/lib/pq v1.2.0/go.mod h1:5WUZQaWbwv1U+lTReE5YruASi9Al49XbQIvNi/34Woo=
 github.com/lib/pq v1.8.0 h1:9xohqzkUwzR4Ga4ivdTcawVS89YSDVxXMa3xJX3cGzg=
 github.com/lib/pq v1.8.0/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
 github.com/vaughan0/go-ini v0.0.0-20130923145212-a98ad7ee00ec h1:DGmKwyZwEB8dI7tbLt/I/gQuP559o/0FrAkHKlQM/Ks=
