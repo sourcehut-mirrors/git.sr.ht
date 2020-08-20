@@ -10,6 +10,7 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/lib/pq v1.8.0
 	github.com/mattn/go-runewidth v0.0.9
+	github.com/minio/minio-go/v7 v7.0.5
 	github.com/pkg/errors v0.9.1
 	github.com/vaughan0/go-ini v0.0.0-20130923145212-a98ad7ee00ec
 	gopkg.in/yaml.v2 v2.3.0

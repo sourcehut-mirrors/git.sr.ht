@@ -410,6 +410,8 @@ func main() {
 	type RepoContext struct {
 		Id         int    `json:"id"`
 		Name       string `json:"name"`
+		OwnerId    int    `json:"owner_id"`
+		OwnerName  string `json:"owner_name"`
 		Path       string `json:"path"`
 		Visibility string `json:"visibility"`
 	}
@@ -426,6 +428,8 @@ func main() {
 		Repo: RepoContext{
 			Id:         repoId,
 			Name:       repoName,
+			OwnerId:    repoOwnerId,
+			OwnerName:  repoOwnerName,
 			Path:       path,
 			Visibility: repoVisibility,
 		},

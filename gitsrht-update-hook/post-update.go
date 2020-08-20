@@ -205,6 +205,7 @@ func postUpdate() {
 	}
 	updateRepoVisibility(context.Repo.Path, dbinfo.Visibility)
 
+	refsDeleted := false
 	redisHost, ok := config.Get("sr.ht", "redis-host")
 	if !ok {
 		redisHost = "redis://localhost:6379"
@@ -231,7 +232,14 @@ func postUpdate() {
 		oldobj, err = repo.Object(plumbing.AnyObject, plumbing.NewHash(oldref))
 		if err == plumbing.ErrObjectNotFound {
 			oldobj = nil
+		} else if tag, ok := oldobj.(*object.Tag); ok {
+			oldobj, err = repo.CommitObject(tag.Target)
+			if err != nil {
+				logger.Println("old tag cannot be resolved: %e", err)
+				continue
+			}
 		}
+
 		newobj, err = repo.Object(plumbing.AnyObject, plumbing.NewHash(newref))
 		if err == plumbing.ErrObjectNotFound {
 			payload.Refs[i] = UpdatedRef{
@@ -241,6 +249,7 @@ func postUpdate() {
 			if oldcommit, ok := oldobj.(*object.Commit); ok {
 				payload.Refs[i].Old = GitCommitToWebhookCommit(oldcommit)
 			}
+			refsDeleted = true
 			continue
 		}
 
@@ -252,7 +261,7 @@ func postUpdate() {
 			}
 			newobj, err = repo.CommitObject(tag.Target)
 			if err != nil {
-				logger.Println("unresolvable annotated tag")
+				logger.Println("new tag cannot be resovled: %e", err)
 				continue
 			}
 		}
@@ -378,7 +387,7 @@ func postUpdate() {
 		logger.Fatal("No post-update script configured, cannot run stage 3")
 	}
 
-	if len(deliveries) == 0 && len(dbinfo.AsyncWebhooks) == 0 {
+	if len(deliveries) == 0 && len(dbinfo.AsyncWebhooks) == 0 && !refsDeleted {
 		logger.Println("Skipping stage 3, no work")
 		return
 	}

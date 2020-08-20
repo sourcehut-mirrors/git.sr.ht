@@ -1,12 +1,16 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	_ "github.com/lib/pq"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 func stage3() {
@@ -50,6 +54,12 @@ func stage3() {
 	payload := make([]byte, payloadLen)
 	if read, err := os.Stdin.Read(payload); read != len(payload) {
 		logger.Fatalf("Failed to read payload: %v, %v", read, err)
+	}
+
+	var decoded WebhookPayload
+	err = json.Unmarshal(payload, &decoded)
+	if err != nil {
+		logger.Fatalf("Failed to decode payload: %v\n", err)
 	}
 
 	var rows *sql.Rows
@@ -104,4 +114,55 @@ func stage3() {
 
 	logger.Printf("Delivered %d webhooks, recorded %d deliveries",
 		len(subscriptions), len(deliveries))
+
+	if _, ok := config.Get("objects", "s3-upstream"); ok {
+		deleteArtifacts(&context, db, &decoded)
+	}
+}
+
+func deleteArtifacts(ctx *PushContext, db *sql.DB, payload *WebhookPayload) {
+	s3upstream, _ := config.Get("objects", "s3-upstream")
+	s3accessKey, _ := config.Get("objects", "s3-access-key")
+	s3secretKey, _ := config.Get("objects", "s3-secret-key")
+	s3bucket, _ := config.Get("git.sr.ht", "s3-bucket")
+	s3prefix, _ := config.Get("git.sr.ht", "s3-prefix")
+
+	minioClient, err := minio.New(s3upstream, &minio.Options{
+		Creds:  credentials.NewStaticV4(s3accessKey, s3secretKey, ""),
+		Secure: true,
+	})
+	if err != nil {
+		logger.Fatalf("Error connecting to S3: %e", err)
+	}
+
+	for _, ref := range payload.Refs {
+		if ref.New != nil {
+			continue
+		}
+
+		var rows *sql.Rows
+		if rows, err = db.Query(`
+			DELETE FROM artifacts
+			WHERE repo_id = $1 AND commit = $2
+			RETURNING filename;`, ctx.Repo.Id, ref.Old.Id); err != nil {
+
+			logger.Fatalf("Error fetching artifacts: %v", err)
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var filename string
+			if err = rows.Scan(&filename); err != nil {
+				logger.Fatalf("Scanning artifact rows: %e", err)
+			}
+			path := filepath.Join(s3prefix, "artifacts",
+				"~" + ctx.Repo.OwnerName, ctx.Repo.Name, filename)
+			logger.Printf("Deleting S3 object %s", path)
+			err = minioClient.RemoveObject(context.TODO(), s3bucket, path,
+				minio.RemoveObjectOptions{})
+			if err != nil {
+				logger.Printf("Error removing S3 object: %e", err)
+			}
+		}
+	}
 }
