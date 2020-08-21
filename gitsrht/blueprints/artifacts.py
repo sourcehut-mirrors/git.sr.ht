@@ -2,7 +2,7 @@ import hashlib
 import os
 import pygit2
 from flask import Blueprint, redirect, render_template, request, redirect
-from flask import abort, url_for
+from flask import abort, url_for, send_file
 from gitsrht.git import Repository as GitRepository
 from gitsrht.repos import delete_artifact, upload_artifact
 from gitsrht.types import Artifact
@@ -59,7 +59,7 @@ def ref_upload(owner, repo, ref):
 
 @artifacts.route("/<owner>/<repo>/refs/<ref>/<filename>")
 def ref_download(owner, repo, ref, filename):
-    owner, repo = get_repo_or_redir(owner, repo)
+    owner, repo = check_access(owner, repo, UserAccess.read)
     with GitRepository(repo.path) as git_repo:
         try:
             tag = git_repo.revparse_single(ref)
@@ -80,8 +80,10 @@ def ref_download(owner, repo, ref, filename):
         abort(404)
     prefix = os.path.join(s3_prefix, "artifacts",
             repo.owner.canonical_name, repo.name)
-    url = f"https://{s3_upstream}/{s3_bucket}/{prefix}/{filename}"
-    return redirect(url)
+    minio = Minio(s3_upstream, access_key=s3_access_key,
+            secret_key=s3_secret_key, secure=True)
+    f = minio.get_object(s3_bucket, os.path.join(prefix, filename))
+    return send_file(f, as_attachment=True, attachment_filename=filename)
 
 @artifacts.route("/<owner>/<repo>/refs/<ref>/<filename>", methods=["POST"])
 @loginrequired
