@@ -98,6 +98,10 @@ const spansFromLineNumbers = lineNos => {
  * Returns a hash matching the given set of line numbers.
  */
 const hashFromLineNumbers = lineNos => {
+  if (lineNos.size === 0) {
+    return "";
+  }
+
   const spans = spansFromLineNumbers(lineNos);
   const parts = [];
 
