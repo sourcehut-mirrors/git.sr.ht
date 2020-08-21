@@ -249,6 +249,11 @@ func SubmitBuild(submitter BuildSubmitter) ([]BuildSubmission, error) {
 		return nil, nil
 	}
 
+	if len(manifests) > 4 {
+		manifests = manifests[:4]
+		log.Println("Notice: refusing to submit >4 builds")
+	}
+
 	var results []BuildSubmission
 	for name, contents := range manifests {
 		manifest, err := ManifestFromYAML(contents)
