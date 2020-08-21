@@ -6,6 +6,11 @@ from srht.database import Base
 
 class Artifact(Base):
     __tablename__ = 'artifacts'
+    __table_args__ = (
+        sa.UniqueConstraint("repo_id", "filename",
+            name="repo_artifact_filename_unique"),
+    )
+
     id = sa.Column(sa.Integer, primary_key=True)
     created = sa.Column(sa.DateTime, nullable=False)
     user_id = sa.Column(sa.Integer, sa.ForeignKey('user.id'), nullable=False)
