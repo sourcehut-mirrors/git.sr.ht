@@ -16,8 +16,8 @@ import sqlalchemy as sa
 
 def upgrade():
     op.create_unique_constraint("repo_artifact_filename_unique",
-            "artifact", ["repo_id", "filename"])
+            "artifacts", ["repo_id", "filename"])
 
 
 def downgrade():
-    op.drop_constraint("repo_artifact_filename_unique", "artifact", type_="unique")
+    op.drop_constraint("repo_artifact_filename_unique", "artifacts", type_="unique")
