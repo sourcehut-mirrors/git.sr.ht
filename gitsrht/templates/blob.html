@@ -32,16 +32,14 @@ pre, body {
       </span>
       <span class="text-muted" style="margin-left: 1rem">
         <a href="{{url_for("repo.raw_blob", owner=repo.owner.canonical_name,
-            repo=repo.name, ref=ref, path=path_join(*path))}}">
-          View raw
-        </a>
+            repo=repo.name, ref=ref, path=path_join(*path))}}"
+        >View raw</a>
       </span>
       {% if not blob.is_binary %}
         <span class="text-muted" style="margin-left: 1rem">
           <a href="{{url_for("repo.blame", owner=repo.owner.canonical_name,
-              repo=repo.name, ref=ref, path=path_join(*path))}}">
-            Blame
-          </a>
+              repo=repo.name, ref=ref, path=path_join(*path))}}"
+          >Blame</a>
         </span>
       {% endif %}
     </span>
