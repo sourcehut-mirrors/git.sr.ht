@@ -25,10 +25,32 @@ def commit_time(commit):
 def _get_ref(repo, ref):
     return repo._get(ref)
 
-def get_log(git_repo, commit, commits_per_page=20, until=None):
+def diff_for_commit(git_repo, commit):
+    try:
+        parent = git_repo.revparse_single(commit.id.hex + "^")
+        diff = git_repo.diff(parent, commit)
+    except KeyError:
+        parent = None
+        diff = commit.tree.diff_to_tree(swap=True)
+    diff.find_similar(pygit2.GIT_DIFF_FIND_RENAMES)
+    return parent, diff
+
+def get_log(git_repo, commit, path="", commits_per_page=20, until=None):
     commits = list()
     for commit in git_repo.walk(commit.id, pygit2.GIT_SORT_TOPOLOGICAL):
-        commits.append(commit)
+        if path:
+            _, diff = diff_for_commit(git_repo, commit)
+            for patch in diff:
+                exact = False
+                if patch.delta.new_file.path == path:
+                    path = patch.delta.old_file.path
+                    exact = True
+                if exact or patch.delta.new_file.path.startswith(path + "/"):
+                    commits.append(commit)
+                    break
+        else:
+            commits.append(commit)
+
         if until is not None and commit == until:
             break
         elif len(commits) >= commits_per_page + 1:

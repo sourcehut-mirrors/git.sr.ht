@@ -10,7 +10,7 @@ from flask import Blueprint, render_template, abort, current_app, send_file, req
 from flask import Response, url_for, session, redirect
 from gitsrht.editorconfig import EditorConfig
 from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
-from gitsrht.git import diffstat, get_log
+from gitsrht.git import diffstat, get_log, diff_for_commit
 from gitsrht.rss import generate_feed
 from gitsrht.types import Artifact
 from io import BytesIO
@@ -399,7 +399,7 @@ def log(owner, repo, ref, path):
             except ValueError:
                 abort(404)
 
-        commits = get_log(git_repo, commit)
+        commits = get_log(git_repo, commit, path)
 
         return render_template("log.html", view="log",
                 owner=owner, repo=repo, ref=ref, path=path,
@@ -434,13 +434,7 @@ def commit(owner, repo, ref):
         commit, ref, _ = lookup_ref(git_repo, ref, None)
         if not isinstance(commit, pygit2.Commit):
             abort(404)
-        try:
-            parent = git_repo.revparse_single(ref + "^")
-            diff = git_repo.diff(parent, ref)
-        except KeyError:
-            parent = None
-            diff = commit.tree.diff_to_tree(swap=True)
-        diff.find_similar(pygit2.GIT_DIFF_FIND_RENAMES)
+        parent, diff = diff_for_commit(git_repo, commit)
         refs = collect_refs(git_repo)
         return render_template("commit.html", view="log",
             owner=owner, repo=repo, ref=ref, refs=refs,

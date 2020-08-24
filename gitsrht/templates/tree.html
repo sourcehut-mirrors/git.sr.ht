@@ -9,6 +9,12 @@
     <span style="padding-left: 1rem">
       {{ utils.breadcrumb(ref, repo, path, path_join) }}
     </span>
+    <span class="text-muted" style="margin-left: 1rem">
+      <a href="{{url_for("repo.log", owner=repo.owner.canonical_name,
+          repo=repo.name, ref=ref, path=path_join(*path))}}"
+        >Log
+      </a>
+    </span>
     <div class="pull-right">
       <a
         href="{{url_for("repo.commit",
