@@ -307,6 +307,35 @@ img {
   }
 }
 
+.blob-nav {
+  display: inline-block;
+  padding-left: 0;
+  padding-right: 0;
+
+  .nav-item:hover {
+    background: #fff;
+  }
+
+  .nav-tabs {
+    padding-left: 0;
+    margin-bottom: -3px;
+    border-bottom: 3px transparent solid;
+
+    .nav-link {
+      padding: 0 0.5rem;
+
+      &:hover {
+        color: black;
+      }
+
+      &.active {
+        border-bottom: 3px #fff solid;
+        background: #fff;
+      }
+    }
+  }
+}
+
 dl {
   dd {
     text-overflow: ellipsis;

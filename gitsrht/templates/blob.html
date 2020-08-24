@@ -18,36 +18,7 @@ pre, body {
 <div class="header-extension" style="margin-bottom: 0;">
   <div class="blob container-fluid">
     <span>
-      {{ utils.breadcrumb(ref, repo, path, path_join) }}
-      <span class="text-muted" style="margin-left: 1rem">
-        <span title="{{"{0:0o}".format(entry.filemode)}}">
-          {{stat.filemode(entry.filemode)}}
-        </span>
-      </span>
-      <span class="text-muted" style="margin-left: 1rem">
-        <span title="{{ blob.size }} bytes">
-          {{humanize.naturalsize(blob.size,
-            binary=True).replace("Byte", "byte")}}
-        </span>
-      </span>
-      <span class="text-muted" style="margin-left: 1rem">
-        <a href="{{url_for("repo.log", owner=repo.owner.canonical_name,
-            repo=repo.name, ref=ref, path=path_join(*path))}}"
-          >Log
-        </a>
-      </span>
-      <span class="text-muted" style="margin-left: 1rem">
-        <a href="{{url_for("repo.raw_blob", owner=repo.owner.canonical_name,
-            repo=repo.name, ref=ref, path=path_join(*path))}}"
-        >View raw</a>
-      </span>
-      {% if not blob.is_binary %}
-        <span class="text-muted" style="margin-left: 1rem">
-          <a href="{{url_for("repo.blame", owner=repo.owner.canonical_name,
-              repo=repo.name, ref=ref, path=path_join(*path))}}"
-          >Blame</a>
-        </span>
-      {% endif %}
+      {{ utils.breadcrumb(ref, repo, path, entry, view, path_join, stat, pygit2, humanize) }}
     </span>
     {% if commit %}
     <div class="commit">

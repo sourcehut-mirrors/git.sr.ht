@@ -1,7 +1,7 @@
 {% extends "repo.html" %}
 {% import "utils.html" as utils with context %}
 {% block title %}
-<title>{{repo.owner.canonical_name}}/{{repo.name}}: {{ref}} - {{cfg("sr.ht", "site-name")}} git</title>
+<title>{{repo.owner.canonical_name}}/{{repo.name}}: {% if path != [''] %}{{path_join(*path)}} {% endif %}{{ref}} - {{cfg("sr.ht", "site-name")}} git</title>
 {% endblock %}
 
 {% block head %}
@@ -21,6 +21,17 @@
 {% endblock %}
 
 {% block content %}
+{% if path != [''] %}
+<div class="header-extension">
+  <div class="container">
+    <span style="padding-left: 1rem">
+      {{ utils.breadcrumb(ref, repo, path, entry, view, path_join, stat, pygit2, humanize) }}
+    </span>
+    <div class="clearfix"></div>
+  </div>
+</div>
+{% endif %}
+
 <div class="container">
   <div class="row">
     <div class="col-md-12">

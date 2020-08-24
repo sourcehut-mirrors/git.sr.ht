@@ -198,6 +198,7 @@ def tree(owner, repo, ref, path):
             abort(404)
         editorconfig = EditorConfig(git_repo, tree, path)
 
+        entry = tree
         path = path.split("/")
         for part in path:
             if part == "":
@@ -234,7 +235,7 @@ def tree(owner, repo, ref, path):
                         blob=blob, data=data, commit=orig_commit,
                         highlight_file=_highlight_file,
                         editorconfig=editorconfig,
-                        markdown=md, force_source=force_source)
+                        markdown=md, force_source=force_source, pygit2=pygit2)
             tree = git_repo.get(entry.id)
 
         if not tree:
@@ -243,7 +244,8 @@ def tree(owner, repo, ref, path):
         tree = sorted(tree, key=lambda e: e.name)
 
         return render_template("tree.html", view="tree", owner=owner, repo=repo,
-                ref=ref, commit=commit, tree=tree, path=path)
+                ref=ref, commit=commit, entry=entry, tree=tree, path=path,
+                pygit2=pygit2)
 
 def resolve_blob(git_repo, ref, path):
     commit, ref, path = lookup_ref(git_repo, ref, path)
@@ -324,7 +326,7 @@ def blame(owner, repo, ref, path):
                 repo=repo, ref=ref, path=path, entry=entry, blob=blob, data=data,
                 blame=blame, commit=orig_commit, highlight_file=_highlight_file,
                 editorconfig=EditorConfig(git_repo, orig_commit.tree, path),
-                lookup_user=lookup_user())
+                lookup_user=lookup_user(), pygit2=pygit2)
 
 @repo.route("/<owner>/<repo>/archive/<path:ref>.tar.gz")
 def archive(owner, repo, ref):
@@ -401,9 +403,13 @@ def log(owner, repo, ref, path):
 
         commits = get_log(git_repo, commit, path)
 
+        entry = None
+        if path and commit.tree and path in commit.tree:
+            entry = commit.tree[path]
+
         return render_template("log.html", view="log",
-                owner=owner, repo=repo, ref=ref, path=path,
-                commits=commits, refs=refs)
+                owner=owner, repo=repo, ref=ref, path=path.split("/"),
+                commits=commits, refs=refs, entry=entry, pygit2=pygit2)
 
 
 @repo.route("/<owner>/<repo>/log/rss.xml", defaults={"ref": None})

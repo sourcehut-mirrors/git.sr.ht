@@ -1,4 +1,4 @@
-{% macro breadcrumb(ref, repo, path, path_join) %}
+{% macro breadcrumb(ref, repo, path, entry, view, path_join, stat, pygit2, humanize) %}
 {% if ref != repo.git_repo.default_branch_name() %}
 <span style="margin-right: 1rem">
   <span class="text-muted">ref:</span> {{ ref }}
@@ -14,6 +14,60 @@
       path=path_join(*path[:loop.index]))}}"
   >{{part}}</a>/{%
 endif %}{% endfor %}
+
+{% set is_blob = entry and entry.type == pygit2.GIT_OBJ_BLOB %}
+{% if entry %}
+  {# Root tree has no filemode #}
+  {% set filemode = entry.filemode or stat.S_IFDIR %}
+  <span class="text-muted" style="margin-left: 1rem">
+    <span title="{{"{0:0o}".format(filemode)}}">
+      {{stat.filemode(filemode)}}
+    </span>
+  </span>
+
+  {% if is_blob %}
+    <span class="text-muted" style="margin-left: 1rem">
+      <span title="{{ entry.size }} bytes">
+        {{humanize.naturalsize(entry.size,
+          binary=True).replace("Byte", "byte")}}
+      </span>
+    </span>
+  {% endif %}
+{% endif %}
+
+{% set path = path_join(*path) %}
+<div class="blob-nav" style="margin-left: 1rem">
+  <ul class="nav nav-tabs">
+    <li class="nav-item">
+      <a class="nav-link {% if view in ["blob", "tree"] %}active{% endif %}"
+         href="{{url_for("repo.tree", owner=repo.owner.canonical_name,
+              repo=repo.name, ref=ref, path=path)}}">
+        {%- if is_blob %}View{% else %}Tree{% endif %}</a>
+    </li>
+
+    <li class="nav-item">
+      <a class="nav-link {% if view == "log" %}active{% endif %}"
+         href="{{url_for("repo.log", owner=repo.owner.canonical_name,
+              repo=repo.name, ref=ref, path=path)}}">Log</a>
+    </li>
+
+    {% if is_blob %}
+      {% if not entry.is_binary %}
+        <li class="nav-item">
+          <a class="nav-link {% if view == "blame" %}active{% endif %}"
+             href="{{url_for("repo.blame", owner=repo.owner.canonical_name,
+                  repo=repo.name, ref=ref, path=path)}}">Blame</a>
+        </li>
+      {% endif %}
+
+      <li class="nav-item">
+        <a class="nav-link"
+           href="{{url_for("repo.raw_blob", owner=repo.owner.canonical_name,
+                repo=repo.name, ref=ref, path=path)}}">View raw</a>
+      </li>
+    {% endif %}
+  </ul>
+</div>
 {% endmacro %}
 
 {% macro commit_event(repo, c,
