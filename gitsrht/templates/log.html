@@ -36,6 +36,7 @@
   <div class="row">
     <div class="col-md-12">
       <div class="event-list">
+        {% if commits %}
         {% if commits[-1].parents %}
         {% set show_commits = commits[:-1] %}
         {% else %}
@@ -46,15 +47,20 @@
           {{ utils.commit_event(repo, c, True, refs) }}
         </div>
         {% endfor %}
+        {% else %}
+        <div class="event">
+          No commits{% if path != [''] %} for this path{% endif %}.
+        </div>
+        {% endif %}
       </div>
-      {% if commits[-1].parents %}
+      {% if commits and commits[-1].parents %}
       <a
         class="pull-right btn btn-primary"
         href="{{url_for("repo.log",
           owner=owner.canonical_name,
           repo=repo.name,
           ref=ref,
-          path=path,
+          path=path_join(*path),
         )}}?from={{commits[-1].id}}"
       >Next {{icon("caret-right")}}</a>
       {% endif %}
