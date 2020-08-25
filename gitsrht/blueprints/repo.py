@@ -22,12 +22,15 @@ from scmsrht.access import get_repo, get_repo_or_redir
 from scmsrht.formatting import get_formatted_readme, get_highlighted_file
 from scmsrht.urls import get_clone_urls
 from srht.config import cfg, get_origin
-from srht.markdown import markdown
+from srht.markdown import markdown, sanitize
 from urllib.parse import urlparse
 
 repo = Blueprint('repo', __name__)
 
-def get_readme(repo, tip, link_prefix=None):
+def get_readme(repo, git_repo, tip, link_prefix=None):
+    if repo.readme is not None:
+        return Markup(sanitize(repo.readme))
+
     if not tip:
         return None
 
@@ -45,7 +48,7 @@ def get_readme(repo, tip, link_prefix=None):
         return None, None
 
     def content_getter(blob):
-        return repo.get(blob.id).data.decode()
+        return git_repo.get(blob.id).data.decode()
 
     return get_formatted_readme("git.sr.ht:git", file_finder, content_getter,
             link_prefix=link_prefix)
@@ -87,7 +90,7 @@ def summary(owner, repo):
         blob_prefix = url_for(
             'repo.raw_blob', owner=repo.owner, repo=repo.name,
             ref=f"{default_branch.name}/", path="")  # Trailing slash needed
-        readme = get_readme(git_repo, tip,
+        readme = get_readme(repo, git_repo, tip,
             link_prefix=[link_prefix, blob_prefix])
         tags = [(ref, git_repo.get(git_repo.references[ref].target))
             for ref in git_repo.listall_references()
