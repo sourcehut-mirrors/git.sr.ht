@@ -147,7 +147,7 @@ def repo_commits_GET(username, reponame, ref, path):
         start = request.args.get("start")
         if start:
             commit = git_repo.get(start)
-        commits = get_log(git_repo, commit, commits_per_page)
+        commits = get_log(git_repo, commit, commits_per_page=commits_per_page)
         next_id = None
         if len(commits) > commits_per_page:
             next_id = str(commits[-1].id)
