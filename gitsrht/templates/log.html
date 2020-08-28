@@ -36,9 +36,10 @@
   <div class="row">
     <div class="col-md-12">
       <div class="event-list">
+        {% set full_path = path_join(*path) %}
         {% for c in commits %}
         <div class="event">
-          {{ utils.commit_event(repo, c, True, refs) }}
+          {{ utils.commit_event(repo, c, True, refs, path=full_path) }}
         </div>
         {% else %}
         <div class="event">
@@ -53,7 +54,7 @@
           owner=owner.canonical_name,
           repo=repo.name,
           ref=ref,
-          path=path_join(*path),
+          path=full_path,
         )}}?from={{commits[-1].id}}"
       >Next {{icon("caret-right")}}</a>
       {% endif %}
