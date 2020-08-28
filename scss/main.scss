@@ -336,6 +336,23 @@ img {
   }
 }
 
+.tree-header {
+  display: flex;
+
+  .breadcrumb {
+    white-space: nowrap;
+    flex-grow: 1;
+  }
+
+  .commit-info {
+    margin-left: 1rem;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    min-width: 0;
+  }
+}
+
 dl {
   dd {
     text-overflow: ellipsis;
