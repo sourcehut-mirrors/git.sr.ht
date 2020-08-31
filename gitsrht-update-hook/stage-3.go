@@ -136,7 +136,7 @@ func deleteArtifacts(ctx *PushContext, db *sql.DB, payload *WebhookPayload) {
 	}
 
 	for _, ref := range payload.Refs {
-		if ref.New != nil {
+		if ref.New != nil || ref.Old == nil {
 			continue
 		}
 
