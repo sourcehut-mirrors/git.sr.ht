@@ -403,6 +403,8 @@ def log(owner, repo, ref, path):
                 commit = git_repo.get(from_id)
             except ValueError:
                 abort(404)
+        if not commit:
+            abort(404)
 
         commits = get_log(git_repo, commit, path)
 
