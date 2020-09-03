@@ -33,8 +33,7 @@ func main() {
 	logf, err := os.OpenFile(logFile,
 		os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
-		log.Printf("Warning: unable to open log file: %v "+
-			"(using stderr instead)", err)
+		log.Printf("Warning: unable to open log file: %v (using stderr instead)", err)
 		logger = log.New(os.Stderr, "", log.LstdFlags)
 	} else {
 		logger = log.New(logf, "", log.LstdFlags)
