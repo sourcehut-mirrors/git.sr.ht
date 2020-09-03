@@ -156,7 +156,7 @@ func deleteArtifacts(ctx *PushContext, db *sql.DB, payload *WebhookPayload) {
 				logger.Fatalf("Scanning artifact rows: %e", err)
 			}
 			path := filepath.Join(s3prefix, "artifacts",
-				"~" + ctx.Repo.OwnerName, ctx.Repo.Name, filename)
+				"~"+ctx.Repo.OwnerName, ctx.Repo.Name, filename)
 			logger.Printf("Deleting S3 object %s", path)
 			err = minioClient.RemoveObject(context.TODO(), s3bucket, path,
 				minio.RemoveObjectOptions{})

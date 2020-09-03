@@ -12,9 +12,9 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"git.sr.ht/~sircmpwn/core-go/crypto"
 	"github.com/google/uuid"
 	"github.com/mattn/go-runewidth"
-	"git.sr.ht/~sircmpwn/core-go/crypto"
 )
 
 type WebhookSubscription struct {

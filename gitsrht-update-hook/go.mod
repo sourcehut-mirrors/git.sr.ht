@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	git.sr.ht/~sircmpwn/core-go v0.0.0-20200820135923-98806e712f5e
+	github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964
 	github.com/fernet/fernet-go v0.0.0-20191111064656-eff2850e6001
 	github.com/go-git/go-git/v5 v5.1.0
 	github.com/go-redis/redis v6.15.9+incompatible

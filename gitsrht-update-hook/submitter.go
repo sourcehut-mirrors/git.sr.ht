@@ -13,8 +13,11 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/danwakefield/fnmatch"
 	"github.com/fernet/fernet-go"
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/pkg/errors"
 )
@@ -85,32 +88,75 @@ type GitBuildSubmitter struct {
 }
 
 func (submitter GitBuildSubmitter) FindManifests() (map[string]string, error) {
-	tree, err := submitter.Repository.TreeObject(submitter.Commit.TreeHash)
+	rootTree, err := submitter.Repository.TreeObject(submitter.Commit.TreeHash)
 	if err != nil {
-		return nil, errors.Wrap(err, "lookup tree failed")
+		return nil, errors.Wrap(err, "root tree lookup failed")
 	}
 
 	var files []*object.File
-	file, err := tree.File(".build.yml")
-	if err == nil {
-		files = append(files, file)
-	} else {
-		subtree, err := tree.Tree(".builds")
-		if err != nil {
-			return nil, nil
-		}
-		entries := subtree.Files()
-		for {
-			file, err = entries.Next()
-			if file == nil || err != nil {
-				break
+	loadOptions()
+	pattern := ".build.yml,.builds/*.yml"
+	if pat, ok := options["submit"]; ok {
+		pattern = pat
+	}
+	for _, pat := range strings.Split(pattern, ",") {
+		// If exact match: get to the blob directly
+		// Otherwise:      find the longest prefix and start walking from there
+
+		asterisk := strings.Index(pat, "*")
+		isWildcard := asterisk != -1
+		if !isWildcard {
+			file, err := rootTree.File(pat)
+			if err != nil && err != object.ErrFileNotFound {
+				return nil, errors.Wrap(err, "getting file")
 			}
-			if strings.HasSuffix(file.Name, ".yml") {
+			if file != nil {
 				files = append(files, file)
 			}
-		}
-		if err != io.EOF {
-			return nil, errors.Wrap(err, "EOF finding build manifest")
+		} else {
+			var tree *object.Tree
+			var prefix string
+			for strings.HasPrefix(pat, "/") {
+				pat = pat[1:]
+			}
+			if pref := strings.LastIndex(pat, "/"); pref != -1 {
+				tree, err = rootTree.Tree(pat[:pref])
+				if err != nil && err != object.ErrDirectoryNotFound {
+					return nil, errors.Wrap(err, "getting pref tree")
+				}
+				prefix = pat[:pref+1]
+				pat = pat[pref+1:]
+			} else {
+				tree = rootTree
+			}
+			if tree == nil {
+				continue
+			}
+
+			traversal := object.NewTreeWalker(tree, true, make(map[plumbing.Hash]bool))
+			defer traversal.Close()
+			for {
+				name, entry, err := traversal.Next()
+				if err == io.EOF {
+					break
+				} else if err != nil {
+					return nil, errors.Wrap(err, "iterating worktree")
+				}
+
+				if fnmatch.Match(pat, name, fnmatch.FNM_PATHNAME) {
+					if entry.Mode == filemode.Dir || entry.Mode == filemode.Submodule {
+						continue // Match iteration behaviour of subtree.Files()
+					}
+
+					file, err := tree.TreeEntryFile(&entry)
+					if file == nil || err != nil {
+						return nil, errors.Wrap(err, "getting file for entry")
+					}
+
+					file.Name = prefix + file.Name
+					files = append(files, file)
+				}
+			}
 		}
 	}
 
