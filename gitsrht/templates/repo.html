@@ -31,7 +31,7 @@
     <h2>
       <a href="{{ url_for("public.user_index",
         username=owner.username) }}"
-      >{{owner.canonical_name}}</a>/{{repo.name}}
+      >{{owner.canonical_name}}</a>/<wbr>{{repo.name}}
       {% if repo.visibility.value != 'public' %}
       <small class="text-muted">{{repo.visibility.value}}</small>
       {% endif %}
