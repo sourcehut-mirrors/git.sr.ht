@@ -175,7 +175,7 @@ func (submitter GitBuildSubmitter) FindManifests() (map[string]string, error) {
 		if !utf8.Valid(content) {
 			return nil, errors.Wrap(err, "manifest is not valid UTF-8 file")
 		}
-		manifests[file.Name] = string(content)
+		manifests[path.Base(file.Name)] = string(content)
 	}
 	return manifests, nil
 }
