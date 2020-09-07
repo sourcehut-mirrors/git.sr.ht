@@ -24,5 +24,5 @@ class RepoWebhook(CeleryWebhook):
     """
 
     repo_id = sa.Column(sa.Integer,
-            sa.ForeignKey('repository.id'), nullable=False)
+            sa.ForeignKey('repository.id', ondelete="CASCADE"), nullable=False)
     repo = sa.orm.relationship('Repository')
