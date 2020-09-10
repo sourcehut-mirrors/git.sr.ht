@@ -262,24 +262,19 @@ type BuildSubmission struct {
 func configureRequestAuthorization(submitter BuildSubmitter,
 	req *http.Request) {
 
-	if submitter.GetOauthToken() != nil {
-		req.Header.Add("Authorization", fmt.Sprintf("token %s",
-			*submitter.GetOauthToken()))
-	} else {
-		auth := InternalRequestAuthorization{
-			ClientId: clientId,
-			Username: submitter.GetOwnerName(),
-		}
-		authPayload, err := json.Marshal(&auth)
-		if err != nil {
-			logger.Fatalf("Failed to marshal internal authorization: %v", err)
-		}
-		enc, err := fernet.EncryptAndSign(authPayload, fernetKey)
-		if err != nil {
-			logger.Fatalf("Failed to encrypt internal authorization: %v", err)
-		}
-		req.Header.Add("X-Srht-Authorization", string(enc))
+	auth := InternalRequestAuthorization{
+		ClientId: clientId,
+		Username: submitter.GetOwnerName(),
 	}
+	authPayload, err := json.Marshal(&auth)
+	if err != nil {
+		logger.Fatalf("Failed to marshal internal authorization: %v", err)
+	}
+	enc, err := fernet.EncryptAndSign(authPayload, fernetKey)
+	if err != nil {
+		logger.Fatalf("Failed to encrypt internal authorization: %v", err)
+	}
+	req.Header.Add("X-Srht-Authorization", string(enc))
 }
 
 // TODO: Move this to scm.sr.ht

@@ -305,6 +305,7 @@ func postUpdate() {
 			}
 			results, err := SubmitBuild(submitter)
 			if err != nil {
+				logger.Printf("Error submitting build job: %v", err)
 				log.Fatalf("Error submitting build job: %v", err)
 			}
 			if len(results) == 0 {
