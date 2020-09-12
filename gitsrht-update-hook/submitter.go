@@ -162,6 +162,12 @@ func (submitter GitBuildSubmitter) FindManifests() (map[string]string, error) {
 
 	manifests := make(map[string]string)
 	for _, file := range files {
+		basename := path.Base(file.Name)
+		if _, ok := manifests[basename]; ok {
+			log.Printf("Not submitting duplicate manifest %s [%s]\n", file.Name, basename)
+			continue
+		}
+
 		var (
 			reader  io.Reader
 			content []byte
@@ -175,7 +181,7 @@ func (submitter GitBuildSubmitter) FindManifests() (map[string]string, error) {
 		if !utf8.Valid(content) {
 			return nil, errors.Wrap(err, "manifest is not valid UTF-8 file")
 		}
-		manifests[path.Base(file.Name)] = string(content)
+		manifests[basename] = string(content)
 	}
 	return manifests, nil
 }
