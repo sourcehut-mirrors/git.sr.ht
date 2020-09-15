@@ -82,7 +82,7 @@ pre, body {
         id="L{{loop.index}}"
         >{{loop.index}}</a>
 {% endfor %}</pre>
-      {{ highlight_file(repo, ref, entry.name,
+      {{ highlight_file(repo, ref, entry,
         data, blob.id.hex, commit.id.hex) }}
     </div>
   </div>

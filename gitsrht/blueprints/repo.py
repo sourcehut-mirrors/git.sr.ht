@@ -15,6 +15,7 @@ from gitsrht.rss import generate_feed
 from gitsrht.types import Artifact
 from io import BytesIO
 from jinja2 import Markup
+from jinja2.utils import url_quote, escape
 from pygments import highlight
 from pygments.formatters import HtmlFormatter
 from pygments.lexers import guess_lexer, guess_lexer_for_filename, TextLexer
@@ -53,10 +54,14 @@ def get_readme(repo, git_repo, tip, link_prefix=None):
     return get_formatted_readme("git.sr.ht:git", file_finder, content_getter,
             link_prefix=link_prefix)
 
-def _highlight_file(repo, ref, name, data, blob_id, commit_id):
+def _highlight_file(repo, ref, entry, data, blob_id, commit_id):
     link_prefix = url_for('repo.tree', owner=repo.owner,
             repo=repo.name, ref=ref)
-    return get_highlighted_file("git.sr.ht:git", name, blob_id, data)
+    if entry.filemode == pygit2.GIT_FILEMODE_LINK:
+        return Markup(f"<a href=\"{url_quote(data.encode('utf-8'))}\">" +
+                f"{escape(data)}</a>")
+    else:
+        return get_highlighted_file("git.sr.ht:git", entry.name, blob_id, data)
 
 def render_empty_repo(owner, repo):
     origin = cfg("git.sr.ht", "origin")
