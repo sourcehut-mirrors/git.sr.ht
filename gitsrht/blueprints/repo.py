@@ -87,6 +87,9 @@ def summary(owner, repo):
             return render_empty_repo(owner, repo)
 
         default_branch = git_repo.default_branch()
+        if not default_branch:
+            return render_empty_repo(owner, repo)
+
         tip = git_repo.get(default_branch.target)
         commits = get_last_3_commits(git_repo, tip)
         link_prefix = url_for(
