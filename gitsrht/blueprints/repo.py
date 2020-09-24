@@ -57,9 +57,10 @@ def get_readme(repo, git_repo, tip, link_prefix=None):
 def _highlight_file(repo, ref, entry, data, blob_id, commit_id):
     link_prefix = url_for('repo.tree', owner=repo.owner,
             repo=repo.name, ref=ref)
-    if entry.filemode == pygit2.GIT_FILEMODE_LINK:
-        return Markup(f"<a href=\"{url_quote(data.encode('utf-8'))}\">" +
-                f"{escape(data)}</a>")
+    if blob.filemode == pygit2.GIT_FILEMODE_LINK:
+        return Markup("<div class=\"highlight\"><pre>" +
+                f"<a href=\"{url_quote(data.encode('utf-8'))}\">" +
+                f"{escape(data)}</a><pre></div>")
     else:
         return get_highlighted_file("git.sr.ht:git", entry.name, blob_id, data)
 
