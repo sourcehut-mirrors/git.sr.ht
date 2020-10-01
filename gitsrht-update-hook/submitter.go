@@ -298,7 +298,7 @@ func SubmitBuild(submitter BuildSubmitter) ([]BuildSubmission, error) {
 
 	var results []BuildSubmission
 	for name, contents := range manifests {
-		if len(results) > 4 {
+		if len(results) >= 4 {
 			log.Println("Notice: refusing to submit >4 builds")
 			break
 		}
