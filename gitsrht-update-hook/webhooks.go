@@ -60,7 +60,7 @@ func deliverWebhooks(subs []WebhookSubscription,
 	client := &http.Client{Timeout: 5 * time.Second}
 
 	for _, sub := range subs {
-		nonce, signature := crypto.SignWebhookPayload(payload, logger, config)
+		nonce, signature := crypto.SignWebhook(payload)
 
 		deliveryUuid := uuid.New().String()
 		body := bytes.NewBuffer(payload)

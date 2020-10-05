@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/vaughan0/go-ini"
+	"git.sr.ht/~sircmpwn/core-go/crypto"
 )
 
 var (
@@ -67,4 +68,6 @@ func init() {
 	}
 
 	buildOrigin, _ = config.Get("builds.sr.ht", "origin") // Optional
+
+	crypto.InitCrypto(config)
 }
