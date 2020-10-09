@@ -6,6 +6,9 @@ import random
 import sqlalchemy as sa
 import subprocess
 import gitsrht.repos as gr
+import prometheus_client
+from prometheus_client import CollectorRegistry, Gauge
+from prometheus_client.context_managers import Timer
 from srht.config import cfg
 from srht.database import DbSession
 from gitsrht.types import Artifact, User, Repository, RepoVisibility
@@ -16,7 +19,19 @@ db = DbSession(cfg("git.sr.ht", "connection-string"))
 db.init()
 repo_api = gr.GitRepoApi()
 
+registry = CollectorRegistry()
+tg = Gauge("gitsrht_periodic_time",
+        "Time to run gitsrht-periodic jobs",
+        ["section"],
+        registry=registry)
+
+cleanup_autocreated_t = tg.labels("cleanup_autocreated")
+@cleanup_autocreated_t.time()
 def cleanup_autocreated():
+    rc = Gauge("gitsrht_periodic_cleanup_autocreated_count",
+            "Amount of repos cleaned by the cleanup_autocreated job",
+            registry=registry)
+
     due = datetime.utcnow() - timedelta(minutes=20)
     repos = (Repository.query
             .filter(Repository.visibility == RepoVisibility.autocreated)
@@ -26,8 +41,11 @@ def cleanup_autocreated():
       # which commits immediately
       repo_api.do_delete_repo(r)
       db.session.delete(r)
+      rc.inc()
     db.session.commit()
 
+gc_git_t = tg.labels("gc_git")
+@gc_git_t.time()
 def gc_git():
     repo_count = Repository.query.count()
 
@@ -37,19 +55,42 @@ def gc_git():
     # on average, we will have GCd every repo around once a week.
     limit = int(math.ceil(repo_count / (7 * 24 * 60 / 20)))
 
+    rc = Gauge("gitsrht_periodic_gc_git_count",
+            "Amount of repos GCd by the gc_git job",
+            registry=registry)
+    ps = Gauge("gitsrht_periodic_gc_git_packsize",
+            "Packfile size in the gc_git job (B)",
+            ["stage"],
+            registry=registry)
+    gt = Gauge("gitsrht_periodic_gc_git_time",
+            "Time spent GCing repositories by the gc_git job",
+            registry=registry)
+
     repos = (Repository.query
             .offset(random.randrange(0, repo_count + 1 - limit))
             .limit(limit)).all()
     for r in repos:
-        subprocess.run(["git", "-C", r.path, "gc", "--quiet"],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        ps.labels("pre").inc(sum(map(lambda p: p.stat().st_size,
+            os.scandir(os.path.join(r.path, "objects", "pack")))))
 
+        @Timer(gt.inc)
+        def gc():
+            subprocess.run(["git", "-C", r.path, "gc", "--quiet"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        gc()
+
+        ps.labels("post").inc(sum(map(lambda p: p.stat().st_size,
+            os.scandir(os.path.join(r.path, "objects", "pack")))))
+        rc.inc()
+
+gc_s3_t = tg.labels("gc_s3")
+@gc_s3_t.time()
 def gc_s3():
     if not gr.object_storage_enabled:
         return
     # Once a weekish
     if random.randrange(0, 7 * 24 * 60 / 20) != 0:
-        return
+       return
     prefix = os.path.join(gr.s3_prefix, "artifacts")
     minio = Minio(gr.s3_upstream, access_key=gr.s3_access_key,
             secret_key=gr.s3_secret_key, secure=True)
@@ -75,6 +116,20 @@ def gc_s3():
     if errs:
         raise Exception(f"While removing dangling artifacts {objs}, got errors: {errs}")
 
-cleanup_autocreated()
-gc_git()
-gc_s3()
+    Gauge("gitsrht_periodic_gc_s3_count",
+            "Amount of objects pruned by the gc_s3 job",
+            registry=registry).set(len(objs))
+
+all_t = tg.labels("total")
+@all_t.time()
+def all():
+    cleanup_autocreated()
+    gc_git()
+    gc_s3()
+all()
+
+
+pg_endpoint = cfg("sr.ht", "pushgateway", default=None)
+if pg_endpoint:
+    prometheus_client.push_to_gateway(pg_endpoint,
+            job="git.sr.ht", registry=registry)
