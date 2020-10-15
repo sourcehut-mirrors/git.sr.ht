@@ -93,7 +93,7 @@ class AnnotatedTreeEntry:
         self._entry = entry
         self._repo = repo
         self.commit = None
-        if entry:
+        if entry is not None:
             self.id = entry.id.hex
             self.name = entry.name
             self.type = (entry.type_str
