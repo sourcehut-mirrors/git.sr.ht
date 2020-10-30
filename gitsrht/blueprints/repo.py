@@ -505,7 +505,7 @@ def refs(owner, repo):
         def _tag_key(tag):
             if isinstance(tag[1], pygit2.Commit):
                 return tag[1].commit_time
-            return tag[1].tagger.time
+            return tag[1].get_object().commit_time
         tags = sorted(tags, key=_tag_key, reverse=True)
         branches = [(
                 branch,
