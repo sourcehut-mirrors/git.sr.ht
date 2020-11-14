@@ -5,7 +5,7 @@ import pygit2
 import pygments
 import subprocess
 import sys
-from datetime import timedelta
+from datetime import datetime, timedelta
 from flask import Blueprint, render_template, abort, current_app, send_file, request
 from flask import Response, url_for, session, redirect
 from gitsrht.editorconfig import EditorConfig
@@ -73,7 +73,7 @@ def render_empty_repo(owner, repo):
 
 def get_last_3_commits(git_repo, commit):
     commits = list()
-    for c in git_repo.walk(commit.id, pygit2.GIT_SORT_TOPOLOGICAL):
+    for c in git_repo.walk(commit.id, pygit2.GIT_SORT_NONE):
         commits.append(c)
         if len(commits) >= 3:
             break
@@ -81,8 +81,10 @@ def get_last_3_commits(git_repo, commit):
 
 @repo.route("/<owner>/<repo>")
 def summary(owner, repo):
+    print("a")
     owner, repo = get_repo_or_redir(owner, repo)
 
+    print("b")
     with GitRepository(repo.path) as git_repo:
         if git_repo.is_empty:
             return render_empty_repo(owner, repo)
@@ -91,23 +93,28 @@ def summary(owner, repo):
         if not default_branch:
             return render_empty_repo(owner, repo)
 
+        print("c")
         tip = git_repo.get(default_branch.target)
         commits = get_last_3_commits(git_repo, tip)
+        print("d")
         link_prefix = url_for(
             'repo.tree', owner=repo.owner, repo=repo.name,
             ref=f"{default_branch.name}/")  # Trailing slash needed
         blob_prefix = url_for(
             'repo.raw_blob', owner=repo.owner, repo=repo.name,
             ref=f"{default_branch.name}/", path="")  # Trailing slash needed
+        print("e")
         readme = get_readme(repo, git_repo, tip,
             link_prefix=[link_prefix, blob_prefix])
         tags = [(ref, git_repo.get(git_repo.references[ref].target))
             for ref in git_repo.listall_references()
             if ref.startswith("refs/tags/")]
+        print("f")
         tags = [tag for tag in tags
                 if isinstance(tag[1], pygit2.Tag) or isinstance(tag[1], pygit2.Commit)]
         tags = sorted(tags, key=lambda c: commit_time(c[1]), reverse=True)
         latest_tag = tags[0] if len(tags) else None
+        print("g")
 
         license = False
         for path in [
@@ -127,6 +134,7 @@ def summary(owner, repo):
             if path in tip.tree:
                 license = True
                 break
+        print("h")
 
         message = session.pop("message", None)
         return render_template("summary.html", view="summary",
@@ -505,7 +513,9 @@ def refs(owner, repo):
         def _tag_key(tag):
             if isinstance(tag[1], pygit2.Commit):
                 return tag[1].commit_time
-            return tag[1].get_object().commit_time
+            elif isinstance(tag[1], pygit2.Tag):
+                return _tag_key([None, tag[1].get_object()])
+            return 0
         tags = sorted(tags, key=_tag_key, reverse=True)
         branches = [(
                 branch,

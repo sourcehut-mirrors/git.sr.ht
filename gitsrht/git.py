@@ -37,7 +37,7 @@ def diff_for_commit(git_repo, commit):
 
 def get_log(git_repo, commit, path="", commits_per_page=20, until=None):
     commits = list()
-    for commit in git_repo.walk(commit.id, pygit2.GIT_SORT_TOPOLOGICAL):
+    for commit in git_repo.walk(commit.id, pygit2.GIT_SORT_NONE):
         if path:
             _, diff = diff_for_commit(git_repo, commit)
             for patch in diff:
