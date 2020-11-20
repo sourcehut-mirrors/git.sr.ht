@@ -1,7 +1,6 @@
 {% extends "bases/scmdashboard.html" %}
 {% block welcome_user %}
-  Welcome back, {{ current_user.username }}! This is your
-  {{cfg("sr.ht", "site-name")}} git hosting service. Documentation
-  for its use is
+  Welcome back, {{ current_user.username }}! This is your git hosting service.
+  Documentation for its use is
   <a href="https://man.sr.ht/git.sr.ht">available here</a>.
 {% endblock %}
