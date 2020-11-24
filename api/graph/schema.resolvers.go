@@ -25,47 +25,11 @@ import (
 )
 
 func (r *aCLResolver) Repository(ctx context.Context, obj *model.ACL) (*model.Repository, error) {
-	// XXX This could be moved into a loader, but it's unlikely to be a
-	// frequently utilized endpoint, so I'm not especially interested in the
-	// extra work/cruft.
-	repo := (&model.Repository{}).As(`repo`)
-	if err := database.WithTx(ctx, &sql.TxOptions{
-		Isolation: 0,
-		ReadOnly:  true,
-	}, func(tx *sql.Tx) error {
-		query := database.
-			Select(ctx, repo).
-			From(`repository repo`).
-			Join(`access acl ON acl.repo_id = repo.id`).
-			Where(`acl.id = ?`, obj.ID)
-		row := query.RunWith(tx).QueryRow()
-		return row.Scan(database.Scan(ctx, repo)...)
-	}); err != nil {
-		panic(err) // Invariant
-	}
-	return repo, nil
+	return loaders.ForContext(ctx).RepositoriesByID.Load(obj.RepoID)
 }
 
 func (r *aCLResolver) Entity(ctx context.Context, obj *model.ACL) (model.Entity, error) {
-	// XXX This could be moved into a loader, but it's unlikely to be a
-	// frequently utilized endpoint, so I'm not especially interested in the
-	// extra work/cruft.
-	user := (&model.User{}).As(`u`)
-	if err := database.WithTx(ctx, &sql.TxOptions{
-		Isolation: 0,
-		ReadOnly:  true,
-	}, func(tx *sql.Tx) error {
-		query := database.
-			Select(ctx, user).
-			From(`"user" u`).
-			Join(`access acl ON acl.user_id = u.id`).
-			Where(`acl.id = ?`, obj.ID)
-		row := query.RunWith(tx).QueryRow()
-		return row.Scan(database.Scan(ctx, user)...)
-	}); err != nil {
-		panic(err) // Invariant
-	}
-	return user, nil
+	return loaders.ForContext(ctx).UsersByID.Load(obj.UserID)
 }
 
 func (r *artifactResolver) URL(ctx context.Context, obj *model.Artifact) (string, error) {
