@@ -8,8 +8,8 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 
-	"git.sr.ht/~sircmpwn/gql.sr.ht/database"
-	"git.sr.ht/~sircmpwn/gql.sr.ht/model"
+	"git.sr.ht/~sircmpwn/core-go/database"
+	"git.sr.ht/~sircmpwn/core-go/model"
 )
 
 type Artifact struct {
@@ -21,6 +21,7 @@ type Artifact struct {
 
 	alias  string
 	commit string
+	fields *database.ModelFields
 }
 
 func (a *Artifact) As(alias string) *Artifact {
@@ -28,32 +29,38 @@ func (a *Artifact) As(alias string) *Artifact {
 	return a
 }
 
-func (a *Artifact) Select(ctx context.Context) []string {
-	cols := database.ColumnsFor(ctx, a.alias, map[string]string{
-		"id":       "id",
-		"created":  "created",
-		"filename": "filename",
-		"checksum": "checksum",
-		"size":     "size",
-	})
-	return append(cols,
-		database.WithAlias(a.alias, "commit"),
-		database.WithAlias(a.alias, "filename"))
+func (a *Artifact) Alias() string {
+	return a.alias
 }
 
-func (a *Artifact) Fields(ctx context.Context) []interface{} {
-	fields := database.FieldsFor(ctx, map[string]interface{}{
-		"id":       &a.ID,
-		"created":  &a.Created,
-		"filename": &a.Filename,
-		"checksum": &a.Checksum,
-		"size":     &a.Size,
-	})
-	return append(fields, &a.commit, &a.Filename)
+func (a *Artifact) Table() string {
+	return "artifacts"
+}
+
+func (a *Artifact) Fields() *database.ModelFields {
+	if a.fields != nil {
+		return a.fields
+	}
+	a.fields = &database.ModelFields{
+		Fields: []*database.FieldMap{
+			{ "id", "id", &a.ID },
+			{ "created", "created", &a.Created },
+			{ "filename", "filename", &a.Filename },
+			{ "checksum", "checksum", &a.Checksum },
+			{ "size", "size", &a.Size },
+
+			// Always fetch:
+			{ "id", "", &a.ID },
+			{ "commit", "", &a.commit },
+			{ "filename", "", &a.Filename },
+		},
+	}
+	return a.fields
 }
 
 func (a *Artifact) QueryWithCursor(ctx context.Context,
-	db *sql.DB, q sq.SelectBuilder, cur *model.Cursor) ([]*Artifact, *model.Cursor) {
+	runner sq.BaseRunner, q sq.SelectBuilder,
+	cur *model.Cursor) ([]*Artifact, *model.Cursor) {
 	var (
 		err  error
 		rows *sql.Rows
@@ -67,7 +74,7 @@ func (a *Artifact) QueryWithCursor(ctx context.Context,
 		OrderBy(database.WithAlias(a.alias, "id") + " DESC").
 		Limit(uint64(cur.Count + 1))
 
-	if rows, err = q.RunWith(db).QueryContext(ctx); err != nil {
+	if rows, err = q.RunWith(runner).QueryContext(ctx); err != nil {
 		panic(err)
 	}
 	defer rows.Close()
@@ -75,7 +82,7 @@ func (a *Artifact) QueryWithCursor(ctx context.Context,
 	var artifacts []*Artifact
 	for rows.Next() {
 		var a Artifact
-		if err := rows.Scan(a.Fields(ctx)...); err != nil {
+		if err := rows.Scan(database.Scan(ctx, &a)...); err != nil {
 			panic(err)
 		}
 		artifacts = append(artifacts, &a)

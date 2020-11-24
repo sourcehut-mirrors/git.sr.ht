@@ -2,6 +2,27 @@ scalar Cursor
 scalar Time
 scalar Upload
 
+# Used to provide a human-friendly description of an access scope
+directive @scopehelp(details: String!) on ENUM_VALUE
+
+enum AccessScope {
+  PROFILE      @scopehelp(details: "profile information")
+  REPOSITORIES @scopehelp(details: "repository metadata")
+  OBJECTS      @scopehelp(details: "git objects & references")
+  ACLS         @scopehelp(details: "access control lists")
+}
+
+enum AccessKind {
+  RO @scopehelp(details: "read")
+  RW @scopehelp(details: "read and write")
+}
+
+# Decorates fields for which access requires a particular OAuth 2.0 scope with
+# read or write access. For the meta.sr.ht API, you have access to all public
+# information without any special permissions - user profile information,
+# public keys, and so on.
+directive @access(scope: AccessScope!, kind: AccessKind!) on FIELD_DEFINITION
+
 # https://semver.org
 type Version {
   major: Int!
@@ -37,7 +58,7 @@ interface Entity {
   # prefixed with '~'. Additional entity types will be supported in the future.
   canonicalName: String!
 
-  repositories(cursor: Cursor, filter: Filter): RepositoryCursor!
+  repositories(cursor: Cursor, filter: Filter): RepositoryCursor! @access(scope: REPOSITORIES, kind: RO)
 }
 
 type User implements Entity {
@@ -51,14 +72,14 @@ type User implements Entity {
   location: String
   bio: String
 
-  repositories(cursor: Cursor, filter: Filter): RepositoryCursor!
+  repositories(cursor: Cursor, filter: Filter): RepositoryCursor! @access(scope: REPOSITORIES, kind: RO)
 }
 
 type Repository {
   id: Int!
   created: Time!
   updated: Time!
-  owner: Entity!
+  owner: Entity! @access(scope: PROFILE, kind: RO)
   name: String!
   description: String
   visibility: Visibility!
@@ -67,19 +88,19 @@ type Repository {
   # clone URL.
   upstreamUrl: String
 
-  accessControlList(cursor: Cursor): ACLCursor!
+  accessControlList(cursor: Cursor): ACLCursor! @access(scope: ACLS, kind: RO)
 
   ## Plumbing API:
 
-  objects(ids: [String!]): [Object]!
-  references(cursor: Cursor): ReferenceCursor!
+  objects(ids: [String!]): [Object]! @access(scope: OBJECTS, kind: RO)
+  references(cursor: Cursor): ReferenceCursor! @access(scope: OBJECTS, kind: RO)
 
   ## Porcelain API:
 
   # NOTE: revspecs are git-compatible, e.g. "HEAD~4", "master", "9790b10")
   
   # The HEAD reference for this repository (equivalent to the default branch)
-  HEAD: Reference
+  HEAD: Reference @access(scope: OBJECTS, kind: RO)
 
   # Returns a list of comments sorted by committer time (similar to `git log`'s
   # default ordering).
@@ -87,13 +108,13 @@ type Repository {
   # If `from` is specified, it is interpreted as a revspec to start logging
   # from. A clever reader may notice that using commits[-1].from + "^" as the
   # from parameter is equivalent to passing the cursor to the next call.
-  log(cursor: Cursor, from: String): CommitCursor!
+  log(cursor: Cursor, from: String): CommitCursor! @access(scope: OBJECTS, kind: RO)
 
   # Returns a tree entry for a given path, at the given revspec.
-  path(revspec: String = "HEAD", path: String!): TreeEntry
+  path(revspec: String = "HEAD", path: String!): TreeEntry @access(scope: OBJECTS, kind: RO)
 
   # Returns the commit for a given revspec.
-  revparse_single(revspec: String!): Commit
+  revparse_single(revspec: String!): Commit @access(scope: OBJECTS, kind: RO)
 }
 
 # A cursor for enumerating a list of repositories
@@ -160,7 +181,7 @@ type ACL {
   id: Int!
   created: Time!
   repository: Repository!
-  entity: Entity!
+  entity: Entity! @access(scope: PROFILE, kind: RO)
   mode: AccessMode
 }
 
@@ -284,10 +305,10 @@ type Query {
   version: Version!
 
   # Returns the authenticated user.
-  me: User!
+  me: User! @access(scope: PROFILE, kind: RO)
 
   # Returns a specific user.
-  user(username: String!): User
+  user(username: String!): User @access(scope: PROFILE, kind: RO)
 
   # Returns repositories that the authenticated user has access to.
   #
@@ -296,17 +317,17 @@ type Query {
   # will be to return all repositories that the user either (1) has been given
   # explicit access to via ACLs or (2) has implicit access to either by
   # ownership or group membership.
-  repositories(cursor: Cursor, filter: Filter): RepositoryCursor
+  repositories(cursor: Cursor, filter: Filter): RepositoryCursor @access(scope: REPOSITORIES, kind: RO)
 
   # Returns a specific repository by ID.
-  repository(id: Int!): Repository
+  repository(id: Int!): Repository @access(scope: REPOSITORIES, kind: RO)
 
   # Returns a specific repository, owned by the authenticated user.
-  repositoryByName(name: String!): Repository
+  repositoryByName(name: String!): Repository @access(scope: REPOSITORIES, kind: RO)
 
   # Returns a specific repository, owned by the given canonical name (e.g.
   # "~sircmpwn").
-  repositoryByOwner(owner: String!, repo: String!): Repository
+  repositoryByOwner(owner: String!, repo: String!): Repository @access(scope: REPOSITORIES, kind: RO)
 }
 
 input RepoInput {
@@ -316,13 +337,13 @@ input RepoInput {
 }
 
 type Mutation {
-  createRepository(params: RepoInput): Repository!
-  updateRepository(id: ID!, params: RepoInput): Repository!
-  deleteRepository(id: ID!): Repository!
+  createRepository(params: RepoInput): Repository! @access(scope: REPOSITORIES, kind: RW)
+  updateRepository(id: ID!, params: RepoInput): Repository! @access(scope: REPOSITORIES, kind: RW)
+  deleteRepository(id: ID!): Repository! @access(scope: REPOSITORIES, kind: RW)
 
-  updateACL(repoId: ID!, mode: AccessMode!, entity: ID!): ACL!
-  deleteACL(repoId: Int!, entity: ID!): ACL!
+  updateACL(repoId: ID!, mode: AccessMode!, entity: ID!): ACL! @access(scope: ACLS, kind: RW)
+  deleteACL(repoId: Int!, entity: ID!): ACL! @access(scope: ACLS, kind: RW)
 
-  uploadArtifact(repoId: Int!, revspec: String!, file: Upload!): Artifact!
-  deleteArtifact(id: Int!): Artifact!
+  uploadArtifact(repoId: Int!, revspec: String!, file: Upload!): Artifact! @access(scope: OBJECTS, kind: RW)
+  deleteArtifact(id: Int!): Artifact! @access(scope: OBJECTS, kind: RW)
 }

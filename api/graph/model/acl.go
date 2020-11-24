@@ -8,8 +8,8 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 
-	"git.sr.ht/~sircmpwn/gql.sr.ht/database"
-	"git.sr.ht/~sircmpwn/gql.sr.ht/model"
+	"git.sr.ht/~sircmpwn/core-go/database"
+	"git.sr.ht/~sircmpwn/core-go/model"
 )
 
 // TODO: Drop updated column from database
@@ -22,6 +22,7 @@ type ACL struct {
 	UserID int
 
 	alias  string
+	fields *database.ModelFields
 }
 
 func (acl *ACL) As(alias string) *ACL {
@@ -29,29 +30,36 @@ func (acl *ACL) As(alias string) *ACL {
 	return acl
 }
 
-func (acl *ACL) Select(ctx context.Context) []string {
-	cols := database.ColumnsFor(ctx, acl.alias, map[string]string{
-		"id":      "id",
-		"created": "created",
-		"mode":    "mode",
-	})
-	return append(cols,
-		database.WithAlias(acl.alias, "id"),
-		database.WithAlias(acl.alias, "repo_id"),
-		database.WithAlias(acl.alias, "user_id"))
+func (acl *ACL) Alias() string {
+	return acl.alias
 }
 
-func (acl *ACL) Fields(ctx context.Context) []interface{} {
-	fields := database.FieldsFor(ctx, map[string]interface{}{
-		"id":      &acl.ID,
-		"created": &acl.Created,
-		"mode":    &acl.Mode,
-	})
-	return append(fields, &acl.ID, &acl.RepoID, &acl.UserID)
+func (acl *ACL) Table() string {
+	return "access"
+}
+
+func (acl *ACL) Fields() *database.ModelFields {
+	if acl.fields != nil {
+		return acl.fields
+	}
+	acl.fields = &database.ModelFields{
+		Fields: []*database.FieldMap{
+			{ "id", "id", &acl.ID },
+			{ "created", "created", &acl.Created },
+			{ "mode", "mode", &acl.Mode },
+
+			// Always fetch:
+			{ "id", "", &acl.ID },
+			{ "repo_id", "", &acl.RepoID },
+			{ "user_id", "", &acl.UserID },
+		},
+	}
+	return acl.fields
 }
 
 func (acl *ACL) QueryWithCursor(ctx context.Context,
-	db *sql.DB, q sq.SelectBuilder, cur *model.Cursor) ([]*ACL, *model.Cursor) {
+	runner sq.BaseRunner, q sq.SelectBuilder,
+	cur *model.Cursor) ([]*ACL, *model.Cursor) {
 	var (
 		err  error
 		rows *sql.Rows
@@ -65,7 +73,7 @@ func (acl *ACL) QueryWithCursor(ctx context.Context,
 		OrderBy(database.WithAlias(acl.alias, "id") + " DESC").
 		Limit(uint64(cur.Count + 1))
 
-	if rows, err = q.RunWith(db).QueryContext(ctx); err != nil {
+	if rows, err = q.RunWith(runner).QueryContext(ctx); err != nil {
 		panic(err)
 	}
 	defer rows.Close()
@@ -73,7 +81,7 @@ func (acl *ACL) QueryWithCursor(ctx context.Context,
 	var acls []*ACL
 	for rows.Next() {
 		var acl ACL
-		if err := rows.Scan(acl.Fields(ctx)...); err != nil {
+		if err := rows.Scan(database.Scan(ctx, &acl)...); err != nil {
 			panic(err)
 		}
 		acls = append(acls, &acl)

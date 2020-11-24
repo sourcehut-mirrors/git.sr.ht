@@ -10,8 +10,8 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	sq "github.com/Masterminds/squirrel"
 
-	"git.sr.ht/~sircmpwn/gql.sr.ht/database"
-	"git.sr.ht/~sircmpwn/gql.sr.ht/model"
+	"git.sr.ht/~sircmpwn/core-go/database"
+	"git.sr.ht/~sircmpwn/core-go/model"
 )
 
 type Repository struct {
@@ -26,8 +26,9 @@ type Repository struct {
 	Path    string
 	OwnerID int
 
-	alias string
-	repo  *RepoWrapper
+	alias  string
+	repo   *RepoWrapper
+	fields *database.ModelFields
 }
 
 func (r *Repository) Repo() *RepoWrapper {
@@ -60,37 +61,41 @@ func (r *Repository) As(alias string) *Repository {
 	return r
 }
 
-func (r *Repository) Select(ctx context.Context) []string {
-	cols := database.ColumnsFor(ctx, r.alias, map[string]string{
-		"id":          "id",
-		"created":     "created",
-		"updated":     "updated",
-		"name":        "name",
-		"description": "description",
-		"visibility":  "visibility",
-		"upstreamUrl": "upstream_uri",
-	})
-	return append(cols,
-		database.WithAlias(r.alias, "path"),
-		database.WithAlias(r.alias, "owner_id"),
-		database.WithAlias(r.alias, "updated"))
+func (r *Repository) Alias() string {
+	return r.alias
 }
 
-func (r *Repository) Fields(ctx context.Context) []interface{} {
-	fields := database.FieldsFor(ctx, map[string]interface{}{
-		"id":          &r.ID,
-		"created":     &r.Created,
-		"updated":     &r.Updated,
-		"name":        &r.Name,
-		"description": &r.Description,
-		"visibility":  &r.Visibility,
-		"upstreamUrl": &r.UpstreamURL,
-	})
-	return append(fields, &r.Path, &r.OwnerID, &r.Updated)
+func (r *Repository) Table() string {
+	return "repository"
 }
 
-func (r *Repository) QueryWithCursor(ctx context.Context, db *sql.DB,
-	q sq.SelectBuilder, cur *model.Cursor) ([]*Repository, *model.Cursor) {
+func (r *Repository) Fields() *database.ModelFields {
+	if r.fields != nil {
+		return r.fields
+	}
+	r.fields = &database.ModelFields{
+		Fields: []*database.FieldMap{
+			{ "id", "id", &r.ID },
+			{ "created", "created", &r.Created },
+			{ "updated", "updated", &r.Updated },
+			{ "name", "name", &r.Name },
+			{ "description", "description", &r.Description },
+			{ "visibility", "visibility", &r.Visibility },
+			{ "upstream_uri", "upstreamUrl", &r.UpstreamURL },
+
+			// Always fetch:
+			{ "id", "", &r.ID },
+			{ "path", "", &r.Path },
+			{ "owner_id", "", &r.OwnerID },
+			{ "updated", "", &r.Updated },
+		},
+	}
+	return r.fields
+}
+
+func (r *Repository) QueryWithCursor(ctx context.Context,
+	runner sq.BaseRunner, q sq.SelectBuilder,
+	cur *model.Cursor) ([]*Repository, *model.Cursor) {
 	var (
 		err  error
 		rows *sql.Rows
@@ -105,7 +110,7 @@ func (r *Repository) QueryWithCursor(ctx context.Context, db *sql.DB,
 		OrderBy(database.WithAlias(r.alias, "updated") + " DESC").
 		Limit(uint64(cur.Count + 1))
 
-	if rows, err = q.RunWith(db).QueryContext(ctx); err != nil {
+	if rows, err = q.RunWith(runner).QueryContext(ctx); err != nil {
 		panic(err)
 	}
 	defer rows.Close()
@@ -113,7 +118,7 @@ func (r *Repository) QueryWithCursor(ctx context.Context, db *sql.DB,
 	var repos []*Repository
 	for rows.Next() {
 		var repo Repository
-		if err := rows.Scan(repo.Fields(ctx)...); err != nil {
+		if err := rows.Scan(database.Scan(ctx, &repo)...); err != nil {
 			panic(err)
 		}
 		repos = append(repos, &repo)

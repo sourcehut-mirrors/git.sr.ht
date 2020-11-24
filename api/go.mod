@@ -3,10 +3,9 @@ module git.sr.ht/~sircmpwn/git.sr.ht/api
 go 1.14
 
 require (
+	git.sr.ht/~sircmpwn/core-go v0.0.0-20201121171719-31fc9fce43e9
 	git.sr.ht/~sircmpwn/getopt v0.0.0-20191230200459-23622cc906b3
-	git.sr.ht/~sircmpwn/go-bare v0.0.0-20200623145341-debb068b456a // indirect
-	git.sr.ht/~sircmpwn/gql.sr.ht v0.0.0-20200713173736-e357c3b281fd
-	github.com/99designs/gqlgen v0.11.4-0.20200512031635-40570d1b4d70
+	github.com/99designs/gqlgen v0.13.0
 	github.com/Masterminds/squirrel v1.4.0
 	github.com/agnivade/levenshtein v1.1.0 // indirect
 	github.com/alexbrainman/sspi v0.0.0-20180613141037-e580b900e9f5 // indirect
@@ -19,21 +18,19 @@ require (
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/jcmturner/gokrb5/v8 v8.4.0 // indirect
-	github.com/lib/pq v1.7.0
+	github.com/lib/pq v1.8.0
 	github.com/martinlindhe/base36 v1.1.0
 	github.com/matryer/moq v0.0.0-20200310130814-7721994d1b54 // indirect
 	github.com/mitchellh/mapstructure v1.3.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.7.1 // indirect
-	github.com/prometheus/common v0.10.0 // indirect
 	github.com/urfave/cli/v2 v2.2.0 // indirect
 	github.com/vaughan0/go-ini v0.0.0-20130923145212-a98ad7ee00ec
 	github.com/vektah/dataloaden v0.3.0 // indirect
 	github.com/vektah/gqlparser v1.3.1
-	github.com/vektah/gqlparser/v2 v2.0.1
-	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
+	github.com/vektah/gqlparser/v2 v2.1.0
+	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381 // indirect
-	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
 	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
 	gopkg.in/jcmturner/aescts.v1 v1.0.1 // indirect

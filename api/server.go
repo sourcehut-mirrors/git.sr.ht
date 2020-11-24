@@ -1,20 +1,37 @@
 package main
 
 import (
-	"git.sr.ht/~sircmpwn/gql.sr.ht"
+	"context"
+
+	"git.sr.ht/~sircmpwn/core-go/config"
+	"git.sr.ht/~sircmpwn/core-go/server"
+	"github.com/99designs/gqlgen/graphql"
 
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/api"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
 )
 
 func main() {
-	appConfig := gql.LoadConfig(":5101")
+	appConfig := config.LoadConfig(":5101")
 
 	gqlConfig := api.Config{Resolvers: &graph.Resolver{}}
-	graph.ApplyComplexity(&gqlConfig)
+	gqlConfig.Directives.Access = func(ctx context.Context, obj interface{},
+		next graphql.Resolver, scope model.AccessScope,
+		kind model.AccessKind) (interface{}, error) {
+		return server.Access(ctx, obj, next, scope.String(), kind.String())
+	}
 	schema := api.NewExecutableSchema(gqlConfig)
 
-	router := gql.MakeRouter("git.sr.ht", appConfig, schema, loaders.Middleware)
-	gql.ListenAndServe(router)
+	scopes := make([]string, len(model.AllAccessScope))
+	for i, s := range model.AllAccessScope {
+		scopes[i] = s.String()
+	}
+
+	server.NewServer("git.sr.ht", appConfig).
+		WithDefaultMiddleware().
+		WithMiddleware(loaders.Middleware).
+		WithSchema(schema, scopes).
+		Run()
 }

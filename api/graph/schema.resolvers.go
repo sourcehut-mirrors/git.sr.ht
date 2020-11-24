@@ -5,17 +5,18 @@ package graph
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"sort"
 	"strings"
 
+	"git.sr.ht/~sircmpwn/core-go/auth"
+	"git.sr.ht/~sircmpwn/core-go/config"
+	"git.sr.ht/~sircmpwn/core-go/database"
+	coremodel "git.sr.ht/~sircmpwn/core-go/model"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
-	"git.sr.ht/~sircmpwn/gql.sr.ht/auth"
-	"git.sr.ht/~sircmpwn/gql.sr.ht/config"
-	"git.sr.ht/~sircmpwn/gql.sr.ht/database"
-	gqlmodel "git.sr.ht/~sircmpwn/gql.sr.ht/model"
 	"github.com/99designs/gqlgen/graphql"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -28,14 +29,19 @@ func (r *aCLResolver) Repository(ctx context.Context, obj *model.ACL) (*model.Re
 	// frequently utilized endpoint, so I'm not especially interested in the
 	// extra work/cruft.
 	repo := (&model.Repository{}).As(`repo`)
-	query := database.
-		Select(ctx, repo).
-		From(`repository repo`).
-		Join(`access acl ON acl.repo_id = repo.id`).
-		Where(`acl.id = ?`, obj.ID)
-	row := query.RunWith(database.ForContext(ctx)).QueryRow()
-	if err := row.Scan(repo.Fields(ctx)...); err != nil {
-		panic(err)
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		query := database.
+			Select(ctx, repo).
+			From(`repository repo`).
+			Join(`access acl ON acl.repo_id = repo.id`).
+			Where(`acl.id = ?`, obj.ID)
+		row := query.RunWith(tx).QueryRow()
+		return row.Scan(database.Scan(ctx, repo)...)
+	}); err != nil {
+		panic(err) // Invariant
 	}
 	return repo, nil
 }
@@ -45,14 +51,19 @@ func (r *aCLResolver) Entity(ctx context.Context, obj *model.ACL) (model.Entity,
 	// frequently utilized endpoint, so I'm not especially interested in the
 	// extra work/cruft.
 	user := (&model.User{}).As(`u`)
-	query := database.
-		Select(ctx, user).
-		From(`"user" u`).
-		Join(`access acl ON acl.user_id = u.id`).
-		Where(`acl.id = ?`, obj.ID)
-	row := query.RunWith(database.ForContext(ctx)).QueryRow()
-	if err := row.Scan(user.Fields(ctx)...); err != nil {
-		panic(err)
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		query := database.
+			Select(ctx, user).
+			From(`"user" u`).
+			Join(`access acl ON acl.user_id = u.id`).
+			Where(`acl.id = ?`, obj.ID)
+		row := query.RunWith(tx).QueryRow()
+		return row.Scan(database.Scan(ctx, user)...)
+	}); err != nil {
+		panic(err) // Invariant
 	}
 	return user, nil
 }
@@ -118,7 +129,7 @@ func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	user := auth.ForContext(ctx)
 	return &model.User{
-		ID:       user.ID,
+		ID:       user.UserID,
 		Created:  user.Created,
 		Updated:  user.Updated,
 		Username: user.Username,
@@ -133,18 +144,27 @@ func (r *queryResolver) User(ctx context.Context, username string) (*model.User,
 	return loaders.ForContext(ctx).UsersByName.Load(username)
 }
 
-func (r *queryResolver) Repositories(ctx context.Context, cursor *gqlmodel.Cursor, filter *gqlmodel.Filter) (*model.RepositoryCursor, error) {
+func (r *queryResolver) Repositories(ctx context.Context, cursor *coremodel.Cursor, filter *coremodel.Filter) (*model.RepositoryCursor, error) {
 	if cursor == nil {
-		cursor = gqlmodel.NewCursor(filter)
+		cursor = coremodel.NewCursor(filter)
 	}
 
-	repo := (&model.Repository{}).As(`repo`)
-	query := database.
-		Select(ctx, repo).
-		From(`repository repo`).
-		Where(`repo.owner_id = ?`, auth.ForContext(ctx).ID)
+	var repos []*model.Repository
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		repo := (&model.Repository{}).As(`repo`)
+		query := database.
+			Select(ctx, repo).
+			From(`repository repo`).
+			Where(`repo.owner_id = ?`, auth.ForContext(ctx).UserID)
+		repos, cursor = repo.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
 
-	repos, cursor := repo.QueryWithCursor(ctx, database.ForContext(ctx), query, cursor)
 	return &model.RepositoryCursor{repos, cursor}, nil
 }
 
@@ -166,10 +186,10 @@ func (r *queryResolver) RepositoryByOwner(ctx context.Context, owner string, rep
 		RepositoriesByOwnerRepoName.Load([2]string{owner, repo})
 }
 
-func (r *referenceResolver) Artifacts(ctx context.Context, obj *model.Reference, cursor *gqlmodel.Cursor) (*model.ArtifactCursor, error) {
+func (r *referenceResolver) Artifacts(ctx context.Context, obj *model.Reference, cursor *coremodel.Cursor) (*model.ArtifactCursor, error) {
 	// XXX: This could utilize a loader if it ever becomes a bottleneck
 	if cursor == nil {
-		cursor = gqlmodel.NewCursor(nil)
+		cursor = coremodel.NewCursor(nil)
 	}
 
 	repo := obj.Repo.Repo()
@@ -190,14 +210,23 @@ func (r *referenceResolver) Artifacts(ctx context.Context, obj *model.Reference,
 		panic(fmt.Errorf("Expected artifact to be attached to tag"))
 	}
 
-	artifact := (&model.Artifact{}).As(`art`)
-	query := database.
-		Select(ctx, artifact).
-		From(`artifacts art`).
-		Where(`art.repo_id = ?`, obj.Repo.ID).
-		Where(`art.commit = ?`, tag.Target.String())
+	var arts []*model.Artifact
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		artifact := (&model.Artifact{}).As(`art`)
+		query := database.
+			Select(ctx, artifact).
+			From(`artifacts art`).
+			Where(`art.repo_id = ?`, obj.Repo.ID).
+			Where(`art.commit = ?`, tag.Target.String())
+		arts, cursor = artifact.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
 
-	arts, cursor := artifact.QueryWithCursor(ctx, database.ForContext(ctx), query, cursor)
 	return &model.ArtifactCursor{arts, cursor}, nil
 }
 
@@ -205,20 +234,29 @@ func (r *repositoryResolver) Owner(ctx context.Context, obj *model.Repository) (
 	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
 }
 
-func (r *repositoryResolver) AccessControlList(ctx context.Context, obj *model.Repository, cursor *gqlmodel.Cursor) (*model.ACLCursor, error) {
+func (r *repositoryResolver) AccessControlList(ctx context.Context, obj *model.Repository, cursor *coremodel.Cursor) (*model.ACLCursor, error) {
 	if cursor == nil {
-		cursor = gqlmodel.NewCursor(nil)
+		cursor = coremodel.NewCursor(nil)
 	}
 
-	acl := (&model.ACL{}).As(`acl`)
-	query := database.
-		Select(ctx, acl).
-		From(`access acl`).
-		Join(`repository repo ON acl.repo_id = repo.id`).
-		Where(`acl.repo_id = ?`, obj.ID).
-		Where(`repo.owner_id = ?`, auth.ForContext(ctx).ID)
+	var acls []*model.ACL
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		acl := (&model.ACL{}).As(`acl`)
+		query := database.
+			Select(ctx, acl).
+			From(`access acl`).
+			Join(`repository repo ON acl.repo_id = repo.id`).
+			Where(`acl.repo_id = ?`, obj.ID).
+			Where(`repo.owner_id = ?`, auth.ForContext(ctx).UserID)
+		acls, cursor = acl.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
 
-	acls, cursor := acl.QueryWithCursor(ctx, database.ForContext(ctx), query, cursor)
 	return &model.ACLCursor{acls, cursor}, nil
 }
 
@@ -235,7 +273,7 @@ func (r *repositoryResolver) Objects(ctx context.Context, obj *model.Repository,
 	return objects, nil
 }
 
-func (r *repositoryResolver) References(ctx context.Context, obj *model.Repository, cursor *gqlmodel.Cursor) (*model.ReferenceCursor, error) {
+func (r *repositoryResolver) References(ctx context.Context, obj *model.Repository, cursor *coremodel.Cursor) (*model.ReferenceCursor, error) {
 	repo := obj.Repo()
 	repo.Lock()
 	defer repo.Unlock()
@@ -246,7 +284,7 @@ func (r *repositoryResolver) References(ctx context.Context, obj *model.Reposito
 	defer iter.Close()
 
 	if cursor == nil {
-		cursor = gqlmodel.NewCursor(nil)
+		cursor = coremodel.NewCursor(nil)
 	}
 
 	var refs []*model.Reference
@@ -271,7 +309,7 @@ func (r *repositoryResolver) References(ctx context.Context, obj *model.Reposito
 	}
 
 	if len(refs) > cursor.Count {
-		cursor = &gqlmodel.Cursor{
+		cursor = &coremodel.Cursor{
 			Count:  cursor.Count,
 			Next:   refs[cursor.Count].Name(),
 			Search: cursor.Search,
@@ -284,9 +322,9 @@ func (r *repositoryResolver) References(ctx context.Context, obj *model.Reposito
 	return &model.ReferenceCursor{refs, cursor}, nil
 }
 
-func (r *repositoryResolver) Log(ctx context.Context, obj *model.Repository, cursor *gqlmodel.Cursor, from *string) (*model.CommitCursor, error) {
+func (r *repositoryResolver) Log(ctx context.Context, obj *model.Repository, cursor *coremodel.Cursor, from *string) (*model.CommitCursor, error) {
 	if cursor == nil {
-		cursor = gqlmodel.NewCursor(nil)
+		cursor = coremodel.NewCursor(nil)
 		if from != nil {
 			cursor.Next = *from
 		}
@@ -326,7 +364,7 @@ func (r *repositoryResolver) Log(ctx context.Context, obj *model.Repository, cur
 	})
 
 	if len(commits) > cursor.Count {
-		cursor = &gqlmodel.Cursor{
+		cursor = &coremodel.Cursor{
 			Count:  cursor.Count,
 			Next:   commits[cursor.Count].ID,
 			Search: "",
@@ -393,10 +431,10 @@ func (r *repositoryResolver) RevparseSingle(ctx context.Context, obj *model.Repo
 	return commit, nil
 }
 
-func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *gqlmodel.Cursor) (*model.TreeEntryCursor, error) {
+func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *coremodel.Cursor) (*model.TreeEntryCursor, error) {
 	if cursor == nil {
 		// TODO: Filter?
-		cursor = gqlmodel.NewCursor(nil)
+		cursor = coremodel.NewCursor(nil)
 	}
 
 	entries := obj.GetEntries()
@@ -413,7 +451,7 @@ func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *gql
 	}
 
 	if len(entries) > cursor.Count {
-		cursor = &gqlmodel.Cursor{
+		cursor = &coremodel.Cursor{
 			Count:  cursor.Count,
 			Next:   entries[cursor.Count].Name,
 			Search: cursor.Search,
@@ -426,18 +464,26 @@ func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *gql
 	return &model.TreeEntryCursor{entries, cursor}, nil
 }
 
-func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor *gqlmodel.Cursor, filter *gqlmodel.Filter) (*model.RepositoryCursor, error) {
+func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor *coremodel.Cursor, filter *coremodel.Filter) (*model.RepositoryCursor, error) {
 	if cursor == nil {
-		cursor = gqlmodel.NewCursor(filter)
+		cursor = coremodel.NewCursor(filter)
 	}
 
-	repo := (&model.Repository{}).As(`repo`)
-	query := database.
-		Select(ctx, repo).
-		From(`repository repo`).
-		Where(`repo.owner_id = ?`, obj.ID)
-
-	repos, cursor := repo.QueryWithCursor(ctx, database.ForContext(ctx), query, cursor)
+	var repos []*model.Repository
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		repo := (&model.Repository{}).As(`repo`)
+		query := database.
+			Select(ctx, repo).
+			From(`repository repo`).
+			Where(`repo.owner_id = ?`, obj.ID)
+		repos, cursor = repo.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
 	return &model.RepositoryCursor{repos, cursor}, nil
 }
 
