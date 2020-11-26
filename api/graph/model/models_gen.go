@@ -40,9 +40,9 @@ type ReferenceCursor struct {
 }
 
 type RepoInput struct {
-	Name        string      `json:"name"`
-	Description *string     `json:"description"`
-	Visibility  *Visibility `json:"visibility"`
+	Name        string     `json:"name"`
+	Description *string    `json:"description"`
+	Visibility  Visibility `json:"visibility"`
 }
 
 type RepositoryCursor struct {

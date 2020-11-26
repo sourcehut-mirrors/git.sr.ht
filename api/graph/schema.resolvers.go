@@ -7,7 +7,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
+	"path"
 	"sort"
+	"strconv"
 	"strings"
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
@@ -54,7 +57,103 @@ func (r *commitResolver) Diff(ctx context.Context, obj *model.Commit) (string, e
 }
 
 func (r *mutationResolver) CreateRepository(ctx context.Context, params *model.RepoInput) (*model.Repository, error) {
-	panic(fmt.Errorf("createRepository: not implemented"))
+	if !repoNameRE.MatchString(params.Name) {
+		return nil, fmt.Errorf("Invalid repository name '%s' (must match %s)",
+			params.Name, repoNameRE.String())
+	}
+
+	conf := config.ForContext(ctx)
+	repoStore, ok := conf.Get("git.sr.ht", "repos")
+	if !ok || repoStore == "" {
+		panic(fmt.Errorf("Configuration error: [git.sr.ht]repos is unset"))
+	}
+	postUpdate, ok := conf.Get("git.sr.ht", "post-update-script")
+	if !ok {
+		panic(fmt.Errorf("Configuration error: [git.sr.ht]post-update is unset"))
+	}
+
+	user := auth.ForContext(ctx)
+	repoPath := path.Join(repoStore, "~" + user.Username, params.Name)
+
+	var (
+		repoCreated bool
+		repo        model.Repository
+	)
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		vismap := map[model.Visibility]string{
+			model.VisibilityPublic:   "public",
+			model.VisibilityUnlisted: "unlisted",
+			model.VisibilityPrivate:  "private",
+		}
+		var (
+			dvis string
+			ok   bool
+		)
+		if dvis, ok = vismap[params.Visibility]; !ok {
+			panic(fmt.Errorf("Unknown visibility %s", params.Visibility)) // Invariant
+		}
+
+		row := tx.QueryRowContext(ctx, `
+			INSERT INTO repository (
+				created, updated, name, description, path, visibility, owner_id
+			) VALUES (
+				NOW() at time zone 'utc',
+				NOW() at time zone 'utc',
+				$1, $2, $3, $4, $5
+			) RETURNING 
+				id, created, updated, name, description, visibility,
+				upstream_uri, path, owner_id;
+		`, params.Name, params.Description, repoPath, dvis, user.UserID)
+		if err := row.Scan(&repo.ID, &repo.Created, &repo.Updated, &repo.Name,
+			&repo.Description, &repo.Visibility, &repo.UpstreamURL, &repo.Path,
+			&repo.OwnerID); err != nil {
+			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+				return fmt.Errorf("A repository with this name already exists.")
+			}
+
+			return err
+		}
+
+		gitrepo, err := git.PlainInit(repoPath, true)
+		if err != nil {
+			return err
+		}
+		repoCreated = true
+		config, err := gitrepo.Config()
+		if err != nil {
+			return err
+		}
+		config.Raw.SetOption("core", "", "repositoryformatversion", "0")
+		config.Raw.SetOption("core", "", "filemode", "true")
+		config.Raw.SetOption("srht", "", "repo-id", strconv.Itoa(repo.ID))
+		config.Raw.SetOption("receive", "", "denyDeleteCurrent", "ignore")
+		config.Raw.SetOption("receive", "", "advertisePushOptions", "true")
+		if err = gitrepo.Storer.SetConfig(config); err != nil {
+			return err
+		}
+
+		hookdir := path.Join(repoPath, "hooks")
+		if err = os.Mkdir(hookdir, os.ModePerm); err != nil {
+			return err
+		}
+		for _, hook := range []string{"pre-receive", "update", "post-update"} {
+			if err = os.Symlink(postUpdate, path.Join(hookdir, hook)); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}); err != nil {
+		if repoCreated {
+			err := os.RemoveAll(repoPath)
+			if err != nil {
+				panic(err)
+			}
+		}
+		return nil, err
+	}
+
+	return &repo, nil
 }
 
 func (r *mutationResolver) UpdateRepository(ctx context.Context, id string, params *model.RepoInput) (*model.Repository, error) {

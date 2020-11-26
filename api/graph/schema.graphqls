@@ -333,17 +333,29 @@ type Query {
 input RepoInput {
   name: String!
   description: String
-  visibility: Visibility
+  visibility: Visibility!
 }
 
 type Mutation {
+  # Creates a new git repository
   createRepository(params: RepoInput): Repository! @access(scope: REPOSITORIES, kind: RW)
+
+  # Updates the metadata for a git repository
   updateRepository(id: ID!, params: RepoInput): Repository! @access(scope: REPOSITORIES, kind: RW)
+
+  # Deletes a git repository
   deleteRepository(id: ID!): Repository! @access(scope: REPOSITORIES, kind: RW)
 
+  # Adds or updates a user in the access control list
   updateACL(repoId: ID!, mode: AccessMode!, entity: ID!): ACL! @access(scope: ACLS, kind: RW)
+
+  # Deletes an entry from the access control list
   deleteACL(repoId: Int!, entity: ID!): ACL! @access(scope: ACLS, kind: RW)
 
+  # Uploads an artifact. revspec must match a specific git tag, and the
+  # filename must be unique among artifacts for this repository.
   uploadArtifact(repoId: Int!, revspec: String!, file: Upload!): Artifact! @access(scope: OBJECTS, kind: RW)
+
+  # Deletes an artifact.
   deleteArtifact(id: Int!): Artifact! @access(scope: OBJECTS, kind: RW)
 }

@@ -300,6 +300,7 @@ func main() {
 				}
 
 				// Note: update gitsrht/repos.py when changing this
+				// Also update api/graph/schema.resolvers.go:CreateRepository
 				repo, err := git.PlainInit(path, true)
 				if err != nil {
 					notFound("git init", err)

@@ -1580,18 +1580,30 @@ type Query {
 input RepoInput {
   name: String!
   description: String
-  visibility: Visibility
+  visibility: Visibility!
 }
 
 type Mutation {
+  # Creates a new git repository
   createRepository(params: RepoInput): Repository! @access(scope: REPOSITORIES, kind: RW)
+
+  # Updates the metadata for a git repository
   updateRepository(id: ID!, params: RepoInput): Repository! @access(scope: REPOSITORIES, kind: RW)
+
+  # Deletes a git repository
   deleteRepository(id: ID!): Repository! @access(scope: REPOSITORIES, kind: RW)
 
+  # Adds or updates a user in the access control list
   updateACL(repoId: ID!, mode: AccessMode!, entity: ID!): ACL! @access(scope: ACLS, kind: RW)
+
+  # Deletes an entry from the access control list
   deleteACL(repoId: Int!, entity: ID!): ACL! @access(scope: ACLS, kind: RW)
 
+  # Uploads an artifact. revspec must match a specific git tag, and the
+  # filename must be unique among artifacts for this repository.
   uploadArtifact(repoId: Int!, revspec: String!, file: Upload!): Artifact! @access(scope: OBJECTS, kind: RW)
+
+  # Deletes an artifact.
   deleteArtifact(id: Int!): Artifact! @access(scope: OBJECTS, kind: RW)
 }
 `, BuiltIn: false},
@@ -7950,7 +7962,7 @@ func (ec *executionContext) unmarshalInputRepoInput(ctx context.Context, obj int
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("visibility"))
-			it.Visibility, err = ec.unmarshalOVisibility2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx, v)
+			it.Visibility, err = ec.unmarshalNVisibility2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -10534,22 +10546,6 @@ func (ec *executionContext) marshalOUser2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗs
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalOVisibility2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx context.Context, v interface{}) (*model.Visibility, error) {
-	if v == nil {
-		return nil, nil
-	}
-	var res = new(model.Visibility)
-	err := res.UnmarshalGQL(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalOVisibility2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx context.Context, sel ast.SelectionSet, v *model.Visibility) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return v
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {
