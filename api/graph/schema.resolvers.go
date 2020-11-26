@@ -81,6 +81,18 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 		repoCreated bool
 		repo        model.Repository
 	)
+	defer func() {
+		if err := recover(); err != nil {
+			if repoCreated {
+				err := os.RemoveAll(repoPath)
+				if err != nil {
+					panic(err)
+				}
+			}
+			panic(err)
+		}
+	}()
+
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		vismap := map[model.Visibility]string{
 			model.VisibilityPublic:   "public",
@@ -178,6 +190,17 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 		repoPath string
 		moved    bool
 	)
+	defer func() {
+		if err := recover(); err != nil {
+			if moved {
+				err := os.Rename(repoPath, origPath)
+				if err != nil {
+					panic(err)
+				}
+			}
+			panic(err)
+		}
+	}()
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		user := auth.ForContext(ctx)
 
