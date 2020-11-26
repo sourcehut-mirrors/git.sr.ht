@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -202,9 +203,9 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 					NOW() at time zone 'utc',
 					orig.name, orig.path, orig.owner_id, orig.id
 				FROM repository orig
-				WHERE id = $1 AND owner_id = $2 AND name != $3
+				WHERE id = $1 AND owner_id = $2
 				RETURNING path;
-			`, id, auth.ForContext(ctx).UserID, name)
+			`, id, auth.ForContext(ctx).UserID)
 			if err := row.Scan(&origPath); err != nil {
 				if err == sql.ErrNoRows {
 					return fmt.Errorf("No repository by ID %d found for this user", id)
@@ -220,7 +221,9 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 
 			repoPath := path.Join(repoStore, "~"+user.Username, name)
 			err := os.Rename(origPath, repoPath)
-			if err != nil {
+			if errors.Is(err, os.ErrExist) {
+				return fmt.Errorf("A repository with this name already exists.")
+			} else if err != nil {
 				return err
 			}
 			moved = true
