@@ -157,6 +157,20 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 }
 
 func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input map[string]interface{}) (*model.Repository, error) {
+	// This function is somewhat involved, because it has to address repository
+	// renames. The process is the following:
+	//
+	// 1. Prepare, but don't execute, a normal update operation
+	// 2. If a rename is requested, insert a redirect and move the repo on disk.
+	// 3. Complete the normal update operation.
+	//
+	// We need 2 to happen between 1 and 3 because step 3 is going to change
+	// information in the database that step 2 relies on, and step 3 has to
+	// happen after step 2 because step 2 will change something (the path) that
+	// step 3 relies on.
+	//
+	// Additional complication: if an error occurs after the directory has been
+	// moved on disk, we have to move it back.
 	var (
 		repo     model.Repository
 		origPath string
@@ -174,7 +188,6 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 				id, created, updated, name, description, visibility,
 				upstream_uri, path, owner_id`)
 
-		// Create redirect if updating name
 		if n, ok := input["name"]; ok {
 			name, ok := n.(string)
 			if !ok {
@@ -189,9 +202,9 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 					NOW() at time zone 'utc',
 					orig.name, orig.path, orig.owner_id, orig.id
 				FROM repository orig
-				WHERE id = $1 AND owner_id = $2
+				WHERE id = $1 AND owner_id = $2 AND name != $3
 				RETURNING path;
-			`, id, auth.ForContext(ctx).UserID)
+			`, id, auth.ForContext(ctx).UserID, name)
 			if err := row.Scan(&origPath); err != nil {
 				if err == sql.ErrNoRows {
 					return fmt.Errorf("No repository by ID %d found for this user", id)
