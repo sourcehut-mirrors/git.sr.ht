@@ -264,6 +264,8 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 			}
 			return err
 		}
+
+		webhooks.DeliverLegacyRepoUpdate(ctx, &repo)
 		return nil
 	}); err != nil {
 		if moved && err != nil {
