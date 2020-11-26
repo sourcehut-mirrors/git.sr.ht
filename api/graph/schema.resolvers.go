@@ -73,7 +73,7 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, params *model.R
 	}
 
 	user := auth.ForContext(ctx)
-	repoPath := path.Join(repoStore, "~" + user.Username, params.Name)
+	repoPath := path.Join(repoStore, "~"+user.Username, params.Name)
 
 	var (
 		repoCreated bool
@@ -110,7 +110,6 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, params *model.R
 			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
 				return fmt.Errorf("A repository with this name already exists.")
 			}
-
 			return err
 		}
 
@@ -156,15 +155,15 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, params *model.R
 	return &repo, nil
 }
 
-func (r *mutationResolver) UpdateRepository(ctx context.Context, id string, params *model.RepoInput) (*model.Repository, error) {
+func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, params *model.RepoInput) (*model.Repository, error) {
 	panic(fmt.Errorf("updateRepository: not implemented"))
 }
 
-func (r *mutationResolver) DeleteRepository(ctx context.Context, id string) (*model.Repository, error) {
+func (r *mutationResolver) DeleteRepository(ctx context.Context, id int) (*model.Repository, error) {
 	panic(fmt.Errorf("deleteRepository: not implemented"))
 }
 
-func (r *mutationResolver) UpdateACL(ctx context.Context, repoID string, mode model.AccessMode, entity string) (*model.ACL, error) {
+func (r *mutationResolver) UpdateACL(ctx context.Context, repoID int, mode model.AccessMode, entity string) (*model.ACL, error) {
 	panic(fmt.Errorf("updateACL: not implemented"))
 }
 

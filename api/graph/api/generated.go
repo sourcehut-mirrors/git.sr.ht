@@ -112,9 +112,9 @@ type ComplexityRoot struct {
 		CreateRepository func(childComplexity int, params *model.RepoInput) int
 		DeleteACL        func(childComplexity int, repoID int, entity string) int
 		DeleteArtifact   func(childComplexity int, id int) int
-		DeleteRepository func(childComplexity int, id string) int
-		UpdateACL        func(childComplexity int, repoID string, mode model.AccessMode, entity string) int
-		UpdateRepository func(childComplexity int, id string, params *model.RepoInput) int
+		DeleteRepository func(childComplexity int, id int) int
+		UpdateACL        func(childComplexity int, repoID int, mode model.AccessMode, entity string) int
+		UpdateRepository func(childComplexity int, id int, params *model.RepoInput) int
 		UploadArtifact   func(childComplexity int, repoID int, revspec string, file graphql.Upload) int
 	}
 
@@ -242,9 +242,9 @@ type CommitResolver interface {
 }
 type MutationResolver interface {
 	CreateRepository(ctx context.Context, params *model.RepoInput) (*model.Repository, error)
-	UpdateRepository(ctx context.Context, id string, params *model.RepoInput) (*model.Repository, error)
-	DeleteRepository(ctx context.Context, id string) (*model.Repository, error)
-	UpdateACL(ctx context.Context, repoID string, mode model.AccessMode, entity string) (*model.ACL, error)
+	UpdateRepository(ctx context.Context, id int, params *model.RepoInput) (*model.Repository, error)
+	DeleteRepository(ctx context.Context, id int) (*model.Repository, error)
+	UpdateACL(ctx context.Context, repoID int, mode model.AccessMode, entity string) (*model.ACL, error)
 	DeleteACL(ctx context.Context, repoID int, entity string) (*model.ACL, error)
 	UploadArtifact(ctx context.Context, repoID int, revspec string, file graphql.Upload) (*model.Artifact, error)
 	DeleteArtifact(ctx context.Context, id int) (*model.Artifact, error)
@@ -564,7 +564,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.DeleteRepository(childComplexity, args["id"].(string)), true
+		return e.complexity.Mutation.DeleteRepository(childComplexity, args["id"].(int)), true
 
 	case "Mutation.updateACL":
 		if e.complexity.Mutation.UpdateACL == nil {
@@ -576,7 +576,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateACL(childComplexity, args["repoId"].(string), args["mode"].(model.AccessMode), args["entity"].(string)), true
+		return e.complexity.Mutation.UpdateACL(childComplexity, args["repoId"].(int), args["mode"].(model.AccessMode), args["entity"].(string)), true
 
 	case "Mutation.updateRepository":
 		if e.complexity.Mutation.UpdateRepository == nil {
@@ -588,7 +588,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateRepository(childComplexity, args["id"].(string), args["params"].(*model.RepoInput)), true
+		return e.complexity.Mutation.UpdateRepository(childComplexity, args["id"].(int), args["params"].(*model.RepoInput)), true
 
 	case "Mutation.uploadArtifact":
 		if e.complexity.Mutation.UploadArtifact == nil {
@@ -1588,13 +1588,13 @@ type Mutation {
   createRepository(params: RepoInput): Repository! @access(scope: REPOSITORIES, kind: RW)
 
   # Updates the metadata for a git repository
-  updateRepository(id: ID!, params: RepoInput): Repository! @access(scope: REPOSITORIES, kind: RW)
+  updateRepository(id: Int!, params: RepoInput): Repository! @access(scope: REPOSITORIES, kind: RW)
 
   # Deletes a git repository
-  deleteRepository(id: ID!): Repository! @access(scope: REPOSITORIES, kind: RW)
+  deleteRepository(id: Int!): Repository! @access(scope: REPOSITORIES, kind: RW)
 
   # Adds or updates a user in the access control list
-  updateACL(repoId: ID!, mode: AccessMode!, entity: ID!): ACL! @access(scope: ACLS, kind: RW)
+  updateACL(repoId: Int!, mode: AccessMode!, entity: ID!): ACL! @access(scope: ACLS, kind: RW)
 
   # Deletes an entry from the access control list
   deleteACL(repoId: Int!, entity: ID!): ACL! @access(scope: ACLS, kind: RW)
@@ -1710,10 +1710,10 @@ func (ec *executionContext) field_Mutation_deleteArtifact_args(ctx context.Conte
 func (ec *executionContext) field_Mutation_deleteRepository_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 string
+	var arg0 int
 	if tmp, ok := rawArgs["id"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1725,10 +1725,10 @@ func (ec *executionContext) field_Mutation_deleteRepository_args(ctx context.Con
 func (ec *executionContext) field_Mutation_updateACL_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 string
+	var arg0 int
 	if tmp, ok := rawArgs["repoId"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("repoId"))
-		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -1758,10 +1758,10 @@ func (ec *executionContext) field_Mutation_updateACL_args(ctx context.Context, r
 func (ec *executionContext) field_Mutation_updateRepository_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 string
+	var arg0 int
 	if tmp, ok := rawArgs["id"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-		arg0, err = ec.unmarshalNID2string(ctx, tmp)
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3367,7 +3367,7 @@ func (ec *executionContext) _Mutation_updateRepository(ctx context.Context, fiel
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().UpdateRepository(rctx, args["id"].(string), args["params"].(*model.RepoInput))
+			return ec.resolvers.Mutation().UpdateRepository(rctx, args["id"].(int), args["params"].(*model.RepoInput))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "REPOSITORIES")
@@ -3437,7 +3437,7 @@ func (ec *executionContext) _Mutation_deleteRepository(ctx context.Context, fiel
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().DeleteRepository(rctx, args["id"].(string))
+			return ec.resolvers.Mutation().DeleteRepository(rctx, args["id"].(int))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "REPOSITORIES")
@@ -3507,7 +3507,7 @@ func (ec *executionContext) _Mutation_updateACL(ctx context.Context, field graph
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().UpdateACL(rctx, args["repoId"].(string), args["mode"].(model.AccessMode), args["entity"].(string))
+			return ec.resolvers.Mutation().UpdateACL(rctx, args["repoId"].(int), args["mode"].(model.AccessMode), args["entity"].(string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "ACLS")

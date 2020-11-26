@@ -341,13 +341,13 @@ type Mutation {
   createRepository(params: RepoInput): Repository! @access(scope: REPOSITORIES, kind: RW)
 
   # Updates the metadata for a git repository
-  updateRepository(id: ID!, params: RepoInput): Repository! @access(scope: REPOSITORIES, kind: RW)
+  updateRepository(id: Int!, params: RepoInput): Repository! @access(scope: REPOSITORIES, kind: RW)
 
   # Deletes a git repository
-  deleteRepository(id: ID!): Repository! @access(scope: REPOSITORIES, kind: RW)
+  deleteRepository(id: Int!): Repository! @access(scope: REPOSITORIES, kind: RW)
 
   # Adds or updates a user in the access control list
-  updateACL(repoId: ID!, mode: AccessMode!, entity: ID!): ACL! @access(scope: ACLS, kind: RW)
+  updateACL(repoId: Int!, mode: AccessMode!, entity: ID!): ACL! @access(scope: ACLS, kind: RW)
 
   # Deletes an entry from the access control list
   deleteACL(repoId: Int!, entity: ID!): ACL! @access(scope: ACLS, kind: RW)
