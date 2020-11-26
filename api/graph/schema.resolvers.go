@@ -192,6 +192,7 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 		repoPath string
 		moved    bool
 	)
+
 	defer func() {
 		if err := recover(); err != nil {
 			if moved {
@@ -203,6 +204,7 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 			panic(err)
 		}
 	}()
+
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		user := auth.ForContext(ctx)
 
@@ -281,7 +283,38 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 }
 
 func (r *mutationResolver) DeleteRepository(ctx context.Context, id int) (*model.Repository, error) {
-	panic(fmt.Errorf("deleteRepository: not implemented"))
+	var repo model.Repository
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			DELETE FROM repository
+			WHERE id = $1 AND owner_id = $2
+			RETURNING
+				id, created, updated, name, description, visibility,
+				upstream_uri, path, owner_id;
+		`, id, auth.ForContext(ctx).UserID)
+
+		if err := row.Scan(&repo.ID, &repo.Created, &repo.Updated,
+			&repo.Name, &repo.Description, &repo.RawVisibility,
+			&repo.UpstreamURL, &repo.Path, &repo.OwnerID); err != nil {
+			if err == sql.ErrNoRows {
+				return fmt.Errorf("No repository by ID %d found for this user", id)
+			}
+			return err
+		}
+
+		err := os.RemoveAll(repo.Path)
+		if err != nil {
+			return err
+		}
+
+		webhooks.DeliverLegacyRepoDeleted(ctx, &repo)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &repo, nil
 }
 
 func (r *mutationResolver) UpdateACL(ctx context.Context, repoID int, mode model.AccessMode, entity string) (*model.ACL, error) {

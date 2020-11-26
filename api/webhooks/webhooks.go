@@ -124,3 +124,25 @@ func DeliverLegacyRepoUpdate(ctx context.Context, repo *model.Repository) {
 		Where("sub.user_id = ?", repo.OwnerID)
 	q.Schedule(query, "user", "repo:update", encoded)
 }
+
+func DeliverLegacyRepoDeleted(ctx context.Context, repo *model.Repository) {
+	q, ok := ctx.Value(legacyUserCtxKey).(*webhooks.LegacyQueue)
+	if !ok {
+		panic(errors.New("No legacy user webhooks worker for this context"))
+	}
+
+	payload := struct {
+		ID int `json:"id"`
+	}{repo.ID}
+
+	encoded, err := json.Marshal(&payload)
+	if err != nil {
+		panic(err) // Programmer error
+	}
+
+	query := sq.
+		Select().
+		From("user_webhook_subscription sub").
+		Where("sub.user_id = ?", repo.OwnerID)
+	q.Schedule(query, "user", "repo:delete", encoded)
+}
