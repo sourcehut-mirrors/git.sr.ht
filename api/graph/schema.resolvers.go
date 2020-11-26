@@ -157,21 +157,64 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 }
 
 func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input map[string]interface{}) (*model.Repository, error) {
-	if _, ok := input["name"]; ok {
-		panic(fmt.Errorf("updateRepository: rename not implemented")) // TODO
-	}
-
-	var repo model.Repository
+	var (
+		repo     model.Repository
+		origPath string
+		repoPath string
+		moved    bool
+	)
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-		row := database.Apply(&repo, input).
+		user := auth.ForContext(ctx)
+
+		query := database.Apply(&repo, input).
 			Where(`id = ?`, id).
 			Where(`owner_id = ?`, auth.ForContext(ctx).UserID).
 			Set(`updated`, sq.Expr(`now() at time zone 'utc'`)).
 			Suffix(`RETURNING
 				id, created, updated, name, description, visibility,
-				upstream_uri, path, owner_id`).
-			RunWith(tx).
-			QueryRowContext(ctx)
+				upstream_uri, path, owner_id`)
+
+		// Create redirect if updating name
+		if n, ok := input["name"]; ok {
+			name, ok := n.(string)
+			if !ok {
+				return fmt.Errorf("Invalid type for 'name' field (expected string)")
+			}
+
+			var origPath string
+			row := tx.QueryRowContext(ctx, `
+				INSERT INTO redirect (
+					created, name, path, owner_id, new_repo_id
+				) SELECT 
+					NOW() at time zone 'utc',
+					orig.name, orig.path, orig.owner_id, orig.id
+				FROM repository orig
+				WHERE id = $1 AND owner_id = $2
+				RETURNING path;
+			`, id, auth.ForContext(ctx).UserID)
+			if err := row.Scan(&origPath); err != nil {
+				if err == sql.ErrNoRows {
+					return fmt.Errorf("No repository by ID %d found for this user", id)
+				}
+				return err
+			}
+
+			conf := config.ForContext(ctx)
+			repoStore, ok := conf.Get("git.sr.ht", "repos")
+			if !ok || repoStore == "" {
+				panic(fmt.Errorf("Configuration error: [git.sr.ht]repos is unset"))
+			}
+
+			repoPath := path.Join(repoStore, "~"+user.Username, name)
+			err := os.Rename(origPath, repoPath)
+			if err != nil {
+				return err
+			}
+			moved = true
+			query = query.Set(`path`, repoPath)
+		}
+
+		row := query.RunWith(tx).QueryRowContext(ctx)
 		if err := row.Scan(&repo.ID, &repo.Created, &repo.Updated,
 			&repo.Name, &repo.Description, &repo.Visibility,
 			&repo.UpstreamURL, &repo.Path, &repo.OwnerID); err != nil {
@@ -182,6 +225,12 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 		}
 		return nil
 	}); err != nil {
+		if moved && err != nil {
+			err := os.Rename(repoPath, origPath)
+			if err != nil {
+				panic(err)
+			}
+		}
 		return nil, err
 	}
 
