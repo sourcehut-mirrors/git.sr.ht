@@ -21,6 +21,7 @@ import (
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/webhooks"
 	"github.com/99designs/gqlgen/graphql"
 	sq "github.com/Masterminds/squirrel"
 	git "github.com/go-git/go-git/v5"
@@ -119,8 +120,8 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 				upstream_uri, path, owner_id;
 		`, name, description, repoPath, dvis, user.UserID)
 		if err := row.Scan(&repo.ID, &repo.Created, &repo.Updated, &repo.Name,
-			&repo.Description, &repo.Visibility, &repo.UpstreamURL, &repo.Path,
-			&repo.OwnerID); err != nil {
+			&repo.Description, &repo.RawVisibility, &repo.UpstreamURL,
+			&repo.Path, &repo.OwnerID); err != nil {
 			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
 				return fmt.Errorf("A repository with this name already exists.")
 			}
@@ -155,6 +156,7 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 			}
 		}
 
+		webhooks.DeliverLegacyRepoCreate(ctx, &repo)
 		return nil
 	}); err != nil {
 		if repoCreated {
@@ -255,7 +257,7 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 
 		row := query.RunWith(tx).QueryRowContext(ctx)
 		if err := row.Scan(&repo.ID, &repo.Created, &repo.Updated,
-			&repo.Name, &repo.Description, &repo.Visibility,
+			&repo.Name, &repo.Description, &repo.RawVisibility,
 			&repo.UpstreamURL, &repo.Path, &repo.OwnerID); err != nil {
 			if err == sql.ErrNoRows {
 				return fmt.Errorf("No repository by ID %d found for this user", id)

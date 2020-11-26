@@ -4742,14 +4742,14 @@ func (ec *executionContext) _Repository_visibility(ctx context.Context, field gr
 		Object:     "Repository",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
+		IsMethod:   true,
 		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Visibility, nil
+		return obj.Visibility(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)

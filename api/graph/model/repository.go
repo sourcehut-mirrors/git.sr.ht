@@ -3,6 +3,7 @@ package model
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 	"strconv"
 
@@ -20,15 +21,28 @@ type Repository struct {
 	Updated        time.Time  `json:"updated"`
 	Name           string     `json:"name"`
 	Description    *string    `json:"description"`
-	Visibility     Visibility `json:"visibility"`
 	UpstreamURL    *string    `json:"upstreamUrl"`
 
 	Path    string
 	OwnerID int
+	RawVisibility string
 
 	alias  string
 	repo   *RepoWrapper
 	fields *database.ModelFields
+}
+
+func (r *Repository) Visibility() Visibility {
+	visMap := map[string]Visibility{
+		"public": VisibilityPublic,
+		"unlisted": VisibilityUnlisted,
+		"private": VisibilityPrivate,
+	}
+	vis, ok := visMap[r.RawVisibility]
+	if !ok {
+		panic(fmt.Errorf("Invalid repo visibility %s", r.RawVisibility)) // Invariant
+	}
+	return vis
 }
 
 func (r *Repository) Repo() *RepoWrapper {
@@ -80,7 +94,7 @@ func (r *Repository) Fields() *database.ModelFields {
 			{ "updated", "updated", &r.Updated },
 			{ "name", "name", &r.Name },
 			{ "description", "description", &r.Description },
-			{ "visibility", "visibility", &r.Visibility },
+			{ "visibility", "visibility", &r.RawVisibility },
 			{ "upstream_uri", "upstreamUrl", &r.UpstreamURL },
 
 			// Always fetch:

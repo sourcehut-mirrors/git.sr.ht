@@ -11,6 +11,7 @@ import (
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/webhooks"
 )
 
 func main() {
@@ -29,9 +30,15 @@ func main() {
 		scopes[i] = s.String()
 	}
 
+	legacyWebhooks := webhooks.NewLegacyQueue()
+
 	server.NewServer("git.sr.ht", appConfig).
 		WithDefaultMiddleware().
-		WithMiddleware(loaders.Middleware).
+		WithMiddleware(
+			loaders.Middleware,
+			webhooks.LegacyMiddleware(legacyWebhooks),
+		).
 		WithSchema(schema, scopes).
+		WithQueues(legacyWebhooks.Queue).
 		Run()
 }
