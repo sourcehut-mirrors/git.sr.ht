@@ -39,12 +39,6 @@ type ReferenceCursor struct {
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
-type RepoInput struct {
-	Name        *string     `json:"name"`
-	Description *string     `json:"description"`
-	Visibility  *Visibility `json:"visibility"`
-}
-
 type RepositoryCursor struct {
 	Results []*Repository `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`

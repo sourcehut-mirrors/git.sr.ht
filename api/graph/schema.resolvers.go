@@ -21,6 +21,7 @@ import (
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
 	"github.com/99designs/gqlgen/graphql"
+	sq "github.com/Masterminds/squirrel"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -155,8 +156,36 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 	return &repo, nil
 }
 
-func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, params model.RepoInput) (*model.Repository, error) {
-	panic(fmt.Errorf("updateRepository: not implemented"))
+func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input map[string]interface{}) (*model.Repository, error) {
+	if _, ok := input["name"]; ok {
+		panic(fmt.Errorf("updateRepository: rename not implemented")) // TODO
+	}
+
+	var repo model.Repository
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := database.Apply(&repo, input).
+			Where(`id = ?`, id).
+			Where(`owner_id = ?`, auth.ForContext(ctx).UserID).
+			Set(`updated`, sq.Expr(`now() at time zone 'utc'`)).
+			Suffix(`RETURNING
+				id, created, updated, name, description, visibility,
+				upstream_uri, path, owner_id`).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		if err := row.Scan(&repo.ID, &repo.Created, &repo.Updated,
+			&repo.Name, &repo.Description, &repo.Visibility,
+			&repo.UpstreamURL, &repo.Path, &repo.OwnerID); err != nil {
+			if err == sql.ErrNoRows {
+				return fmt.Errorf("No repository by ID %d found for this user", id)
+			}
+			return err
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &repo, nil
 }
 
 func (r *mutationResolver) DeleteRepository(ctx context.Context, id int) (*model.Repository, error) {
