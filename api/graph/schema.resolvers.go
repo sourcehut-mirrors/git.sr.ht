@@ -56,10 +56,10 @@ func (r *commitResolver) Diff(ctx context.Context, obj *model.Commit) (string, e
 	return obj.DiffContext(ctx), nil
 }
 
-func (r *mutationResolver) CreateRepository(ctx context.Context, params *model.RepoInput) (*model.Repository, error) {
-	if !repoNameRE.MatchString(params.Name) {
+func (r *mutationResolver) CreateRepository(ctx context.Context, name string, visibility model.Visibility, description *string) (*model.Repository, error) {
+	if !repoNameRE.MatchString(name) {
 		return nil, fmt.Errorf("Invalid repository name '%s' (must match %s)",
-			params.Name, repoNameRE.String())
+			name, repoNameRE.String())
 	}
 
 	conf := config.ForContext(ctx)
@@ -73,7 +73,7 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, params *model.R
 	}
 
 	user := auth.ForContext(ctx)
-	repoPath := path.Join(repoStore, "~"+user.Username, params.Name)
+	repoPath := path.Join(repoStore, "~"+user.Username, name)
 
 	var (
 		repoCreated bool
@@ -89,8 +89,8 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, params *model.R
 			dvis string
 			ok   bool
 		)
-		if dvis, ok = vismap[params.Visibility]; !ok {
-			panic(fmt.Errorf("Unknown visibility %s", params.Visibility)) // Invariant
+		if dvis, ok = vismap[visibility]; !ok {
+			panic(fmt.Errorf("Unknown visibility %s", visibility)) // Invariant
 		}
 
 		row := tx.QueryRowContext(ctx, `
@@ -103,7 +103,7 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, params *model.R
 			) RETURNING 
 				id, created, updated, name, description, visibility,
 				upstream_uri, path, owner_id;
-		`, params.Name, params.Description, repoPath, dvis, user.UserID)
+		`, name, description, repoPath, dvis, user.UserID)
 		if err := row.Scan(&repo.ID, &repo.Created, &repo.Updated, &repo.Name,
 			&repo.Description, &repo.Visibility, &repo.UpstreamURL, &repo.Path,
 			&repo.OwnerID); err != nil {
@@ -155,7 +155,7 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, params *model.R
 	return &repo, nil
 }
 
-func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, params *model.RepoInput) (*model.Repository, error) {
+func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, params model.RepoInput) (*model.Repository, error) {
 	panic(fmt.Errorf("updateRepository: not implemented"))
 }
 

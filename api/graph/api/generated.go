@@ -109,12 +109,12 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateRepository func(childComplexity int, params *model.RepoInput) int
+		CreateRepository func(childComplexity int, name string, visibility model.Visibility, description *string) int
 		DeleteACL        func(childComplexity int, repoID int, entity string) int
 		DeleteArtifact   func(childComplexity int, id int) int
 		DeleteRepository func(childComplexity int, id int) int
 		UpdateACL        func(childComplexity int, repoID int, mode model.AccessMode, entity string) int
-		UpdateRepository func(childComplexity int, id int, params *model.RepoInput) int
+		UpdateRepository func(childComplexity int, id int, params model.RepoInput) int
 		UploadArtifact   func(childComplexity int, repoID int, revspec string, file graphql.Upload) int
 	}
 
@@ -241,8 +241,8 @@ type CommitResolver interface {
 	Diff(ctx context.Context, obj *model.Commit) (string, error)
 }
 type MutationResolver interface {
-	CreateRepository(ctx context.Context, params *model.RepoInput) (*model.Repository, error)
-	UpdateRepository(ctx context.Context, id int, params *model.RepoInput) (*model.Repository, error)
+	CreateRepository(ctx context.Context, name string, visibility model.Visibility, description *string) (*model.Repository, error)
+	UpdateRepository(ctx context.Context, id int, params model.RepoInput) (*model.Repository, error)
 	DeleteRepository(ctx context.Context, id int) (*model.Repository, error)
 	UpdateACL(ctx context.Context, repoID int, mode model.AccessMode, entity string) (*model.ACL, error)
 	DeleteACL(ctx context.Context, repoID int, entity string) (*model.ACL, error)
@@ -528,7 +528,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateRepository(childComplexity, args["params"].(*model.RepoInput)), true
+		return e.complexity.Mutation.CreateRepository(childComplexity, args["name"].(string), args["visibility"].(model.Visibility), args["description"].(*string)), true
 
 	case "Mutation.deleteACL":
 		if e.complexity.Mutation.DeleteACL == nil {
@@ -588,7 +588,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateRepository(childComplexity, args["id"].(int), args["params"].(*model.RepoInput)), true
+		return e.complexity.Mutation.UpdateRepository(childComplexity, args["id"].(int), args["params"].(model.RepoInput)), true
 
 	case "Mutation.uploadArtifact":
 		if e.complexity.Mutation.UploadArtifact == nil {
@@ -1578,17 +1578,19 @@ type Query {
 }
 
 input RepoInput {
-  name: String!
+  # Omit these fields to leave them unchanged, or set them to null to clear
+  # their value.
+  name: String
   description: String
-  visibility: Visibility!
+  visibility: Visibility
 }
 
 type Mutation {
   # Creates a new git repository
-  createRepository(params: RepoInput): Repository! @access(scope: REPOSITORIES, kind: RW)
+  createRepository(name: String!, visibility: Visibility!, description: String): Repository! @access(scope: REPOSITORIES, kind: RW)
 
   # Updates the metadata for a git repository
-  updateRepository(id: Int!, params: RepoInput): Repository! @access(scope: REPOSITORIES, kind: RW)
+  updateRepository(id: Int!, params: RepoInput!): Repository! @access(scope: REPOSITORIES, kind: RW)
 
   # Deletes a git repository
   deleteRepository(id: Int!): Repository! @access(scope: REPOSITORIES, kind: RW)
@@ -1656,15 +1658,33 @@ func (ec *executionContext) dir_scopehelp_args(ctx context.Context, rawArgs map[
 func (ec *executionContext) field_Mutation_createRepository_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
-	var arg0 *model.RepoInput
-	if tmp, ok := rawArgs["params"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg0, err = ec.unmarshalORepoInput2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepoInput(ctx, tmp)
+	var arg0 string
+	if tmp, ok := rawArgs["name"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["params"] = arg0
+	args["name"] = arg0
+	var arg1 model.Visibility
+	if tmp, ok := rawArgs["visibility"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("visibility"))
+		arg1, err = ec.unmarshalNVisibility2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["visibility"] = arg1
+	var arg2 *string
+	if tmp, ok := rawArgs["description"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+		arg2, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["description"] = arg2
 	return args, nil
 }
 
@@ -1767,10 +1787,10 @@ func (ec *executionContext) field_Mutation_updateRepository_args(ctx context.Con
 		}
 	}
 	args["id"] = arg0
-	var arg1 *model.RepoInput
+	var arg1 model.RepoInput
 	if tmp, ok := rawArgs["params"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("params"))
-		arg1, err = ec.unmarshalORepoInput2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepoInput(ctx, tmp)
+		arg1, err = ec.unmarshalNRepoInput2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepoInput(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -3297,7 +3317,7 @@ func (ec *executionContext) _Mutation_createRepository(ctx context.Context, fiel
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().CreateRepository(rctx, args["params"].(*model.RepoInput))
+			return ec.resolvers.Mutation().CreateRepository(rctx, args["name"].(string), args["visibility"].(model.Visibility), args["description"].(*string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "REPOSITORIES")
@@ -3367,7 +3387,7 @@ func (ec *executionContext) _Mutation_updateRepository(ctx context.Context, fiel
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().UpdateRepository(rctx, args["id"].(int), args["params"].(*model.RepoInput))
+			return ec.resolvers.Mutation().UpdateRepository(rctx, args["id"].(int), args["params"].(model.RepoInput))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "REPOSITORIES")
@@ -7946,7 +7966,7 @@ func (ec *executionContext) unmarshalInputRepoInput(ctx context.Context, obj int
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			it.Name, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -7962,7 +7982,7 @@ func (ec *executionContext) unmarshalInputRepoInput(ctx context.Context, obj int
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("visibility"))
-			it.Visibility, err = ec.unmarshalNVisibility2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx, v)
+			it.Visibility, err = ec.unmarshalOVisibility2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -9875,6 +9895,11 @@ func (ec *executionContext) marshalNReferenceCursor2ᚖgitᚗsrᚗhtᚋאsircmpw
 	return ec._ReferenceCursor(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNRepoInput2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepoInput(ctx context.Context, v interface{}) (model.RepoInput, error) {
+	res, err := ec.unmarshalInputRepoInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNRepository2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx context.Context, sel ast.SelectionSet, v model.Repository) graphql.Marshaler {
 	return ec._Repository(ctx, sel, &v)
 }
@@ -10437,14 +10462,6 @@ func (ec *executionContext) marshalOReference2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgi
 	return ec._Reference(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalORepoInput2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepoInput(ctx context.Context, v interface{}) (*model.RepoInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputRepoInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
 func (ec *executionContext) marshalORepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx context.Context, sel ast.SelectionSet, v *model.Repository) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -10546,6 +10563,22 @@ func (ec *executionContext) marshalOUser2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗs
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOVisibility2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx context.Context, v interface{}) (*model.Visibility, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.Visibility)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOVisibility2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx context.Context, sel ast.SelectionSet, v *model.Visibility) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {
