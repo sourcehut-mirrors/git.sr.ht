@@ -2334,14 +2334,14 @@ func (ec *executionContext) _ACL_mode(ctx context.Context, field graphql.Collect
 		Object:     "ACL",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
+		IsMethod:   true,
 		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Mode, nil
+		return obj.Mode(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2350,9 +2350,9 @@ func (ec *executionContext) _ACL_mode(ctx context.Context, field graphql.Collect
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.AccessMode)
+	res := resTmp.(model.AccessMode)
 	fc.Result = res
-	return ec.marshalOAccessMode2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessMode(ctx, field.Selections, res)
+	return ec.marshalOAccessMode2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessMode(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ACLCursor_results(ctx context.Context, field graphql.CollectedField, obj *model.ACLCursor) (ret graphql.Marshaler) {
@@ -10318,19 +10318,13 @@ func (ec *executionContext) marshalOACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsr
 	return ec._ACL(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalOAccessMode2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessMode(ctx context.Context, v interface{}) (*model.AccessMode, error) {
-	if v == nil {
-		return nil, nil
-	}
-	var res = new(model.AccessMode)
+func (ec *executionContext) unmarshalOAccessMode2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessMode(ctx context.Context, v interface{}) (model.AccessMode, error) {
+	var res model.AccessMode
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalOAccessMode2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessMode(ctx context.Context, sel ast.SelectionSet, v *model.AccessMode) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
+func (ec *executionContext) marshalOAccessMode2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessMode(ctx context.Context, sel ast.SelectionSet, v model.AccessMode) graphql.Marshaler {
 	return v
 }
 

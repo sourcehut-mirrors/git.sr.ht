@@ -3,7 +3,9 @@ package model
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -14,15 +16,23 @@ import (
 
 // TODO: Drop updated column from database
 type ACL struct {
-	ID         int         `json:"id"`
-	Created    time.Time   `json:"created"`
-	Mode       *AccessMode `json:"mode"`
+	ID         int        `json:"id"`
+	Created    time.Time  `json:"created"`
 
-	RepoID int
-	UserID int
+	RawAccessMode string
+	RepoID        int
+	UserID        int
 
 	alias  string
 	fields *database.ModelFields
+}
+
+func (acl *ACL) Mode() AccessMode {
+	mode := AccessMode(strings.ToUpper(acl.RawAccessMode))
+	if !mode.IsValid() {
+		panic(fmt.Errorf("Invalid access mode '%s'", acl.RawAccessMode)) // Invariant
+	}
+	return mode
 }
 
 func (acl *ACL) As(alias string) *ACL {
@@ -46,7 +56,7 @@ func (acl *ACL) Fields() *database.ModelFields {
 		Fields: []*database.FieldMap{
 			{ "id", "id", &acl.ID },
 			{ "created", "created", &acl.Created },
-			{ "mode", "mode", &acl.Mode },
+			{ "mode", "mode", &acl.RawAccessMode },
 
 			// Always fetch:
 			{ "id", "", &acl.ID },

@@ -318,7 +318,47 @@ func (r *mutationResolver) DeleteRepository(ctx context.Context, id int) (*model
 }
 
 func (r *mutationResolver) UpdateACL(ctx context.Context, repoID int, mode model.AccessMode, entity string) (*model.ACL, error) {
-	panic(fmt.Errorf("updateACL: not implemented"))
+	if entity[0] != '~' {
+		return nil, fmt.Errorf("Unknown entity %s", entity)
+	}
+	entity = entity[1:]
+
+	if entity == auth.ForContext(ctx).Username {
+		return nil, fmt.Errorf("Cannot edit your own access modes")
+	}
+
+	var acl model.ACL
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			WITH grantee AS (
+				SELECT u.id uid, repo.id rid
+				FROM "user" u, repository repo
+				WHERE u.username = $3 AND repo.id = $1 AND repo.owner_id = $2
+			)
+			INSERT INTO access (created, updated, mode, user_id, repo_id)
+			SELECT
+				NOW() at time zone 'utc', NOW() at time zone 'utc',
+				$4, grantee.uid, grantee.rid
+			FROM grantee
+			ON CONFLICT ON CONSTRAINT uq_access_user_id_repo_id
+			DO UPDATE SET mode = $4, updated = NOW() at time zone 'utc'
+			RETURNING id, created, mode, repo_id, user_id;`,
+			repoID, auth.ForContext(ctx).UserID,
+			entity, strings.ToLower(string(mode)))
+		if err := row.Scan(&acl.ID, &acl.Created, &acl.RawAccessMode,
+			&acl.RepoID, &acl.UserID); err != nil {
+			if err == sql.ErrNoRows {
+				// TODO: Fetch user details from meta.sr.ht
+				return fmt.Errorf("No such repository or user found")
+			}
+			return err
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &acl, nil
 }
 
 func (r *mutationResolver) DeleteACL(ctx context.Context, repoID int, entity string) (*model.ACL, error) {
