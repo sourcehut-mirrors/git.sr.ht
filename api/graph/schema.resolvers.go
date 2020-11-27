@@ -392,6 +392,14 @@ func (r *mutationResolver) DeleteArtifact(ctx context.Context, id int) (*model.A
 	panic(fmt.Errorf("deleteArtifact: not implemented"))
 }
 
+func (r *mutationResolver) UpdateReadme(ctx context.Context, repoID int, html string) (string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) RemoveReadme(ctx context.Context, repoID int) (*string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 	return &model.Version{
 		Major:           0,

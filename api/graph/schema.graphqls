@@ -84,6 +84,12 @@ type Repository {
   description: String
   visibility: Visibility!
 
+  # The repository's custom README, if set.
+  #
+  # NOTICE: This returns unsanitized HTML. It is the client's responsibility to
+  # sanitize this for display on the web, if so desired.
+  readme: String
+
   # If this repository was cloned from another, this is set to the original
   # clone URL.
   upstreamUrl: String
@@ -360,4 +366,12 @@ type Mutation {
 
   # Deletes an artifact.
   deleteArtifact(id: Int!): Artifact! @access(scope: OBJECTS, kind: RW)
+
+  # Updates the custom README associated with this repository. Note that the
+  # provided HTML will be sanitized when displayed on the web; see
+  # https://man.sr.ht/markdown/#post-processing
+  updateREADME(repoId: Int!, html: String!): String! @access(scope: REPOSITORIES, kind: RW)
+
+  # Removes the custom README associated with this repository.
+  removeREADME(repoId: Int!): String @access(scope: REPOSITORIES, kind: RW)
 }

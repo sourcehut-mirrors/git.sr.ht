@@ -22,6 +22,7 @@ type Repository struct {
 	Name           string     `json:"name"`
 	Description    *string    `json:"description"`
 	UpstreamURL    *string    `json:"upstreamUrl"`
+	Readme         *string    `json:"readme"`
 
 	Path    string
 	OwnerID int
@@ -96,6 +97,7 @@ func (r *Repository) Fields() *database.ModelFields {
 			{ "description", "description", &r.Description },
 			{ "visibility", "visibility", &r.RawVisibility },
 			{ "upstream_uri", "upstreamUrl", &r.UpstreamURL },
+			{ "readme", "readme", &r.Readme },
 
 			// Always fetch:
 			{ "id", "", &r.ID },
