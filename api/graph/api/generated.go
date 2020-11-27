@@ -113,9 +113,7 @@ type ComplexityRoot struct {
 		DeleteACL        func(childComplexity int, id int) int
 		DeleteArtifact   func(childComplexity int, id int) int
 		DeleteRepository func(childComplexity int, id int) int
-		RemoveReadme     func(childComplexity int, repoID int) int
 		UpdateACL        func(childComplexity int, repoID int, mode model.AccessMode, entity string) int
-		UpdateReadme     func(childComplexity int, repoID int, html string) int
 		UpdateRepository func(childComplexity int, id int, input map[string]interface{}) int
 		UploadArtifact   func(childComplexity int, repoID int, revspec string, file graphql.Upload) int
 	}
@@ -251,8 +249,6 @@ type MutationResolver interface {
 	DeleteACL(ctx context.Context, id int) (*model.ACL, error)
 	UploadArtifact(ctx context.Context, repoID int, revspec string, file graphql.Upload) (*model.Artifact, error)
 	DeleteArtifact(ctx context.Context, id int) (*model.Artifact, error)
-	UpdateReadme(ctx context.Context, repoID int, html string) (string, error)
-	RemoveReadme(ctx context.Context, repoID int) (*string, error)
 }
 type QueryResolver interface {
 	Version(ctx context.Context) (*model.Version, error)
@@ -571,18 +567,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.DeleteRepository(childComplexity, args["id"].(int)), true
 
-	case "Mutation.removeREADME":
-		if e.complexity.Mutation.RemoveReadme == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_removeREADME_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.RemoveReadme(childComplexity, args["repoId"].(int)), true
-
 	case "Mutation.updateACL":
 		if e.complexity.Mutation.UpdateACL == nil {
 			break
@@ -594,18 +578,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UpdateACL(childComplexity, args["repoId"].(int), args["mode"].(model.AccessMode), args["entity"].(string)), true
-
-	case "Mutation.updateREADME":
-		if e.complexity.Mutation.UpdateReadme == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_updateREADME_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.UpdateReadme(childComplexity, args["repoId"].(int), args["html"].(string)), true
 
 	case "Mutation.updateRepository":
 		if e.complexity.Mutation.UpdateRepository == nil {
@@ -1625,6 +1597,11 @@ input RepoInput {
   name: String
   description: String
   visibility: Visibility
+
+  # Updates the custom README associated with this repository. Note that the
+  # provided HTML will be sanitized when displayed on the web; see
+  # https://man.sr.ht/markdown/#post-processing
+  readme: String
 }
 
 type Mutation {
@@ -1649,14 +1626,6 @@ type Mutation {
 
   # Deletes an artifact.
   deleteArtifact(id: Int!): Artifact! @access(scope: OBJECTS, kind: RW)
-
-  # Updates the custom README associated with this repository. Note that the
-  # provided HTML will be sanitized when displayed on the web; see
-  # https://man.sr.ht/markdown/#post-processing
-  updateREADME(repoId: Int!, html: String!): String! @access(scope: REPOSITORIES, kind: RW)
-
-  # Removes the custom README associated with this repository.
-  removeREADME(repoId: Int!): String @access(scope: REPOSITORIES, kind: RW)
 }
 `, BuiltIn: false},
 }
@@ -1783,21 +1752,6 @@ func (ec *executionContext) field_Mutation_deleteRepository_args(ctx context.Con
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_removeREADME_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 int
-	if tmp, ok := rawArgs["repoId"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("repoId"))
-		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["repoId"] = arg0
-	return args, nil
-}
-
 func (ec *executionContext) field_Mutation_updateACL_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1828,30 +1782,6 @@ func (ec *executionContext) field_Mutation_updateACL_args(ctx context.Context, r
 		}
 	}
 	args["entity"] = arg2
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_updateREADME_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 int
-	if tmp, ok := rawArgs["repoId"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("repoId"))
-		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["repoId"] = arg0
-	var arg1 string
-	if tmp, ok := rawArgs["html"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("html"))
-		arg1, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["html"] = arg1
 	return args, nil
 }
 
@@ -3859,143 +3789,6 @@ func (ec *executionContext) _Mutation_deleteArtifact(ctx context.Context, field 
 	res := resTmp.(*model.Artifact)
 	fc.Result = res
 	return ec.marshalNArtifact2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐArtifact(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_updateREADME(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_updateREADME_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		directive0 := func(rctx context.Context) (interface{}, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().UpdateReadme(rctx, args["repoId"].(int), args["html"].(string))
-		}
-		directive1 := func(ctx context.Context) (interface{}, error) {
-			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "REPOSITORIES")
-			if err != nil {
-				return nil, err
-			}
-			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RW")
-			if err != nil {
-				return nil, err
-			}
-			if ec.directives.Access == nil {
-				return nil, errors.New("directive access is not implemented")
-			}
-			return ec.directives.Access(ctx, nil, directive0, scope, kind)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, graphql.ErrorOnPath(ctx, err)
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.(string); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be string`, tmp)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_removeREADME(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_removeREADME_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		directive0 := func(rctx context.Context) (interface{}, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().RemoveReadme(rctx, args["repoId"].(int))
-		}
-		directive1 := func(ctx context.Context) (interface{}, error) {
-			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "REPOSITORIES")
-			if err != nil {
-				return nil, err
-			}
-			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RW")
-			if err != nil {
-				return nil, err
-			}
-			if ec.directives.Access == nil {
-				return nil, errors.New("directive access is not implemented")
-			}
-			return ec.directives.Access(ctx, nil, directive0, scope, kind)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, graphql.ErrorOnPath(ctx, err)
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.(*string); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *string`, tmp)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_version(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -8684,13 +8477,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
-		case "updateREADME":
-			out.Values[i] = ec._Mutation_updateREADME(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "removeREADME":
-			out.Values[i] = ec._Mutation_removeREADME(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

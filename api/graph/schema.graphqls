@@ -342,6 +342,11 @@ input RepoInput {
   name: String
   description: String
   visibility: Visibility
+
+  # Updates the custom README associated with this repository. Note that the
+  # provided HTML will be sanitized when displayed on the web; see
+  # https://man.sr.ht/markdown/#post-processing
+  readme: String
 }
 
 type Mutation {
@@ -366,12 +371,4 @@ type Mutation {
 
   # Deletes an artifact.
   deleteArtifact(id: Int!): Artifact! @access(scope: OBJECTS, kind: RW)
-
-  # Updates the custom README associated with this repository. Note that the
-  # provided HTML will be sanitized when displayed on the web; see
-  # https://man.sr.ht/markdown/#post-processing
-  updateREADME(repoId: Int!, html: String!): String! @access(scope: REPOSITORIES, kind: RW)
-
-  # Removes the custom README associated with this repository.
-  removeREADME(repoId: Int!): String @access(scope: REPOSITORIES, kind: RW)
 }
