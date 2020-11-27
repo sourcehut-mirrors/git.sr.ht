@@ -361,8 +361,27 @@ func (r *mutationResolver) UpdateACL(ctx context.Context, repoID int, mode model
 	return &acl, nil
 }
 
-func (r *mutationResolver) DeleteACL(ctx context.Context, repoID int, entity string) (*model.ACL, error) {
-	panic(fmt.Errorf("deleteACL: not implemented"))
+func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.ACL, error) {
+	var acl model.ACL
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			DELETE FROM access
+			USING repository repo
+			WHERE repo_id = repo.id AND repo.owner_id = $1 AND access.id = $2
+			RETURNING access.id, access.created, mode, repo_id, user_id;
+		`, auth.ForContext(ctx).UserID, id)
+		if err := row.Scan(&acl.ID, &acl.Created, &acl.RawAccessMode,
+			&acl.RepoID, &acl.UserID); err != nil {
+			if err == sql.ErrNoRows {
+				return fmt.Errorf("No such repository or ACL entry found")
+			}
+			return err
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return &acl, nil
 }
 
 func (r *mutationResolver) UploadArtifact(ctx context.Context, repoID int, revspec string, file graphql.Upload) (*model.Artifact, error) {

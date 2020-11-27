@@ -352,7 +352,7 @@ type Mutation {
   updateACL(repoId: Int!, mode: AccessMode!, entity: ID!): ACL! @access(scope: ACLS, kind: RW)
 
   # Deletes an entry from the access control list
-  deleteACL(repoId: Int!, entity: ID!): ACL! @access(scope: ACLS, kind: RW)
+  deleteACL(id: Int!): ACL! @access(scope: ACLS, kind: RW)
 
   # Uploads an artifact. revspec must match a specific git tag, and the
   # filename must be unique among artifacts for this repository.
