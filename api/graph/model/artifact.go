@@ -19,8 +19,9 @@ type Artifact struct {
 	Checksum   string      `json:"checksum"`
 	Size       int         `json:"size"`
 
+	Commit string
+
 	alias  string
-	commit string
 	fields *database.ModelFields
 }
 
@@ -51,7 +52,7 @@ func (a *Artifact) Fields() *database.ModelFields {
 
 			// Always fetch:
 			{ "id", "", &a.ID },
-			{ "commit", "", &a.commit },
+			{ "commit", "", &a.Commit },
 			{ "filename", "", &a.Filename },
 		},
 	}

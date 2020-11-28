@@ -34,6 +34,10 @@ type CommitCursor struct {
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
+type Features struct {
+	Artifacts bool `json:"artifacts"`
+}
+
 type ReferenceCursor struct {
 	Results []*Reference  `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
@@ -73,6 +77,7 @@ type Version struct {
 	Minor           int        `json:"minor"`
 	Patch           int        `json:"patch"`
 	DeprecationDate *time.Time `json:"deprecationDate"`
+	Features        *Features  `json:"features"`
 }
 
 type AccessKind string

@@ -108,6 +108,10 @@ type ComplexityRoot struct {
 		Results func(childComplexity int) int
 	}
 
+	Features struct {
+		Artifacts func(childComplexity int) int
+	}
+
 	Mutation struct {
 		CreateRepository func(childComplexity int, name string, visibility model.Visibility, description *string) int
 		DeleteACL        func(childComplexity int, id int) int
@@ -225,6 +229,7 @@ type ComplexityRoot struct {
 
 	Version struct {
 		DeprecationDate func(childComplexity int) int
+		Features        func(childComplexity int) int
 		Major           func(childComplexity int) int
 		Minor           func(childComplexity int) int
 		Patch           func(childComplexity int) int
@@ -518,6 +523,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.CommitCursor.Results(childComplexity), true
+
+	case "Features.artifacts":
+		if e.complexity.Features.Artifacts == nil {
+			break
+		}
+
+		return e.complexity.Features.Artifacts(childComplexity), true
 
 	case "Mutation.createRepository":
 		if e.complexity.Mutation.CreateRepository == nil {
@@ -1168,6 +1180,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Version.DeprecationDate(childComplexity), true
 
+	case "Version.features":
+		if e.complexity.Version.Features == nil {
+			break
+		}
+
+		return e.complexity.Version.Features(childComplexity), true
+
 	case "Version.major":
 		if e.complexity.Version.Major == nil {
 			break
@@ -1283,10 +1302,19 @@ type Version {
   major: Int!
   minor: Int!
   patch: Int!
+
   # If this API version is scheduled for deprecation, this is the date on which
   # it will stop working; or null if this API version is not scheduled for
   # deprecation.
   deprecationDate: Time
+
+  # Optional features
+  features: Features!
+}
+
+# Describes the status of optional features
+type Features {
+  artifacts: Boolean!
 }
 
 enum AccessMode {
@@ -3299,6 +3327,41 @@ func (ec *executionContext) _CommitCursor_cursor(ctx context.Context, field grap
 	res := resTmp.(*model1.Cursor)
 	fc.Result = res
 	return ec.marshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Features_artifacts(ctx context.Context, field graphql.CollectedField, obj *model.Features) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Features",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Artifacts, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_createRepository(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -6879,6 +6942,41 @@ func (ec *executionContext) _Version_deprecationDate(ctx context.Context, field 
 	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Version_features(ctx context.Context, field graphql.CollectedField, obj *model.Version) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Version",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Features, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Features)
+	fc.Result = res
+	return ec.marshalNFeatures2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐFeatures(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -8427,6 +8525,33 @@ func (ec *executionContext) _CommitCursor(ctx context.Context, sel ast.Selection
 	return out
 }
 
+var featuresImplementors = []string{"Features"}
+
+func (ec *executionContext) _Features(ctx context.Context, sel ast.SelectionSet, obj *model.Features) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, featuresImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Features")
+		case "artifacts":
+			out.Values[i] = ec._Features_artifacts(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var mutationImplementors = []string{"Mutation"}
 
 func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -9226,6 +9351,11 @@ func (ec *executionContext) _Version(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "deprecationDate":
 			out.Values[i] = ec._Version_deprecationDate(ctx, field, obj)
+		case "features":
+			out.Values[i] = ec._Version_features(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -9763,6 +9893,16 @@ func (ec *executionContext) marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsr
 		return graphql.Null
 	}
 	return ec._Entity(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNFeatures2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐFeatures(ctx context.Context, sel ast.SelectionSet, v *model.Features) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Features(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNID2string(ctx context.Context, v interface{}) (string, error) {

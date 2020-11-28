@@ -28,10 +28,19 @@ type Version {
   major: Int!
   minor: Int!
   patch: Int!
+
   # If this API version is scheduled for deprecation, this is the date on which
   # it will stop working; or null if this API version is not scheduled for
   # deprecation.
   deprecationDate: Time
+
+  # Optional features
+  features: Features!
+}
+
+# Describes the status of optional features
+type Features {
+  artifacts: Boolean!
 }
 
 enum AccessMode {

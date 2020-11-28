@@ -4,10 +4,16 @@ package graph
 // will be copied through when generating and any unknown code will be moved to the end.
 
 import (
+	"bytes"
 	"context"
+	"crypto/md5"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"sort"
@@ -28,6 +34,8 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/storer"
+	minio "github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 func (r *aCLResolver) Repository(ctx context.Context, obj *model.ACL) (*model.Repository, error) {
@@ -385,7 +393,139 @@ func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.ACL, e
 }
 
 func (r *mutationResolver) UploadArtifact(ctx context.Context, repoID int, revspec string, file graphql.Upload) (*model.Artifact, error) {
-	panic(fmt.Errorf("uploadArtifact: not implemented"))
+	conf := config.ForContext(ctx)
+	upstream, _ := conf.Get("objects", "s3-upstream")
+	accessKey, _ := conf.Get("objects", "s3-access-key")
+	secretKey, _ := conf.Get("objects", "s3-secret-key")
+	bucket, _ := conf.Get("git.sr.ht", "s3-bucket")
+	prefix, _ := conf.Get("git.sr.ht", "s3-prefix")
+	if upstream == "" || accessKey == "" || secretKey == "" || bucket == "" {
+		return nil, fmt.Errorf("Object storage is not enabled for this server")
+	}
+
+	mc, err := minio.New(upstream, &minio.Options{
+		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
+		Secure: true,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	repo, err := loaders.ForContext(ctx).RepositoriesByID.Load(repoID)
+	if err != nil {
+		return nil, fmt.Errorf("Repository %d not found", repoID)
+	}
+	if repo.OwnerID != auth.ForContext(ctx).UserID {
+		return nil, fmt.Errorf("Access denied for repo %d", repoID)
+	}
+
+	gitRepo := repo.Repo()
+	gitRepo.Lock()
+	hash, err := gitRepo.ResolveRevision(plumbing.Revision(revspec))
+	gitRepo.Unlock()
+	if err != nil {
+		return nil, err
+	}
+
+	s3path := path.Join(prefix, "artifacts",
+		"~" + auth.ForContext(ctx).Username, repo.Name, file.Filename)
+
+	err = mc.MakeBucket(ctx, bucket, minio.MakeBucketOptions{})
+	if s3err, ok := err.(minio.ErrorResponse); !ok ||
+		(s3err.Code != "BucketAlreadyExists" && s3err.Code != "BucketAlreadyOwnedByYou") {
+		panic(err)
+	}
+
+	core := minio.Core{mc}
+	uid, err := core.NewMultipartUpload(ctx, bucket,
+		s3path, minio.PutObjectOptions{
+			ContentType: "application/octet-stream",
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err := recover(); err != nil {
+			core.AbortMultipartUpload(context.Background(), bucket, s3path, uid)
+			panic(err)
+		}
+	}()
+
+	var artifact model.Artifact
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		// To guarantee atomicity, we do the following:
+		// 1. Upload all parts as an S3 multipart upload, but don't complete
+		//    it. This computes the SHA-256 as a side-effect.
+		// 2. Insert row into the database and let PostgreSQL prevent
+		//    duplicates with constraints. Once this finishes we know we are the
+		//    exclusive writer of this artifact.
+		// 3. Complete the S3 multi-part upload.
+		sha := sha256.New()
+		reader := io.TeeReader(file.File, sha)
+
+		var (
+			partNum int = 1
+			parts   []minio.CompletePart
+		)
+		for {
+			var data [16777216]byte // 16 MiB
+			n, err := reader.Read(data[:])
+			if errors.Is(err, io.EOF) {
+				if n == 0 {
+					break
+				}
+				// Write data[:n] and go for another loop before quitting
+			} else if err != nil {
+				return err
+			}
+
+			md5sum := md5.Sum(data[:n])
+			md5b64 := base64.StdEncoding.EncodeToString(md5sum[:])
+			shasum := sha256.Sum256(data[:n])
+			shahex := hex.EncodeToString(shasum[:])
+
+			opart, err := core.PutObjectPart(ctx, bucket, s3path,
+				uid, partNum, bytes.NewReader(data[:n]), int64(n),
+				md5b64, shahex, nil)
+			if err != nil {
+				return err
+			}
+			parts = append(parts, minio.CompletePart{
+				PartNumber: partNum,
+				ETag:       opart.ETag,
+			})
+			partNum++
+		}
+
+		checksum := "sha256:" + hex.EncodeToString(sha.Sum(nil))
+		row := tx.QueryRowContext(ctx, `
+			INSERT INTO artifacts (
+				created, user_id, repo_id, commit, filename, checksum, size
+			) VALUES (
+				NOW() at time zone 'utc',
+				$1, $2, $3, $4, $5, $6
+			) RETURNING id, created, filename, checksum, size, commit`,
+			repo.OwnerID, repo.ID, hash.String(), file.Filename,
+			checksum, file.Size)
+		if err := row.Scan(&artifact.ID, &artifact.Created, &artifact.Filename,
+			&artifact.Checksum, &artifact.Size, &artifact.Commit); err != nil {
+			if err.Error() == "pq: duplicate key value violates unique constraint \"repo_artifact_filename_unique\"" {
+				return fmt.Errorf("An artifact by this name already exists for this repository (artifact names must be unique for within each repository)")
+			}
+			return err
+		}
+
+		_, err := core.CompleteMultipartUpload(ctx, bucket, s3path, uid, parts)
+		return err
+	}); err != nil {
+		if err != nil {
+			core.AbortMultipartUpload(context.Background(), bucket, s3path, uid)
+		}
+		return nil, err
+	}
+
+	return &artifact, nil
 }
 
 func (r *mutationResolver) DeleteArtifact(ctx context.Context, id int) (*model.Artifact, error) {
@@ -393,11 +533,22 @@ func (r *mutationResolver) DeleteArtifact(ctx context.Context, id int) (*model.A
 }
 
 func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
+	conf := config.ForContext(ctx)
+	upstream, _ := conf.Get("objects", "s3-upstream")
+	accessKey, _ := conf.Get("objects", "s3-access-key")
+	secretKey, _ := conf.Get("objects", "s3-secret-key")
+	bucket, _ := conf.Get("git.sr.ht", "s3-bucket")
+	artifacts := upstream != "" && accessKey != "" && secretKey != "" && bucket != ""
+
 	return &model.Version{
 		Major:           0,
 		Minor:           0,
 		Patch:           0,
 		DeprecationDate: nil,
+
+		Features: &model.Features{
+			Artifacts: artifacts,
+		},
 	}, nil
 }
 

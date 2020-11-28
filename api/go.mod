@@ -21,6 +21,7 @@ require (
 	github.com/lib/pq v1.8.0
 	github.com/martinlindhe/base36 v1.1.0
 	github.com/matryer/moq v0.0.0-20200310130814-7721994d1b54 // indirect
+	github.com/minio/minio-go/v7 v7.0.5
 	github.com/mitchellh/mapstructure v1.3.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.8.0 // indirect
