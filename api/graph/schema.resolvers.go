@@ -529,7 +529,54 @@ func (r *mutationResolver) UploadArtifact(ctx context.Context, repoID int, revsp
 }
 
 func (r *mutationResolver) DeleteArtifact(ctx context.Context, id int) (*model.Artifact, error) {
-	panic(fmt.Errorf("deleteArtifact: not implemented"))
+	conf := config.ForContext(ctx)
+	upstream, _ := conf.Get("objects", "s3-upstream")
+	accessKey, _ := conf.Get("objects", "s3-access-key")
+	secretKey, _ := conf.Get("objects", "s3-secret-key")
+	bucket, _ := conf.Get("git.sr.ht", "s3-bucket")
+	prefix, _ := conf.Get("git.sr.ht", "s3-prefix")
+	if upstream == "" || accessKey == "" || secretKey == "" || bucket == "" {
+		return nil, fmt.Errorf("Object storage is not enabled for this server")
+	}
+
+	mc, err := minio.New(upstream, &minio.Options{
+		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
+		Secure: true,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	var artifact model.Artifact
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		var repoName string
+		row := tx.QueryRowContext(ctx, `
+			DELETE FROM artifacts
+			USING repository repo
+			WHERE
+				repo_id = repo.id AND
+				repo.owner_id = $1 AND
+				artifacts.id = $2
+			RETURNING
+				artifacts.id, artifacts.created, filename, checksum,
+				size, commit, repo.name;`,
+			auth.ForContext(ctx).UserID, id)
+		if err := row.Scan(&artifact.ID, &artifact.Created, &artifact.Filename,
+			&artifact.Checksum, &artifact.Size, &artifact.Commit,
+			&repoName); err != nil {
+			if err == sql.ErrNoRows {
+				return fmt.Errorf("No such artifact for this user")
+			}
+			return err
+		}
+
+		s3path := path.Join(prefix, "artifacts",
+			"~" + auth.ForContext(ctx).Username, repoName, artifact.Filename)
+		return mc.RemoveObject(ctx, bucket, s3path, minio.RemoveObjectOptions{})
+	}); err != nil {
+		return nil, err
+	}
+	return &artifact, nil
 }
 
 func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
