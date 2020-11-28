@@ -318,8 +318,8 @@ func (r *mutationResolver) DeleteRepository(ctx context.Context, id int) (*model
 }
 
 func (r *mutationResolver) UpdateACL(ctx context.Context, repoID int, mode model.AccessMode, entity string) (*model.ACL, error) {
-	if entity[0] != '~' {
-		return nil, fmt.Errorf("Unknown entity %s", entity)
+	if len(entity) == 0 || entity[0] != '~' {
+		return nil, fmt.Errorf("Unknown entity '%s'", entity)
 	}
 	entity = entity[1:]
 
