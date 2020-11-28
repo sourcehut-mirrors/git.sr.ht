@@ -469,7 +469,7 @@ func (r *mutationResolver) UploadArtifact(ctx context.Context, repoID int, revsp
 			parts   []minio.CompletePart
 		)
 		for {
-			var data [16777216]byte // 16 MiB
+			var data [134217728]byte // 128 MiB
 			n, err := reader.Read(data[:])
 			if errors.Is(err, io.EOF) {
 				if n == 0 {
