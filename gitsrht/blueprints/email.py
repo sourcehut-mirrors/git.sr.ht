@@ -157,6 +157,16 @@ def prepare_patchset(repo, git_repo, cover_letter=None, extra_headers=False,
         mbox = mailbox.mbox(ntf.name, factory=factory)
         emails = list(mbox)
 
+        # git-format-patch doesn't set the charset attribute of the
+        # Content-Type header field. The Python stdlib assumes ASCII and chokes
+        # on UTF-8.
+        for msg in emails:
+            # replace_header doesn't allow setting params, so we have to unset
+            # the header field and re-add it
+            t = msg.get_content_type()
+            del msg["Content-Type"]
+            msg.add_header("Content-Type", t, charset="utf-8")
+
         if cover_letter:
             subject = emails[0]["Subject"]
             del emails[0]["Subject"]
@@ -174,10 +184,10 @@ def prepare_patchset(repo, git_repo, cover_letter=None, extra_headers=False,
             if not commentary:
                 continue
             commentary = "\n".join(wrapper.wrap(commentary))
-            body = msg.get_payload(decode=True).decode()
+            body = msg.get_content()
             body = commentary_re.sub(r"---\n" + commentary.replace(
                 "\\", r"\\") + r"\n\n\g<context>", body, count=1)
-            msg.set_payload(body)
+            msg.set_content(body)
 
         if extra_headers:
             msgid = make_msgid().split("@")
