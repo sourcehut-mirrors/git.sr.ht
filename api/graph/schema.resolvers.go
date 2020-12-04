@@ -866,8 +866,8 @@ func (r *repositoryResolver) Path(ctx context.Context, obj *model.Repository, re
 		return nil, fmt.Errorf("No such object")
 	}
 	repo.Lock()
+	defer repo.Unlock()
 	o, err := repo.Object(plumbing.CommitObject, *hash)
-	repo.Unlock()
 	if err != nil {
 		return nil, err
 	}
