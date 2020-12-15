@@ -34,18 +34,20 @@ dt {
     text-align: right;
   }
 
-  .name.blob a {
-    color: $gray-900;
+  @media(prefers-color-scheme: light) {
+    .name.blob a {
+      color: $gray-900;
+    }
+
+    .mode, .commit, .commit a, .date, .size {
+      color: $gray-700;
+    }
   }
 
   .name.blob {
     text-overflow: ellipsis;
     white-space: nowrap;
     overflow: hidden;
-  }
-
-  .mode, .commit, .commit a, .date, .size {
-    color: $gray-700;
   }
 
   .commit {
@@ -73,7 +75,13 @@ dt {
 
       // Striped rows
       &:nth-child(10n+#{$i}) {
-        background: rgba(0,0,0,.05);
+        @media(prefers-color-scheme: light) {
+          background: rgba(0,0,0,.05);
+        }
+
+        @media(prefers-color-scheme: dark) {
+          background: lighten($gray-900, 5);
+        }
       }
     }
   }
@@ -113,11 +121,15 @@ dt {
   .lines {
     grid-column-start: 3;
     grid-row-start: 1;
-    border-right: 1px solid #444;
     text-align: right;
     padding-left: 0.5rem;
     padding-right: 0.5rem;
+
     background: #eee;
+    border-right: 1px solid #444;
+    @media(prefers-color-scheme: dark) {
+      background: lighten($gray-900, 5);
+    }
 
     a:target::before, a.selected::before {
       display: block;
@@ -194,12 +206,14 @@ dt {
     text-decoration: none;
   }
 
-  .text-success {
-    color: color_adjust_contrast_AERT(darken($success, 10), white) !important;
-  }
+  @media(prefers-color-scheme: light) {
+    .text-success {
+      color: color_adjust_contrast_AERT(darken($success, 10), white) !important;
+    }
 
-  .text-danger {
-    color: color_adjust_contrast_AERT(darken($danger, 10), white) !important;
+    .text-danger {
+      color: color_adjust_contrast_AERT(darken($danger, 10), white) !important;
+    }
   }
 }
 
@@ -312,8 +326,10 @@ img {
   padding-left: 0;
   padding-right: 0;
 
-  .nav-item:hover {
-    background: #fff;
+  @media(prefers-color-scheme: light) {
+    .nav-item:hover {
+      background: #fff;
+    }
   }
 
   .nav-tabs {
@@ -324,13 +340,26 @@ img {
     .nav-link {
       padding: 0 0.5rem;
 
-      &:hover {
-        color: black;
+      @media(prefers-color-scheme: light) {
+        &:hover {
+          color: black;
+        }
+
+        &.active {
+          border-bottom: 3px #fff solid;
+          background: #fff;
+        }
       }
 
-      &.active {
-        border-bottom: 3px #fff solid;
-        background: #fff;
+      @media(prefers-color-scheme: dark) {
+        color: $gray-400;
+
+        &.active,
+        &:hover {
+          border-bottom: 3px $gray-900 solid;
+          background: $gray-900;
+          color: $white;
+        }
       }
     }
   }
