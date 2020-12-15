@@ -185,7 +185,7 @@ dt {
   &.branch {
     border-color: darken($info, 20);
     background: $info;
-    color: $white;
+    color: $white !important;
   }
 
   &.tag {
