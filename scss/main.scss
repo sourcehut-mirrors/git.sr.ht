@@ -96,6 +96,9 @@ dt {
     grid-column-start: 1;
     grid-row-start: 1;
     background: #ddd;
+    @media(prefers-color-scheme: dark) {
+      background: $gray-900;
+    }
 
     .hunk {
       padding-left: 0.5rem;
@@ -108,6 +111,9 @@ dt {
     background: #ddd;
     border-right: 1px solid #444;
     text-align: right;
+    @media(prefers-color-scheme: dark) {
+      background: $gray-900;
+    }
 
     .hunk {
       padding-right: 0.5rem;
@@ -116,6 +122,9 @@ dt {
 
   .hunk:nth-child(2n) {
     background: #eee;
+    @media(prefers-color-scheme: dark) {
+      background: lighten($gray-900, 5);
+    }
   }
 
   .lines {
