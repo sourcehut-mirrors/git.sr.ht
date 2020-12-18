@@ -186,7 +186,7 @@ def lookup_ref(git_repo, ref, path):
 
 @repo.route("/<owner>/<repo>/tree", defaults={"ref": None, "path": ""})
 @repo.route("/<owner>/<repo>/tree/<path:ref>", defaults={"path": ""})
-@repo.route("/<owner>/<repo>/tree/<ref>/<path:path>")
+@repo.route("/<owner>/<repo>/tree/<path:ref>/item/<path:path>")
 def tree(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
 
@@ -394,7 +394,7 @@ def collect_refs(git_repo):
 
 @repo.route("/<owner>/<repo>/log", defaults={"ref": None, "path": ""})
 @repo.route("/<owner>/<repo>/log/<path:ref>", defaults={"path": ""})
-@repo.route("/<owner>/<repo>/log/<ref>/<path:path>")
+@repo.route("/<owner>/<repo>/log/<path:ref>/item/<path:path>")
 def log(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
