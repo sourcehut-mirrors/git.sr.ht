@@ -567,7 +567,7 @@ def refs_rss(owner, repo):
 
     return generate_feed(repo, references, title, link, description)
 
-@repo.route("/<owner>/<repo>/refs/<ref>")
+@repo.route("/<owner>/<repo>/refs/<path:ref>")
 def ref(owner, repo, ref):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
