@@ -34,13 +34,21 @@ dt {
     text-align: right;
   }
 
-  @media(prefers-color-scheme: light) {
+  .name.blob a {
+    color: $gray-900;
+  }
+
+  .mode, .commit, .commit a, .date, .size {
+    color: $gray-700;
+  }
+
+  @media(prefers-color-scheme: dark) {
     .name.blob a {
-      color: $gray-900;
+      color: inherit;
     }
 
     .mode, .commit, .commit a, .date, .size {
-      color: $gray-700;
+      color: inherit;
     }
   }
 
@@ -75,9 +83,7 @@ dt {
 
       // Striped rows
       &:nth-child(10n+#{$i}) {
-        @media(prefers-color-scheme: light) {
-          background: rgba(0,0,0,.05);
-        }
+        background: rgba(0,0,0,.05);
 
         @media(prefers-color-scheme: dark) {
           background: lighten($gray-900, 5);
@@ -218,13 +224,24 @@ dt {
     text-decoration: none;
   }
 
-  @media(prefers-color-scheme: light) {
+  .text-success {
+    color: color_adjust_contrast_AERT(darken($success, 10), white) !important;
+  }
+
+  .text-danger {
+    color: color_adjust_contrast_AERT(darken($danger, 10), white) !important;
+  }
+
+  @media(prefers-color-scheme: dark) {
+    $success-dark: #2bb34b;
+    $danger-dark: #ff3e3e;
+
     .text-success {
-      color: color_adjust_contrast_AERT(darken($success, 10), white) !important;
+      color: $success-dark !important;
     }
 
     .text-danger {
-      color: color_adjust_contrast_AERT(darken($danger, 10), white) !important;
+      color: $danger-dark !important;
     }
   }
 }
@@ -338,9 +355,13 @@ img {
   padding-left: 0;
   padding-right: 0;
 
-  @media(prefers-color-scheme: light) {
+  .nav-item:hover {
+    background: #fff;
+  }
+
+  @media(prefers-color-scheme: dark) {
     .nav-item:hover {
-      background: #fff;
+      background: inherit;
     }
   }
 
@@ -352,15 +373,13 @@ img {
     .nav-link {
       padding: 0 0.5rem;
 
-      @media(prefers-color-scheme: light) {
-        &:hover {
-          color: black;
-        }
+      &:hover {
+        color: black;
+      }
 
-        &.active {
-          border-bottom: 3px #fff solid;
-          background: #fff;
-        }
+      &.active {
+        border-bottom: 3px #fff solid;
+        background: #fff;
       }
 
       @media(prefers-color-scheme: dark) {
