@@ -6,6 +6,7 @@ import re
 import smtplib
 import subprocess
 import sys
+import hashlib
 from email.utils import make_msgid, parseaddr
 from email.message import EmailMessage
 from flask import Blueprint, render_template, abort, request, url_for, session
@@ -347,3 +348,8 @@ def send_email_send(owner, repo):
         session["message"] = "Your patchset has been sent."
         return redirect(url_for('repo.summary',
             owner=repo.owner, repo=repo.name))
+
+@mail.app_template_filter('hash')
+def to_hash(value):
+    hashed_value = hashlib.sha256(value.encode())
+    return hashed_value.hexdigest()

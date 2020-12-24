@@ -37,14 +37,15 @@
   <legend>Select a branch</legend>
 
   {% for branch in branches[:2] %}
+  {%- set branch_hash = branch[0] | hash -%}
   <input
     type="radio"
     name="branch"
     value="{{branch[0]}}"
-    id="branch-{{branch[0]}}"
+    id="branch-{{branch_hash}}"
     {% if loop.first %}checked{% endif %}
     />
-  <label for="branch-{{branch[0]}}">
+  <label for="branch-{{branch_hash}}">
     {{branch[0]}}
     <span class="text-muted">
       (active {{ commit_time(branch[2]) | date }})
@@ -76,7 +77,8 @@
     You'll be able to trim commits off the top in the next step.
   </small>
   {% for branch in branches[:2] %}
-  <div class="event-list commit-list reverse commits-{{branch[0]}}">
+  {%- set branch_hash = branch[0] | hash -%}
+  <div class="event-list commit-list reverse commits-{{branch_hash}}">
     {% if commits[branch[0]][-1].parents %}
     {% set show_commits = commits[branch[0]][:-1] %}
     {% else %}
@@ -86,15 +88,15 @@
     <input
       type="radio"
       name="commit-{{branch[0]}}"
-      id="commit-{{branch[0]}}-{{c.id.hex}}"
+      id="commit-{{branch_hash}}-{{c.id.hex}}"
       value="{{c.id.hex}}"
       {% if loop.last %}checked{% endif %} />
-    <label class="event" for="commit-{{branch[0]}}-{{c.id.hex}}">
+    <label class="event" for="commit-{{branch_hash}}-{{c.id.hex}}">
       {{ utils.commit_event(repo, c, False, target_blank=True) }}
     </label>
     {% endfor %}
   </div>
-  <div class="pull-right form-controls form-controls-{{branch[0]}}">
+  <div class="pull-right form-controls form-controls-{{branch_hash}}">
     {% if commits[branch[0]][-1].parents and (len(commits[branch[0]])-1) < 32 %}
     {# TODO: suggest request-pull for >32 commits (or less, tbh) #}
     <a
@@ -122,11 +124,12 @@
   }
 
   {% for branch in branches[:2] %}
-  #branch-{{branch[0]}}:checked ~ .commits-{{branch[0]}} {
+  {%- set branch_hash = branch[0] | hash -%}
+  #branch-{{branch_hash}}:checked ~ .commits-{{branch_hash}} {
     display: flex;
   }
 
-  #branch-{{branch[0]}}:checked ~ .form-controls-{{branch[0]}} {
+  #branch-{{branch_hash}}:checked ~ .form-controls-{{branch_hash}} {
     display: block;
   }
   {% endfor %}
