@@ -143,12 +143,12 @@ endif %}{% endfor %}
 </div>
 {% if not skip_body %}
 {% if full_body %}
-<pre>{{c.message}}
+<pre class="commit">{{c.message}}
 {%- if diff %}
 {{diffstat(diff, anchor=c.oid.hex + "-")}}{% endif -%}
 </pre>
 {% else %}
-<pre>{{ trim_commit(c.message) }}</pre>
+<pre class="commit">{{ trim_commit(c.message) }}</pre>
 {% endif %}
 {% endif %}
 {% endmacro %}
@@ -156,7 +156,7 @@ endif %}{% endfor %}
 {% macro commit_diff(repo, commit, diff, anchor="", target_blank=False) %}
 {# God, working with <pre> tags is such a fucking mess #}
 {% for patch in diff %}
-<pre style="margin-bottom: 0;"
+<pre style="margin-bottom: 0; background: transparent; padding: 0;"
 >{#
   #}{{patch.delta.status_char()}} {% if parent %}<a
    href="{{url_for("repo.tree",

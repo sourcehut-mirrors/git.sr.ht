@@ -10,7 +10,7 @@
   margin-left: 1rem;
 }
 
-pre {
+pre.commit {
   padding-left: 0;
   padding-right: 0;
   background: transparent;
@@ -335,6 +335,16 @@ img {
 
     input[type="radio"]:checked + .event {
       background: lighten($info, 45) !important;
+    }
+
+    @media(prefers-color-scheme: dark) {
+      input[type="radio"]:checked ~ .event {
+        background: #131a3c !important;
+      }
+
+      input[type="radio"]:checked + .event {
+        background: #003038 !important;
+      }
     }
   }
 }
