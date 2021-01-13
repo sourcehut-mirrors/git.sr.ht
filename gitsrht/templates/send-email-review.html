@@ -95,7 +95,7 @@
     <pre
       style="margin-bottom: 0;"
     >git config format.subjectPrefix "{{repo.name}}" <span class="text-muted"># Only necessary once</span>
-git send-email {% if cover_letter %}--cover-letter {% endif %}{% if start.parent_ids %}{{start.short_id}}^..{% else %}--root {% endif %}{{end.short_id}}</pre>
+git send-email {% if version != 1 %}-v{{version}} {% endif %}{% if cover_letter %}--cover-letter {% endif %}{% if start.parent_ids %}{{start.short_id}}^..{% else %}--root {% endif %}{{end.short_id}}</pre>
   </div>
   <div class="event-list">
     {% for email in emails %}

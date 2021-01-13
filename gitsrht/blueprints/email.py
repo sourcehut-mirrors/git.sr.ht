@@ -114,11 +114,13 @@ def prepare_patchset(repo, git_repo, cover_letter=None, extra_headers=False,
         valid = Validation(request)
         start_commit = valid.require("start_commit")
         end_commit = valid.require("end_commit")
+        version = valid.require("version")
         cover_letter_subject = valid.optional("cover_letter_subject")
         if cover_letter is None:
             cover_letter = valid.optional("cover_letter")
         if not valid.ok:
             return None
+        version = int(version)
 
         args = [
             "git",
@@ -132,6 +134,8 @@ def prepare_patchset(repo, git_repo, cover_letter=None, extra_headers=False,
         ]
         if cover_letter:
             args += ["--cover-letter"]
+        if version != 1:
+            args += ["-v", str(version)]
 
         start_rev = git_repo.get(start_commit)
         if not start_rev:
@@ -216,6 +220,7 @@ def send_email_review(owner, repo):
         end_commit = valid.require("end_commit")
         cover_letter = valid.optional("cover_letter")
         cover_letter_subject = valid.optional("cover_letter_subject")
+        version = valid.require("version")
         if cover_letter and not cover_letter_subject:
             valid.error("Cover letter subject is required.",
                     field="cover_letter_subject")
@@ -251,6 +256,7 @@ def send_email_review(owner, repo):
                     commits=log, start=start, diffs=diffs,
                     diffstat=diffstat, **valid.kwargs)
 
+        version = int(version)
         for i, email in enumerate(emails):
             comm = valid.optional(f"commentary_{i}")
             if comm:
@@ -263,7 +269,8 @@ def send_email_review(owner, repo):
                 start=start,
                 end=tip,
                 cover_letter=bool(cover_letter),
-                cover_letter_subject=cover_letter_subject)
+                cover_letter_subject=cover_letter_subject,
+                version=version)
 
 @mail.route("/<owner>/<repo>/send-email/send", methods=["POST"])
 @loginrequired

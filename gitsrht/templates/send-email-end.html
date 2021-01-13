@@ -53,6 +53,8 @@
     </label>
     {% endfor %}
 
+    {{valid.summary()}}
+
     <details
       {% if valid.error_for("cover_letter", "cover_letter_subject") %}
       open
@@ -81,6 +83,19 @@
       >{{cover_letter or ""}}</textarea>
       {{valid.summary("cover_letter")}}
     </details>
+
+    <div class="form-group">
+      <label for="version">
+        Patchset revision
+        <small>(update this if you're sending a revised version of an earlier patch)</small>
+      </label>
+      <input
+        type="number"
+        name="version"
+        id="version"
+        value="{{version or 1}}"
+        class="form-control" />
+    </div>
 
     <div class="form-controls">
       <button class="btn btn-primary">Continue {{icon("caret-right")}}</a>
