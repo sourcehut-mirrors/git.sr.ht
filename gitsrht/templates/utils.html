@@ -186,7 +186,7 @@ endif %}{% endfor %}
     if patch.delta.old_file.mode != patch.delta.new_file.mode %}{#
   #}{#
   #}{% endif %}</pre>
-<div class="event diff">
+{% if patch.hunks|length %}<div class="event diff">
   <pre>{% for hunk in patch.hunks %}
 {% set hunk_index = loop.index %}<strong
   class="text-info"
@@ -227,6 +227,6 @@ endif %}{% endfor %}
 >{{line.origin}}</a>{{line.content}}{#
 #}</span>{% endfor %}
 {% endfor %}</pre>
-</div>
+</div>{% endif %}
 {% endfor %}
 {% endmacro %}
