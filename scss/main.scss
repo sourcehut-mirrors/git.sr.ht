@@ -232,6 +232,10 @@ dt {
     color: color_adjust_contrast_AERT(darken($danger, 10), white) !important;
   }
 
+  pre {
+    background: transparent;
+  }
+
   @media(prefers-color-scheme: dark) {
     $success-dark: #2bb34b;
     $danger-dark: #ff3e3e;
