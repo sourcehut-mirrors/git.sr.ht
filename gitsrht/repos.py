@@ -4,7 +4,6 @@ import pygit2
 import subprocess
 from gitsrht.types import Artifact, Repository, Redirect
 from minio import Minio
-from minio.error import BucketAlreadyOwnedByYou, BucketAlreadyExists, ResponseError
 from scmsrht.repos import SimpleRepoApi
 from srht.config import cfg
 from srht.database import db
@@ -54,9 +53,8 @@ def upload_artifact(valid, repo, commit, f, filename):
             repo.owner.canonical_name, repo.name)
     try:
         minio.make_bucket(s3_bucket)
-    except BucketAlreadyOwnedByYou:
-        pass
-    except BucketAlreadyExists:
+    except:
+        # Thanks for not giving us more specific exceptions, minio
         pass
     sha = hashlib.sha256()
     buf = f.read(1024)

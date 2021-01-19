@@ -7,7 +7,6 @@ from gitsrht.git import Repository as GitRepository
 from gitsrht.repos import delete_artifact, upload_artifact
 from gitsrht.types import Artifact
 from minio import Minio
-from minio.error import BucketAlreadyOwnedByYou, BucketAlreadyExists
 from scmsrht.access import check_access, get_repo_or_redir, UserAccess
 from srht.config import cfg
 from srht.database import db
