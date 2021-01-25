@@ -45,8 +45,9 @@ func initSubmitter() {
 }
 
 type InternalRequestAuthorization struct {
-	ClientId string `json:"client_id"`
-	Username string `json:"username"`
+	ClientID string `json:"client_id"`
+	NodeID   string `json:"node_id"`
+	Username string `json:"name"`
 }
 
 type BuildSubmitter interface {
@@ -269,7 +270,8 @@ func configureRequestAuthorization(submitter BuildSubmitter,
 	req *http.Request) {
 
 	auth := InternalRequestAuthorization{
-		ClientId: clientId,
+		ClientID: clientId,
+		NodeID:   "git.sr.ht::update-hook",
 		Username: submitter.GetOwnerName(),
 	}
 	authPayload, err := json.Marshal(&auth)
