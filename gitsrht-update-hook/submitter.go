@@ -393,4 +393,9 @@ func autoSetupManifest(submitter BuildSubmitter, manifest *Manifest) {
 	if !hasSelf {
 		manifest.Sources = append(manifest.Sources, cloneUrl)
 	}
+
+	if manifest.Environment == nil {
+		manifest.Environment = make(map[string]interface{})
+	}
+	manifest.Environment["BUILD_SUBMITTER"] = "git.sr.ht"
 }
