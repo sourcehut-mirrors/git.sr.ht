@@ -951,7 +951,15 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor
 		query := database.
 			Select(ctx, repo).
 			From(`repository repo`).
-			Where(`repo.owner_id = ?`, obj.ID)
+			LeftJoin(`access ON repo.id = access.repo_id`).
+			Where(sq.And{
+				sq.Or{
+					sq.Expr(`? IN (access.user_id, repo.owner_id)`,
+						auth.ForContext(ctx).UserID),
+					sq.Expr(`repo.visibility = 'public'`),
+				},
+				sq.Expr(`repo.owner_id = ?`, obj.ID),
+			})
 		repos, cursor = repo.QueryWithCursor(ctx, tx, query, cursor)
 		return nil
 	}); err != nil {
