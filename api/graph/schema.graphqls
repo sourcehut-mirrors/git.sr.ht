@@ -18,9 +18,7 @@ enum AccessKind {
 }
 
 # Decorates fields for which access requires a particular OAuth 2.0 scope with
-# read or write access. For the meta.sr.ht API, you have access to all public
-# information without any special permissions - user profile information,
-# public keys, and so on.
+# read or write access.
 directive @access(scope: AccessScope!, kind: AccessKind!) on FIELD_DEFINITION
 
 # https://semver.org

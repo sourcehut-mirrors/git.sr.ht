@@ -18,6 +18,7 @@ type Manifest struct {
 	Sources      []string                 `yaml:"sources",omitempty`
 	Tasks        []map[string]string      `yaml:"tasks"`
 	Triggers     []map[string]interface{} `yaml:"triggers",omitempty`
+	OAuth        string                   `yaml:"oauth",omitempty`
 }
 
 func ManifestFromYAML(src string) (Manifest, error) {
