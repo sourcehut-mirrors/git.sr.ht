@@ -22,7 +22,7 @@ s3_secret_key = cfg("objects", "s3-secret-key", default=None)
 s3_bucket = cfg("git.sr.ht", "s3-bucket", default=None)
 s3_prefix = cfg("git.sr.ht", "s3-prefix", default=None)
 
-@artifacts.route("/<owner>/<repo>/refs/<ref>/upload", methods=["POST"])
+@artifacts.route("/<owner>/<repo>/refs/upload/<path:ref>", methods=["POST"])
 @loginrequired
 def ref_upload(owner, repo, ref):
     owner, repo = check_access(owner, repo, UserAccess.manage)
@@ -56,7 +56,7 @@ def ref_upload(owner, repo, ref):
             repo=repo.name,
             ref=ref))
 
-@artifacts.route("/<owner>/<repo>/refs/<ref>/<filename>")
+@artifacts.route("/<owner>/<repo>/refs/download/<path:ref>/<filename>")
 def ref_download(owner, repo, ref, filename):
     owner, repo = check_access(owner, repo, UserAccess.read)
     with GitRepository(repo.path) as git_repo:
@@ -84,7 +84,7 @@ def ref_download(owner, repo, ref, filename):
     f = minio.get_object(s3_bucket, os.path.join(prefix, filename))
     return send_file(f, as_attachment=True, attachment_filename=filename)
 
-@artifacts.route("/<owner>/<repo>/refs/<ref>/<filename>", methods=["POST"])
+@artifacts.route("/<owner>/<repo>/refs/delete/<path:ref>/<filename>", methods=["POST"])
 @loginrequired
 def ref_delete(owner, repo, ref, filename):
     owner, repo = check_access(owner, repo, UserAccess.manage)
