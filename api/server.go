@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"git.sr.ht/~sircmpwn/core-go/config"
+	"git.sr.ht/~sircmpwn/core-go/email"
 	"git.sr.ht/~sircmpwn/core-go/server"
 	"github.com/99designs/gqlgen/graphql"
 
@@ -31,14 +32,16 @@ func main() {
 	}
 
 	legacyWebhooks := webhooks.NewLegacyQueue()
+	mail := email.NewQueue()
 
 	server.NewServer("git.sr.ht", appConfig).
 		WithDefaultMiddleware().
 		WithMiddleware(
 			loaders.Middleware,
 			webhooks.LegacyMiddleware(legacyWebhooks),
+			email.Middleware(mail),
 		).
 		WithSchema(schema, scopes).
-		WithQueues(legacyWebhooks.Queue).
+		WithQueues(legacyWebhooks.Queue, mail).
 		Run()
 }
