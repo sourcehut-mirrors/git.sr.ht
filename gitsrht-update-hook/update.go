@@ -2,10 +2,8 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"time"
-	"unicode/utf8"
 
 	goredis "github.com/go-redis/redis"
 )
@@ -23,12 +21,6 @@ func update() {
 		logger.Fatal("Missing SRHT_PUSH in environment, configuration error?")
 	}
 	logger.Printf("Running update for push %s", pushUuid)
-
-	if !utf8.ValidString(refname) {
-		logger.Printf("Refusing ref '%s': not UTF-8", refname)
-		log.Printf("%s not valid UTF-8, see https://github.com/libgit2/pygit2/issues/1028 for more information", refname)
-		os.Exit(1)
-	}
 
 	redisHost, ok := config.Get("sr.ht", "redis-host")
 	if !ok {
