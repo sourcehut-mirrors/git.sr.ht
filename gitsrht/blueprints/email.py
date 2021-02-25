@@ -29,6 +29,28 @@ smtp_password = cfg("mail", "smtp-password", default=None)
 smtp_from = cfg("mail", "smtp-from", default=None)
 outgoing_domain = cfg("git.sr.ht", "outgoing-domain")
 
+def render_send_email_start(owner, repo, git_repo, selected_branch,
+        ncommits=8, **kwargs):
+    branches = [(
+            branch,
+            git_repo.branches[branch],
+            git_repo.get(git_repo.branches[branch].target)
+        ) for branch
+          in git_repo.raw_listall_branches(pygit2.GIT_BRANCH_LOCAL)]
+    branches = sorted(branches,
+            key=lambda b: (b[0] == selected_branch, commit_time(b[2])),
+            reverse=True)
+
+    commits = dict()
+    for branch in branches[:2]:
+        commits[branch[0]] = get_log(git_repo,
+                branch[2], commits_per_page=ncommits)
+
+    return render_template("send-email.html",
+            view="send-email", owner=owner, repo=repo,
+            selected_branch=selected_branch, branches=branches,
+            commits=commits, **kwargs)
+
 @mail.route("/<owner>/<repo>/send-email")
 @loginrequired
 def send_email_start(owner, repo):
@@ -41,25 +63,8 @@ def send_email_start(owner, repo):
             ncommits = 8
         selected_branch = request.args.get("branch", default=None)
 
-        branches = [(
-                branch,
-                git_repo.branches[branch],
-                git_repo.get(git_repo.branches[branch].target)
-            ) for branch
-              in git_repo.raw_listall_branches(pygit2.GIT_BRANCH_LOCAL)]
-        branches = sorted(branches,
-                key=lambda b: (b[0] == selected_branch, commit_time(b[2])),
-                reverse=True)
-
-        commits = dict()
-        for branch in branches[:2]:
-            commits[branch[0]] = get_log(git_repo,
-                    branch[2], commits_per_page=ncommits)
-
-        return render_template("send-email.html",
-                view="send-email", owner=owner, repo=repo,
-                selected_branch=selected_branch, branches=branches,
-                commits=commits)
+        return render_send_email_start(owner, repo, git_repo, selected_branch,
+                ncommits)
 
 @mail.route("/<owner>/<repo>/send-email/end", methods=["POST"])
 @loginrequired
@@ -68,7 +73,12 @@ def send_email_end(owner, repo):
     with GitRepository(repo.path) as git_repo:
         valid = Validation(request)
         branch = valid.require("branch")
+        if not branch in git_repo.branches:
+            valid.error(f"Branch {branch} not found", field="branch")
         commit = valid.require(f"commit-{branch}")
+        if not valid.ok:
+            return render_send_email_start(owner, repo, git_repo, branch,
+                    **valid.kwargs)
 
         branch = git_repo.branches[branch]
         tip = git_repo.get(branch.target)
