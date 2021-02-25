@@ -14,7 +14,8 @@
     {% if repo.git_repo.is_empty %}disabled{% endif %}
   >
     {% set default_branch_name = repo.git_repo.default_branch_name() or "" %}
-    {% for branch in repo.git_repo.branches %}
+    {% for branch in repo.git_repo.raw_listall_branches() %}
+      {% set branch = branch.decode("utf-8", "replace") %}
       <option
         value="{{branch}}"
         {% if branch == default_branch_name %}

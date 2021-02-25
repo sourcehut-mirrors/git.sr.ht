@@ -41,16 +41,17 @@
   <input
     type="radio"
     name="branch"
-    value="{{branch[0]}}"
+    value="{{branch[0]|url_quote}}"
     id="branch-{{branch_hash}}"
     {% if loop.first %}checked{% endif %}
     />
   <label for="branch-{{branch_hash}}">
-    {{branch[0]}}
+    {{branch[0].decode("utf-8", "replace")}}
     <span class="text-muted">
       (active {{ commit_time(branch[2]) | date }})
     </span>
   </label>
+  {{valid.summary("branch")}}
   {% endfor %}
 
   {% if any(branches[2:]) %}
@@ -59,10 +60,10 @@
     <ul>
       {% for branch in branches[2:] %}
       <li>
-        {{branch[0]}}
+        {{branch[0].decode("utf-8", "replace")}}
         <span class="text-muted">(active {{commit_time(branch[2]) | date}})</span>
         <br />
-        <a href="?branch={{branch[0]}}">
+        <a href="?branch={{branch[0]|url_quote}}">
           Select this branch {{icon('caret-right')}}
         </a>
       </li>
@@ -78,6 +79,7 @@
   </small>
   {% for branch in branches[:2] %}
   {%- set branch_hash = branch[0] | hash -%}
+  {%- set branch_quoted = branch[0] | url_quote -%}
   <div class="event-list commit-list reverse commits-{{branch_hash}}">
     {% if commits[branch[0]][-1].parents %}
     {% set show_commits = commits[branch[0]][:-1] %}
@@ -87,13 +89,14 @@
     {% for c in show_commits[::-1] %}
     <input
       type="radio"
-      name="commit-{{branch[0]}}"
+      name="commit-{{branch_quoted}}"
       id="commit-{{branch_hash}}-{{c.id.hex}}"
       value="{{c.id.hex}}"
       {% if loop.last %}checked{% endif %} />
     <label class="event" for="commit-{{branch_hash}}-{{c.id.hex}}">
       {{ utils.commit_event(repo, c, False, target_blank=True) }}
     </label>
+    {{valid.summary("branch-" + branch_quoted)}}
     {% endfor %}
   </div>
   <div class="pull-right form-controls form-controls-{{branch_hash}}">

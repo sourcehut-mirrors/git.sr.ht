@@ -1,7 +1,8 @@
 {% macro breadcrumb(ref, repo, path, entry, view, path_join, stat, pygit2, humanize) %}
-{% if ref != repo.git_repo.default_branch_name() %}
+{% set ref_s = ref.decode("utf-8", "replace") %}
+{% if ref_s != repo.git_repo.default_branch_name() %}
 <span style="margin-right: 1rem">
-  <span class="text-muted">ref:</span> {{ ref }}
+  <span class="text-muted">ref:</span> {{ ref_s }}
 </span>
 {% endif %}
 {% if path != [''] %}
@@ -136,7 +137,7 @@ endif %}{% endfor %}
           repo=repo.name,
           ref=ref.name)}}"
       {% endif %}
-    >{{ref.name}}</a>
+    >{{ref.name.decode("utf-8", "replace")}}</a>
   </span>
   {% endfor %}
   {% endif %}

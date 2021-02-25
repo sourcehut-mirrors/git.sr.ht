@@ -15,7 +15,7 @@ def aware_time(author):
     return datetime.fromtimestamp(author.time, tzinfo)
 
 def ref_name(reference):
-    return reference.name.split("/")[-1]
+    return reference.raw_name.decode("utf-8", "replace").split("/")[-1]
 
 def ref_url(repo, reference):
     return ORIGIN + url_for("repo.ref",

@@ -7,12 +7,13 @@
 <meta name="go-import"
   content="{{domain}}/{{owner.canonical_name}}/{{repo.name}} git {{(repo | clone_urls)[0]}}">
 {% if default_branch %}
+  {% set default_branch_name = default_branch.raw_name.decode("utf-8", "replace")[len("refs/heads/"):] %}
   <meta name="go-source"
     content="{{domain}}/{{owner.canonical_name}}/{{repo.name}} {{(repo | clone_urls)[0]}}
              {{(repo | clone_urls)[0]}}/tree/
-               {{- default_branch.name[("refs/heads/"|length):]}}{/dir}
+               {{- default_branch_name}}{/dir}
              {{(repo | clone_urls)[0]}}/tree/
-               {{- default_branch.name[("refs/heads/"|length):]}}{/dir}/{file}#L{line}">
+               {{- default_branch_name}}{/dir}/{file}#L{line}">
 {% endif %}
 {% endblock %}
 {% block body %}

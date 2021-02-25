@@ -31,7 +31,7 @@
           <h3>refs</h3>
           <dl>
             {% if default_branch %}
-            <dt>{{default_branch.name[len("refs/heads/"):]}}</dt>
+            <dt>{{default_branch.raw_name.decode("utf-8", "replace")[len("refs/heads/"):]}}</dt>
             <dd>
               <a href="{{url_for("repo.tree",
                   owner=repo.owner.canonical_name, repo=repo.name)}}"
@@ -42,12 +42,12 @@
             </dd>
             {% endif %}
             {% if latest_tag %}
-            <dt>{{ latest_tag[0][len("refs/tags/"):] }}</dt>
+            <dt>{{ latest_tag[0].decode("utf-8", "replace")[len("refs/tags/"):] }}</dt>
             <dd>
               {% if is_annotated(latest_tag[1]) %}
                 <a href="{{url_for("repo.ref",
                     owner=repo.owner.canonical_name,
-                    repo=repo.name, ref=latest_tag[1].name)}}"
+                    repo=repo.name, ref=latest_tag[0][len("refs/tags/"):])}}"
                 >release notes&nbsp;{{icon("caret-right")}}</a>
               {% else %}
                 <a href="{{url_for("repo.tree", owner=repo.owner.canonical_name,

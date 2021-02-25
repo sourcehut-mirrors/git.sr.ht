@@ -11,6 +11,7 @@ from scmsrht.flask import ScmSrhtFlask
 from srht.config import cfg
 from srht.database import DbSession
 from srht.flask import session
+from werkzeug.urls import url_quote
 
 db = DbSession(cfg("git.sr.ht", "connection-string"))
 db.init()
@@ -44,6 +45,7 @@ class GitApp(ScmSrhtFlask):
         self.add_template_filter(urls.clone_urls)
         self.add_template_filter(urls.log_rss_url)
         self.add_template_filter(urls.refs_rss_url)
+        self.add_template_filter(url_quote)
 
         @self.context_processor
         def inject():

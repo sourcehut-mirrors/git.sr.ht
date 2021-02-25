@@ -75,18 +75,18 @@ class Repository(GitRepository):
 
     def default_branch(self):
         head_ref = self.lookup_reference("HEAD")
-        return self.branches.get(head_ref.target[len("refs/heads/"):])
+        return self.branches.get(head_ref.raw_target[len(b"refs/heads/"):])
 
     def default_branch_name(self):
         branch = self.default_branch()
         if branch:
-            return branch.name[len("refs/heads/"):]
+            return branch.raw_name.decode("utf-8", "replace")[len("refs/heads/"):]
         else:
             return None
 
     @property
     def is_empty(self):
-        return len(list(self.branches.local)) == 0
+        return len(self.raw_listall_branches(pygit2.GIT_BRANCH_LOCAL)) == 0
 
 class AnnotatedTreeEntry:
     def __init__(self, repo, entry):

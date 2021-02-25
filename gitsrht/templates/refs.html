@@ -26,7 +26,7 @@
     <div class="col-md-8">
       <div class="event-list">
         {% for tag in tags %}
-        {% set ref = tag[0] %}
+        {% set ref = tag[0].decode("utf-8", "replace") %}
         {% set tag = tag[1] %}
         {% if isinstance(tag, pygit2.Commit) %}
         {% set commit = tag %}
@@ -39,12 +39,12 @@
             {% set refname = commit.id.hex %}
             {{ref[len("refs/tags/"):]}}
             {% else %}
-            {% set refname = tag.name %}
+            {% set refname = tag.raw_name %}
             <a href="{{url_for("repo.ref",
                 owner=repo.owner.canonical_name,
                 repo=repo.name,
-                ref=tag.name)}}">
-              {{tag.name}}
+                ref=refname)}}">
+              {{refname.decode("utf-8", "replace")}}
             </a>
             {% endif %}
             <small class="pull-right text-muted">
@@ -86,7 +86,7 @@
         {% set commit = branch[2] %}
         {% set branch = branch[1] %}
         <div class="event">
-          {{name}}
+          {{name.decode("utf-8", "replace")}}
           {{ utils.commit_event(repo, commit, skip_body=True) }}
           <div class="row" style="margin-top: 0.5rem">
             <div class="col">
@@ -95,7 +95,7 @@
                   owner=repo.owner.canonical_name,
                   repo=repo.name, ref=name)}}"
                 class="btn btn-block {{ "btn-primary"
-                  if branch.name == default_branch.name
+                  if branch.raw_name == default_branch.raw_name
                   else "btn-default" }}"
               >browse {{icon("caret-right")}}</a>
             </div>

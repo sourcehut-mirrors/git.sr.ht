@@ -45,8 +45,8 @@ def send_email_start(owner, repo):
                 branch,
                 git_repo.branches[branch],
                 git_repo.get(git_repo.branches[branch].target)
-            ) for branch in git_repo.branches.local]
-        default_branch = git_repo.default_branch().name
+            ) for branch
+              in git_repo.raw_listall_branches(pygit2.GIT_BRANCH_LOCAL)]
         branches = sorted(branches,
                 key=lambda b: (b[0] == selected_branch, commit_time(b[2])),
                 reverse=True)
@@ -358,5 +358,5 @@ def send_email_send(owner, repo):
 
 @mail.app_template_filter('hash')
 def to_hash(value):
-    hashed_value = hashlib.sha256(value.encode())
+    hashed_value = hashlib.sha256(value.encode() if isinstance(value, str) else value)
     return hashed_value.hexdigest()

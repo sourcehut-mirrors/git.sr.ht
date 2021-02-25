@@ -91,19 +91,21 @@ def summary(owner, repo):
         if not default_branch:
             return render_empty_repo(owner, repo)
 
-        tip = git_repo.get(default_branch.target)
+        default_branch_name = default_branch.raw_name \
+            .decode("utf-8", "replace")[len("refs/heads/"):]
+        tip = git_repo.get(default_branch.raw_target)
         commits = get_last_3_commits(git_repo, tip)
         link_prefix = url_for(
             'repo.tree', owner=repo.owner, repo=repo.name,
-            ref=f"{default_branch.name}/")  # Trailing slash needed
+            ref=f"{default_branch_name}/")  # Trailing slash needed
         blob_prefix = url_for(
             'repo.raw_blob', owner=repo.owner, repo=repo.name,
-            ref=f"{default_branch.name}/", path="")  # Trailing slash needed
+            ref=f"{default_branch_name}/", path="")  # Trailing slash needed
         readme = get_readme(repo, git_repo, tip,
             link_prefix=[link_prefix, blob_prefix])
-        tags = [(ref, git_repo.get(git_repo.references[ref].target))
-            for ref in git_repo.listall_references()
-            if ref.startswith("refs/tags/")]
+        tags = [(ref, git_repo.get(git_repo.references[ref].raw_target))
+            for ref in git_repo.raw_listall_references()
+            if ref.startswith(b"refs/tags/")]
         tags = [tag for tag in tags
                 if isinstance(tag[1], pygit2.Tag) or isinstance(tag[1], pygit2.Commit)]
         tags = sorted(tags, key=lambda c: commit_time(c[1]), reverse=True)
@@ -155,7 +157,7 @@ def lookup_ref(git_repo, ref, path):
     branch = git_repo.default_branch()
     if not branch:
         abort(404)
-    ref = ref or branch.name[len("refs/heads/"):]
+    ref = ref.encode("utf-8") if ref else branch.raw_name[len(b"refs/heads/"):]
     if not path:
         path = []
     else:
@@ -168,7 +170,7 @@ def lookup_ref(git_repo, ref, path):
     except ValueError:
         pass
     while commit is None and len(path):
-        ref += "/" + path[0]
+        ref += b"/" + path[0].encode("utf-8")
         path = path[1:]
         try:
             commit = git_repo.revparse_single(ref)
@@ -365,14 +367,14 @@ class _AnnotatedRef:
     def __init__(self, repo, ref):
         self.ref = ref
         self.target = ref.target
-        if ref.name.startswith("refs/heads/"):
+        if ref.raw_name.startswith(b"refs/heads/"):
             self.type = "branch"
-            self.name = ref.name[len("refs/heads/"):]
+            self.name = ref.raw_name[len(b"refs/heads/"):]
             self.branch = repo.get(ref.target)
             self.commit = self.branch
-        elif ref.name.startswith("refs/tags/"):
+        elif ref.raw_name.startswith(b"refs/tags/"):
             self.type = "tag"
-            self.name = ref.name[len("refs/tags/"):]
+            self.name = ref.raw_name[len(b"refs/tags/"):]
             self.tag = repo.get(self.target)
             if isinstance(self.tag, pygit2.Commit):
                 self.commit = self.tag
@@ -383,7 +385,7 @@ class _AnnotatedRef:
 
 def collect_refs(git_repo):
     refs = {}
-    for _ref in git_repo.references:
+    for _ref in git_repo.raw_listall_references():
         _ref = _AnnotatedRef(git_repo, git_repo.references[_ref])
         if not _ref.type or not hasattr(_ref, "commit"):
             continue
@@ -439,7 +441,7 @@ def log_rss(owner, repo, ref):
 
     repo_name = f"{repo.owner.canonical_name}/{repo.name}"
     title = f"{repo_name} log"
-    description = f"Git log for {repo_name} {ref}"
+    description = f"Git log for {repo_name} {ref.decode('utf-8', 'replace')}"
     link = cfg("git.sr.ht", "origin") + url_for("repo.log",
         owner=repo.owner.canonical_name,
         repo=repo.name,
@@ -499,7 +501,8 @@ def refs(owner, repo):
         tags = [(
                 ref,
                 git_repo.get(git_repo.references[ref].target)
-            ) for ref in git_repo.references if ref.startswith("refs/tags/")]
+            ) for ref in git_repo.raw_listall_references()
+              if ref.startswith(b"refs/tags/")]
         tags = [tag for tag in tags
                 if isinstance(tag[1], pygit2.Commit) or isinstance(tag[1], pygit2.Tag)]
         def _tag_key(tag):
@@ -513,10 +516,10 @@ def refs(owner, repo):
                 branch,
                 git_repo.branches[branch],
                 git_repo.get(git_repo.branches[branch].target)
-            ) for branch in git_repo.branches.local]
+            ) for branch in git_repo.raw_listall_branches(pygit2.GIT_BRANCH_LOCAL)]
         default_branch = git_repo.default_branch()
         branches = sorted(branches,
-                key=lambda b: (b[1].name == default_branch.name, b[2].commit_time),
+                key=lambda b: (b[1].raw_name == default_branch.raw_name, b[2].commit_time),
                 reverse=True)
 
         results_per_page = 10
@@ -548,8 +551,8 @@ def refs_rss(owner, repo):
     with GitRepository(repo.path) as git_repo:
         references = [
             git_repo.references[name]
-            for name in git_repo.references
-            if name.startswith("refs/tags/")
+            for name in git_repo.raw_listall_references()
+            if name.startswith(b"refs/tags/")
         ]
 
     def _ref_sort_key(ref):
