@@ -10,6 +10,8 @@ git.sr.ht/~sircmpwn/core-go v0.0.0-20201202125929-7be038e742a0 h1:4e6b4kLdcz+XOz
 git.sr.ht/~sircmpwn/core-go v0.0.0-20201202125929-7be038e742a0/go.mod h1:LLLvDJIgVgmA/sHl0fzj9UvpFiLi0v8a/aiBc3g22ik=
 git.sr.ht/~sircmpwn/core-go v0.0.0-20201203133317-52d6dc99ff2d h1:iWEDdvNw2ULdQGG5ZHgR5OCCyOkUus9+8M8H4zVvLbU=
 git.sr.ht/~sircmpwn/core-go v0.0.0-20201203133317-52d6dc99ff2d/go.mod h1:LLLvDJIgVgmA/sHl0fzj9UvpFiLi0v8a/aiBc3g22ik=
+git.sr.ht/~sircmpwn/core-go v0.0.0-20210227202525-61ab3f08164e h1:S/rv7GZOnQPC94PSR+dXIvhdwqBVReiJGIngytokv6A=
+git.sr.ht/~sircmpwn/core-go v0.0.0-20210227202525-61ab3f08164e/go.mod h1:xKaQeRLMV136HaItd00yy6W2HeKeJJR2jp9p0Fsu0qM=
 git.sr.ht/~sircmpwn/dowork v0.0.0-20201013160733-35ca012e4dc8 h1:ltrdYYclC4wQEg3QdcG2hgYAFCk+6/l2vU1OXygKXVA=
 git.sr.ht/~sircmpwn/dowork v0.0.0-20201013160733-35ca012e4dc8/go.mod h1:8neHEO3503w/rNtttnR0JFpQgM/GFhaafVwvkPsFIDw=
 git.sr.ht/~sircmpwn/dowork v0.0.0-20201121170652-c2a771442daf h1:wRE9o+wlpTSuq/ucFJsfbglAobfGPIgFdaTtZXrk8P0=
@@ -22,6 +24,7 @@ git.sr.ht/~sircmpwn/go-bare v0.0.0-20200623145341-debb068b456a h1:bqT/ygbVtD6b/B
 git.sr.ht/~sircmpwn/go-bare v0.0.0-20200623145341-debb068b456a/go.mod h1:BVJwbDfVjCjoFiKrhkei6NdGcZYpkDkdyCdg1ukytRA=
 git.sr.ht/~sircmpwn/go-bare v0.0.0-20200812160916-d2c72e1a5018 h1:89QMorzx6ML69PKPoayL3HuSfb7WqAlxD1dZ7DyzD0k=
 git.sr.ht/~sircmpwn/go-bare v0.0.0-20200812160916-d2c72e1a5018/go.mod h1:BVJwbDfVjCjoFiKrhkei6NdGcZYpkDkdyCdg1ukytRA=
+git.sr.ht/~sircmpwn/go-bare v0.0.0-20210227202403-5dae5c48f917/go.mod h1:BVJwbDfVjCjoFiKrhkei6NdGcZYpkDkdyCdg1ukytRA=
 github.com/99designs/gqlgen v0.11.4-0.20200512031635-40570d1b4d70 h1:bZj4qAWfwu0SFTx5QsEI+y7JTji7L7ndm6snyDEIVLs=
 github.com/99designs/gqlgen v0.11.4-0.20200512031635-40570d1b4d70/go.mod h1:RgX5GRRdDWNkh4pBrdzNpNPFVsdoUFY2+adM6nb1N+4=
 github.com/99designs/gqlgen v0.13.0 h1:haLTcUp3Vwp80xMVEg5KRNwzfUrgFdRmtBY8fuB8scA=
