@@ -1,12 +1,12 @@
 {% extends "repo.html" %}
 {% import "utils.html" as utils with context %}
 {% block title %}
-<title>{{repo.owner.canonical_name}}/{{repo.name}}: {% if path != [''] %}{{path_join(*path)}} {% endif %}{{ref}} - {{cfg("sr.ht", "site-name")}} git</title>
+<title>{{repo.owner.canonical_name}}/{{repo.name}}: {% if path != [''] %}{{path_join(*path)}} {% endif %}{{ ref.decode() }} - {{cfg("sr.ht", "site-name")}} git</title>
 {% endblock %}
 
 {% block head %}
   <link rel="alternate"
-    title="{{ repo.owner.canonical_name }}/{{ repo.name }}: {{ ref }} log"
+    title="{{ repo.owner.canonical_name }}/{{ repo.name }}: {{ ref.decode() }} log"
     type="application/rss+xml"
     href="{{ root }}{{ repo|log_rss_url(ref=ref) }}">
 {% endblock %}
