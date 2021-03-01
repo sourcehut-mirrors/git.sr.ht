@@ -362,7 +362,7 @@ def archive(owner, repo, ref):
         subp = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=sys.stderr)
 
         return send_file(subp.stdout, mimetype="application/tar+gzip",
-                as_attachment=True, attachment_filename=f"{repo.name}-{ref}.tar.gz")
+                as_attachment=True, attachment_filename=f"{repo.name}-{refname}.tar.gz")
 
 class _AnnotatedRef:
     def __init__(self, repo, ref):
