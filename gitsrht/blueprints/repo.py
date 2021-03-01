@@ -192,7 +192,7 @@ def lookup_ref(git_repo, ref, path):
 def tree(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
 
-    if ref and "/" in ref:
+    if ref and "/" in ref and not path:
         ref, _, path = ref.partition("/")
 
     with GitRepository(repo.path) as git_repo:
