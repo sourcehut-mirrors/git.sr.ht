@@ -60,7 +60,7 @@ def ref_to_dict(artifacts, ref):
     target = ref.target.hex
     return {
         "target": target,
-        "name": ref.name,
+        "name": ref.raw_name.decode("utf-8", "replace"),
         "artifacts": [a.to_dict() for a in artifacts.get(target, [])],
     }
 
@@ -73,7 +73,7 @@ def repo_refs_GET(username, reponame):
 
     with GitRepository(repo.path) as git_repo:
         # TODO: pagination
-        refs = list(git_repo.references)
+        refs = list(git_repo.raw_listall_references())
         targets = [git_repo.references[ref].target.hex for ref in refs]
         artifacts = (Artifact.query
                 .filter(Artifact.user_id == repo.owner_id)
