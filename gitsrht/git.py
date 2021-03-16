@@ -155,6 +155,8 @@ def _diffstat_name(delta, anchor):
     for i in range(max(len(old_path), len(new_path))):
         if i >= len(old_path) or i >= len(new_path):
             break
+        if old_path[i] != new_path[i]:
+            break
         if old_path[i] == '/':
             pfx_length = i + 1
     # TODO: detect common suffix
