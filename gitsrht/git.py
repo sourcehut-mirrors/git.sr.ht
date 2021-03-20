@@ -95,7 +95,7 @@ class AnnotatedTreeEntry:
         self.commit = None
         if entry is not None:
             self.id = entry.id.hex
-            self.name = entry.name
+            self.name = entry.raw_name.decode("utf-8", "replace")
             self.type = (entry.type_str
                     if hasattr(entry, "type_str") else entry.type)
             self.filemode = entry.filemode
@@ -143,28 +143,29 @@ def annotate_tree(repo, tree, commit):
 def _diffstat_name(delta, anchor):
     if delta.status == pygit2.GIT_DELTA_DELETED:
         return Markup(escape(delta.old_file.path))
-    if delta.old_file.path == delta.new_file.path:
+    if delta.old_file.raw_path == delta.new_file.raw_path:
         return Markup(
-                f"<a href='#{escape(anchor)}{escape(delta.old_file.path)}'>" +
-                f"{escape(delta.old_file.path)}" +
+                f"<a href='#{escape(anchor)}{escape(delta.old_file.raw_path.decode('utf-8', 'replace'))}'>" +
+                f"{escape(delta.old_file.raw_path.decode('utf-8', 'replace'))}" +
                 f"</a>")
     # Based on git/diff.c
     pfx_length = 0
-    old_path = delta.old_file.path
-    new_path = delta.new_file.path
+    old_path = delta.old_file.raw_path
+    new_path = delta.new_file.raw_path
     for i in range(max(len(old_path), len(new_path))):
         if i >= len(old_path) or i >= len(new_path):
             break
         if old_path[i] != new_path[i]:
             break
-        if old_path[i] == '/':
+        if old_path[i] == b'/'[0]:
             pfx_length = i + 1
     # TODO: detect common suffix
     if pfx_length != 0:
-        return (f"{delta.old_file.path[:pfx_length]}{{" +
-            f"{delta.old_file.path[pfx_length:]} =&gt; {delta.new_file.path[pfx_length:]}" +
-            f"}}")
-    return f"{delta.old_file.path} => {delta.new_file.path}"
+        return (f"{delta.old_file.raw_path[:pfx_length].decode('utf-8', 'replace')}{{" +
+            f"{delta.old_file.raw_path[pfx_length:].decode('utf-8', 'replace')} =&gt; " +
+            f"{delta.new_file.raw_path[pfx_length:].decode('utf-8', 'replace')}}}")
+    return (f"{delta.old_file.raw_path.decode('utf-8', 'replace')} => " +
+            f"{delta.new_file.raw_path.decode('utf-8', 'replace')}")
 
 def _diffstat_line(delta, patch, anchor):
     name = _diffstat_name(delta, anchor)

@@ -164,24 +164,24 @@ endif %}{% endfor %}
       owner=repo.owner.canonical_name,
       repo=repo.name,
       ref=parent.id.hex,
-      path=patch.delta.old_file.path)}}"
-   id="{{anchor}}{{patch.delta.old_file.path}}"
+      path=patch.delta.old_file.raw_path.decode('utf-8', 'replace'))}}"
+   id="{{anchor}}{{patch.delta.old_file.raw_path.decode('utf-8', 'replace')}}"
   {% if target_blank %}
   target="_blank"
   {% endif %}
- >{{patch.delta.old_file.path}}</a>{#
+ >{{patch.delta.old_file.raw_path.decode('utf-8', 'replace')}}</a>{#
  #}{% endif %} =&gt; {#
  #}<a
    href="{{url_for("repo.tree",
       owner=repo.owner.canonical_name,
       repo=repo.name,
       ref=commit.id.hex,
-      path=patch.delta.new_file.path)}}"
-   id="{{anchor}}{{patch.delta.new_file.path}}"
+      path=patch.delta.new_file.raw_path.decode('utf-8', 'replace'))}}"
+   id="{{anchor}}{{patch.delta.new_file.raw_path.decode('utf-8', 'replace')}}"
   {% if target_blank %}
   target="_blank"
   {% endif %}
- >{{patch.delta.new_file.path}}</a>{#
+ >{{patch.delta.new_file.raw_path.decode('utf-8', 'replace')}}</a>{#
  #} <span class="pull-right"><span class="text-success">+{{patch.line_stats[1]}}</span>{#
  #} <span class="text-danger">-{{patch.line_stats[2]}}</span></span>{%
     if patch.delta.old_file.mode != patch.delta.new_file.mode %}{#
@@ -198,7 +198,7 @@ endif %}{% endfor %}
     owner=repo.owner.canonical_name,
     repo=repo.name,
     ref=parent.id.hex,
-    path=patch.delta.old_file.path)}}#L{{hunk.old_start}}"
+    path=patch.delta.old_file.raw_path.decode('utf-8', 'replace'))}}#L{{hunk.old_start}}"
   {% if target_blank %}
   target="_blank"
   {% endif %}
@@ -209,7 +209,7 @@ endif %}{% endfor %}
     owner=repo.owner.canonical_name,
     repo=repo.name,
     ref=commit.id.hex,
-    path=patch.delta.new_file.path)}}#L{{hunk.new_start}}"
+    path=patch.delta.new_file.raw_path.decode('utf-8', 'replace'))}}#L{{hunk.new_start}}"
   {% if target_blank %}
   target="_blank"
   {% endif %}
@@ -220,8 +220,8 @@ endif %}{% endfor %}
   "+":"text-success",
   "-":"text-danger",
   }).get(line.origin) or ""}}"><a
-    href="#{{anchor}}{{patch.delta.old_file.path}}-{{hunk_index}}-{{loop.index}}"
-    id="{{anchor}}{{patch.delta.old_file.path}}-{{hunk_index}}-{{loop.index}}"
+    href="#{{anchor}}{{patch.delta.old_file.raw_path.decode('utf-8', 'replace')}}-{{hunk_index}}-{{loop.index}}"
+    id="{{anchor}}{{patch.delta.old_file.raw_path.decode('utf-8', 'replace')}}-{{hunk_index}}-{{loop.index}}"
     aria-hidden="true"
     class="lineno"
     style="color: inherit"

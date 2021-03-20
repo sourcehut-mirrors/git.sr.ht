@@ -48,7 +48,7 @@ def tree_to_dict(t):
         "short_id": t.short_id,
         "entries": [
             {
-                "name": e.name,
+                "name": e.raw_name.decode("utf-8", "replace"),
                 "id": str(e.id),
                 "type": (e.type_str if hasattr(e, "type_str") else e.type),
                 "mode": e.filemode,
