@@ -31,7 +31,7 @@ setup(
   author = 'Drew DeVault',
   author_email = 'sir@cmpwn.com',
   url = 'https://git.sr.ht/~sircmpwn/git.sr.ht',
-  install_requires = ['srht', 'scmsrht', 'pygit2'],
+  install_requires = ['srht', 'scmsrht', 'pygit2', 'minio'],
   license = 'AGPL-3.0',
   package_data={
       'gitsrht': [
