@@ -398,4 +398,9 @@ func autoSetupManifest(submitter BuildSubmitter, manifest *Manifest) {
 		manifest.Environment = make(map[string]interface{})
 	}
 	manifest.Environment["BUILD_SUBMITTER"] = "git.sr.ht"
+
+	if manifest.Shell {
+		manifest.Shell = false
+		log.Println("Notice: removing 'shell: true' from build manifest")
+	}
 }
