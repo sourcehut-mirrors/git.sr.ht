@@ -359,6 +359,9 @@ func SubmitBuild(submitter BuildSubmitter) ([]BuildSubmission, error) {
 				"builds.sr.ht returned %d\n", resp.StatusCode) +
 				string(respBytes))
 		}
+		if resp.StatusCode == 402 {
+			return nil, errors.New("Payment is required. Set up billing at https://meta.sr.ht/billing/initial")
+		}
 
 		var job struct {
 			Id int `json:"id"`
