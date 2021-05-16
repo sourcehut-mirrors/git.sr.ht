@@ -24,7 +24,7 @@
   <div class="container">
   {% endif %}
     {% block tabs %}
-    {% macro link(path, title, alternates) %}
+    {% macro link(path, title, alternates=[]) %}
     <a
       class="nav-link {% if view == title or view in alternates %}active{% endif %}"
       href="{{ path }}">{{ title }}</a>
