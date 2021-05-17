@@ -138,7 +138,7 @@ type Repository {
 # back into the same endpoint to retrieve another page. If the cursor is null,
 # there are no remaining results to return.
 type RepositoryCursor {
-  results: [Repository]!
+  results: [Repository!]!
   cursor: Cursor
 }
 
@@ -148,7 +148,7 @@ type RepositoryCursor {
 # back into the same endpoint to retrieve another page. If the cursor is null,
 # there are no remaining results to return.
 type ACLCursor {
-  results: [ACL]!
+  results: [ACL!]!
   cursor: Cursor
 }
 
@@ -158,7 +158,7 @@ type ACLCursor {
 # back into the same endpoint to retrieve another page. If the cursor is null,
 # there are no remaining results to return.
 type ReferenceCursor {
-  results: [Reference]!
+  results: [Reference!]!
   cursor: Cursor
 }
 
@@ -168,7 +168,7 @@ type ReferenceCursor {
 # back into the same endpoint to retrieve another page. If the cursor is null,
 # there are no remaining results to return.
 type CommitCursor {
-  results: [Commit]!
+  results: [Commit!]!
   cursor: Cursor
 }
 
@@ -178,7 +178,7 @@ type CommitCursor {
 # back into the same endpoint to retrieve another page. If the cursor is null,
 # there are no remaining results to return.
 type TreeEntryCursor {
-  results: [TreeEntry]!
+  results: [TreeEntry!]!
   cursor: Cursor
 }
 
@@ -188,7 +188,7 @@ type TreeEntryCursor {
 # back into the same endpoint to retrieve another page. If the cursor is null,
 # there are no remaining results to return.
 type ArtifactCursor {
-  results: [Artifact]!
+  results: [Artifact!]!
   cursor: Cursor
 }
 

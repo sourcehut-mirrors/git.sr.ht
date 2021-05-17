@@ -428,7 +428,7 @@ func (r *mutationResolver) UploadArtifact(ctx context.Context, repoID int, revsp
 	}
 
 	s3path := path.Join(prefix, "artifacts",
-		"~" + auth.ForContext(ctx).Username, repo.Name, file.Filename)
+		"~"+auth.ForContext(ctx).Username, repo.Name, file.Filename)
 
 	err = mc.MakeBucket(ctx, bucket, minio.MakeBucketOptions{})
 	if s3err, ok := err.(minio.ErrorResponse); !ok ||
@@ -571,7 +571,7 @@ func (r *mutationResolver) DeleteArtifact(ctx context.Context, id int) (*model.A
 		}
 
 		s3path := path.Join(prefix, "artifacts",
-			"~" + auth.ForContext(ctx).Username, repoName, artifact.Filename)
+			"~"+auth.ForContext(ctx).Username, repoName, artifact.Filename)
 		return mc.RemoveObject(ctx, bucket, s3path, minio.RemoveObjectOptions{})
 	}); err != nil {
 		return nil, err
