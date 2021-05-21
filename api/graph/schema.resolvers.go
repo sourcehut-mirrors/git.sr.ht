@@ -275,6 +275,19 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 			return err
 		}
 
+		export := path.Join(repo.Path, "git-daemon-export-ok")
+		if repo.Visibility() == model.VisibilityPrivate {
+			err := os.Remove(export)
+			if err != nil && !errors.Is(err, os.ErrNotExist) {
+				return err
+			}
+		} else {
+			_, err := os.Create(export)
+			if err != nil {
+				return err
+			}
+		}
+
 		webhooks.DeliverLegacyRepoUpdate(ctx, &repo)
 		return nil
 	}); err != nil {
