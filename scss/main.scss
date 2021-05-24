@@ -191,6 +191,9 @@ dt {
       height: 100%;
       display: inline-block;
       border-right: 1px solid $gray-200;
+      @media(prefers-color-scheme: dark) {
+        border-right: 1px solid #343a40;
+      }
     }
   }
 }
