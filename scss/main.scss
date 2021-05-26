@@ -1,5 +1,11 @@
 @import "base";
 
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
 .filter-repos {
   .btn {
     height: 1.9rem;
@@ -182,6 +188,7 @@ dt {
     padding-left: calc(1rem + 4px);
     height: 100%;
     pointer-events: none;
+    overflow-x: hidden;
 
     pre {
       background: transparent;
@@ -445,4 +452,11 @@ dl {
       float: right;
     }
   }
+}
+
+.code-viewport {
+  display: flex;
+  flex: 1 0 auto;
+  padding-left: 0;
+  padding-right: 0;
 }
