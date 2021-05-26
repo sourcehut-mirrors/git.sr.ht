@@ -17,7 +17,7 @@ from srht.database import db
 from srht.oauth import current_token, oauth
 from srht.validation import Validation
 
-porcelain = Blueprint("api.porcelain", __name__)
+porcelain = Blueprint("api_porcelain", __name__)
 
 # See also gitsrht-update-hook/types.go
 def commit_to_dict(c):

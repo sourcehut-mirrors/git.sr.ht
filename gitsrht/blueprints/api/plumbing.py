@@ -6,7 +6,7 @@ from gitsrht.git import Repository as GitRepository
 from scmsrht.blueprints.api import get_user, get_repo
 from srht.oauth import oauth
 
-plumbing = Blueprint("api.plumbing", __name__)
+plumbing = Blueprint("api_plumbing", __name__)
 
 def libgit2_object_type_to_str(otype):
     return {
