@@ -560,7 +560,7 @@ def refs_rss(owner, repo):
 
     def _ref_sort_key(ref):
         target = git_repo.get(ref.target)
-        author = target.author if hasattr(target, 'author') else target.tagger
+        author = target.author if hasattr(target, 'author') else target.get_object().author
         return author.time + author.offset
 
     references = sorted(references, key=_ref_sort_key, reverse=True)[:20]

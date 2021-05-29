@@ -45,7 +45,7 @@ def ref_to_item(repo, reference):
     with GitRepository(repo.path) as git_repo:
         target = git_repo.get(reference.target)
 
-    author = target.author if hasattr(target, 'author') else target.tagger
+    author = target.author if hasattr(target, 'author') else target.get_object().author
     time = aware_time(author).strftime(RFC_822_FORMAT)
     url = ref_url(repo, reference)
     description = target.message.strip().replace("\n", "<br />")

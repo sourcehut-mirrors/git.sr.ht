@@ -12,7 +12,7 @@ def trim_commit(msg):
     return msg[:msg.index("\n")]
 
 def commit_time(commit):
-    author = commit.author if hasattr(commit, 'author') else commit.tagger
+    author = commit.author if hasattr(commit, 'author') else commit.get_object().author
     # Time handling in python is so dumb
     try:
         tzinfo = timezone(timedelta(minutes=author.offset))
