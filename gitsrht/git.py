@@ -53,7 +53,7 @@ def get_log(git_repo, commit, path="", commits_per_page=20, until=None):
 
         if until is not None and commit == until:
             break
-        elif len(commits) >= commits_per_page + 1:
+        elif len(commits) >= commits_per_page:
             break
     return commits
 
