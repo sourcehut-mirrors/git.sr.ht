@@ -47,7 +47,7 @@
         </div>
         {% endfor %}
       </div>
-      {% if commits and commits[-1].parents %}
+      {% if commits and has_more %}
       <a
         class="pull-right btn btn-primary"
         href="{{url_for("repo.log",

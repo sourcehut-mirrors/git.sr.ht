@@ -418,15 +418,17 @@ def log(owner, repo, ref, path):
         if not commit:
             abort(404)
 
-        commits = get_log(git_repo, commit, path)
+        commits = get_log(git_repo, commit, path, 21)
 
         entry = None
         if path and commit.tree and path in commit.tree:
             entry = commit.tree[path]
 
+        has_more = commits and len(commits) == 21
         return render_template("log.html", view="log",
                 owner=owner, repo=repo, ref=ref, path=path.split("/"),
-                commits=commits, refs=refs, entry=entry, pygit2=pygit2)
+                commits=commits[:20], refs=refs, entry=entry, pygit2=pygit2,
+                has_more=has_more)
 
 
 @repo.route("/<owner>/<repo>/log/rss.xml", defaults={"ref": None})
