@@ -216,6 +216,24 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		user := auth.ForContext(ctx)
 
+		if val, ok := input["visibility"]; ok {
+			delete(input, "visibility")
+			vis := model.Visibility(val.(string))
+			if !vis.IsValid() {
+				return fmt.Errorf("Invalid visibility '%s'", val)
+			}
+			switch vis {
+			case model.VisibilityPublic:
+				input["visibility"] = "public"
+			case model.VisibilityUnlisted:
+				input["visibility"] = "unlisted"
+			case model.VisibilityPrivate:
+				input["visibility"] = "private"
+			default:
+				panic("Invariant broken; unknown visibility")
+			}
+		}
+
 		query := database.Apply(&repo, input).
 			Where(`id = ?`, id).
 			Where(`owner_id = ?`, auth.ForContext(ctx).UserID).
