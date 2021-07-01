@@ -38,7 +38,7 @@ def render_send_email_start(owner, repo, git_repo, selected_branch,
         ) for branch
           in git_repo.raw_listall_branches(pygit2.GIT_BRANCH_LOCAL)]
     branches = sorted(branches,
-            key=lambda b: (b[0] == selected_branch, commit_time(b[2])),
+            key=lambda b: (b[0].decode() == selected_branch, commit_time(b[2])),
             reverse=True)
 
     commits = dict()
