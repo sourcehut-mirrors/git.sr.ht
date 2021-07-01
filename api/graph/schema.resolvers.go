@@ -73,7 +73,7 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 			name, repoNameRE.String())
 	}
 	if name == "." || name == ".." {
-		return nil, fmt.Errorf("Invalid repository name '%s' (must not be . or ..)", name))
+		return nil, fmt.Errorf("Invalid repository name '%s' (must not be . or ..)", name)
 	}
 
 	conf := config.ForContext(ctx)
