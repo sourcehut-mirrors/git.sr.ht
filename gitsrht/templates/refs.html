@@ -71,7 +71,7 @@
             </small>
           </h4>
           {% if tag.message %}
-          <pre style="padding-bottom: 0;">{{tag.message}}</pre>
+          <pre style="padding-bottom: 0;">{{strip_pgp_signature(tag.message)}}</pre>
           {% endif %}
         </div>
         {% endfor %}

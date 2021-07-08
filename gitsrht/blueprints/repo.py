@@ -495,6 +495,14 @@ def patch(owner, repo, ref):
             return "Error preparing patch", 500
         return Response(subp.stdout, mimetype='text/plain')
 
+def strip_pgp_signature(text):
+    if not text.strip().endswith("-----END PGP SIGNATURE-----"):
+        return text
+    i = text.rindex('-----BEGIN PGP SIGNATURE-----')
+    if i < 0:
+        return text
+    return text[:i]
+
 @repo.route("/<owner>/<repo>/refs")
 def refs(owner, repo):
     owner, repo = get_repo_or_redir(owner, repo)
@@ -546,7 +554,8 @@ def refs(owner, repo):
                 owner=owner, repo=repo, tags=tags, branches=branches,
                 git_repo=git_repo, isinstance=isinstance, pygit2=pygit2,
                 page=page + 1, total_pages=total_pages,
-                default_branch=default_branch)
+                default_branch=default_branch,
+                strip_pgp_signature=strip_pgp_signature)
 
 
 @repo.route("/<owner>/<repo>/refs/rss.xml")
@@ -593,4 +602,5 @@ def ref(owner, repo, ref):
                 .filter(Artifact.commit == tag.target.hex)).all()
         return render_template("ref.html", view="refs",
                 owner=owner, repo=repo, git_repo=git_repo, tag=tag,
-                artifacts=artifacts, default_branch=git_repo.default_branch())
+                artifacts=artifacts, default_branch=git_repo.default_branch(),
+                strip_pgp_signature=strip_pgp_signature)
