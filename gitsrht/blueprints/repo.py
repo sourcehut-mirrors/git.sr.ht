@@ -108,7 +108,7 @@ def summary(owner, repo):
             if ref.startswith(b"refs/tags/")]
         tags = [tag for tag in tags
                 if (isinstance(tag[1], pygit2.Tag) or isinstance(tag[1], pygit2.Commit))
-                and isinstance(tag[1].get_object(), pygit2.Commit)]
+                and (isinstance(tag[1], pygit2.Commit) or isinstance(tag[1].get_object(), pygit2.Commit))]
         tags = sorted(tags, key=lambda c: commit_time(c[1]), reverse=True)
         latest_tag = tags[0] if len(tags) else None
 
