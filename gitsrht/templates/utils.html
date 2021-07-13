@@ -103,7 +103,7 @@ endif %}{% endfor %}
     <a
       id="log-{{c.id}}"
       href="{{url_for("repo.log", owner=repo.owner.canonical_name,
-        repo=repo.name)}}#log-{{c.id}}"
+        repo=repo.name)}}?from={{c.id}}#log-{{c.id}}"
     >{{ commit_time(c) | date }}</a>
   </small>
 
