@@ -157,6 +157,17 @@ endif %}{% endfor %}
 
 {% macro commit_diff(repo, commit, diff, anchor="", target_blank=False) %}
 {# God, working with <pre> tags is such a fucking mess #}
+{% if diff.stats.insertions + diff.stats.deletions > 10000 %}
+<div class="alert alert-warning">
+This diff is too large to display. Try <a
+  href="{{url_for('repo.patch',
+    owner=repo.owner.canonical_name,
+    repo=repo.name,
+    ref=commit.id)}}"
+>viewing the raw diff</a>
+instead.
+</div>
+{% else %}
 {% for patch in diff %}
 <pre style="margin-bottom: 0; background: transparent; padding: 0;"
 >{#
@@ -231,4 +242,5 @@ endif %}{% endfor %}
 {% endfor %}</pre>
 </div>{% endif %}
 {% endfor %}
+{% endif %}
 {% endmacro %}
