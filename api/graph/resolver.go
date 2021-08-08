@@ -9,5 +9,5 @@ import (
 type Resolver struct {}
 
 var (
-	repoNameRE = regexp.MustCompile(`^[A-Za-z._-][A-Za-z0-9._-]*$`)
+	repoNameRE = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
 )

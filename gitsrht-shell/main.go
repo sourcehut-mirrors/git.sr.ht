@@ -264,9 +264,9 @@ func main() {
 
 			if needsAccess == ACCESS_WRITE {
 				if matched, _ := regexp.MatchString(
-					`^[A-Za-z._-][A-Za-z0-9._-]*$`, repoName); !matched {
+					`^[A-Za-z0-9._-]+$`, repoName); !matched {
 
-					log.Println("Name must match [A-Za-z._-][A-Za-z0-9._-]*.")
+					log.Println("Name must match [A-Za-z0-9._-]+.")
 					notFound("name policy", nil)
 				}
 

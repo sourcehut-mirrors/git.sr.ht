@@ -75,6 +75,9 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 	if name == "." || name == ".." {
 		return nil, fmt.Errorf("Invalid repository name '%s' (must not be . or ..)", name)
 	}
+	if name == ".git" || name == ".hg" {
+		return nil, fmt.Errorf("Invalid repository name '%s' (must not be .git or .hg)", name)
+	}
 
 	conf := config.ForContext(ctx)
 	repoStore, ok := conf.Get("git.sr.ht", "repos")
