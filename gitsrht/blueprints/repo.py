@@ -10,7 +10,7 @@ from flask import Blueprint, render_template, abort, current_app, send_file, req
 from flask import Response, url_for, session, redirect
 from gitsrht.editorconfig import EditorConfig
 from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
-from gitsrht.git import diffstat, get_log, diff_for_commit
+from gitsrht.git import diffstat, get_log, diff_for_commit, strip_pgp_signature
 from gitsrht.rss import generate_feed
 from gitsrht.types import Artifact
 from io import BytesIO
@@ -494,14 +494,6 @@ def patch(owner, repo, ref):
         if subp.returncode != 0:
             return "Error preparing patch", 500
         return Response(subp.stdout, mimetype='text/plain')
-
-def strip_pgp_signature(text):
-    if not text.strip().endswith("-----END PGP SIGNATURE-----"):
-        return text
-    i = text.rindex('-----BEGIN PGP SIGNATURE-----')
-    if i < 0:
-        return text
-    return text[:i]
 
 @repo.route("/<owner>/<repo>/refs")
 def refs(owner, repo):

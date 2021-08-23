@@ -3,7 +3,7 @@ import os
 import pygit2
 from flask import Blueprint, redirect, render_template, request, redirect
 from flask import abort, url_for, send_file
-from gitsrht.git import Repository as GitRepository
+from gitsrht.git import Repository as GitRepository, strip_pgp_signature
 from gitsrht.repos import delete_artifact, upload_artifact
 from gitsrht.types import Artifact
 from minio import Minio
@@ -44,11 +44,13 @@ def ref_upload(owner, repo, ref):
         if not valid.ok:
             return render_template("ref.html", view="refs",
                     owner=owner, repo=repo, git_repo=git_repo, tag=tag,
+                    strip_pgp_signature=strip_pgp_signature,
                     default_branch=default_branch, **valid.kwargs)
         artifact = upload_artifact(valid, repo, target, f, f.filename)
         if not valid.ok:
             return render_template("ref.html", view="refs",
                     owner=owner, repo=repo, git_repo=git_repo, tag=tag,
+                    strip_pgp_signature=strip_pgp_signature,
                     default_branch=default_branch, **valid.kwargs)
         db.session.commit()
         return redirect(url_for("repo.ref",

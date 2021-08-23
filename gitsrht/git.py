@@ -6,6 +6,14 @@ from stat import filemode
 import pygit2
 import json
 
+def strip_pgp_signature(text):
+    if not text.strip().endswith("-----END PGP SIGNATURE-----"):
+        return text
+    i = text.rindex('-----BEGIN PGP SIGNATURE-----')
+    if i < 0:
+        return text
+    return text[:i]
+
 def trim_commit(msg):
     if "\n" not in msg:
         return msg
