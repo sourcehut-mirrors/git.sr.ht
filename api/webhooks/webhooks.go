@@ -25,7 +25,8 @@ type contextKey struct {
 }
 
 func LegacyMiddleware(
-	queue *webhooks.LegacyQueue) func(next http.Handler) http.Handler {
+	queue *webhooks.LegacyQueue,
+) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := context.WithValue(r.Context(), legacyUserCtxKey, queue)
@@ -84,7 +85,7 @@ func DeliverLegacyRepoCreate(ctx context.Context, repo *model.Repository) {
 		Select().
 		From("user_webhook_subscription sub").
 		Where("sub.user_id = ?", repo.OwnerID)
-	q.Schedule(query, "user", "repo:create", encoded)
+	q.Schedule(ctx, query, "user", "repo:create", encoded)
 }
 
 func DeliverLegacyRepoUpdate(ctx context.Context, repo *model.Repository) {
@@ -122,7 +123,7 @@ func DeliverLegacyRepoUpdate(ctx context.Context, repo *model.Repository) {
 		Select().
 		From("user_webhook_subscription sub").
 		Where("sub.user_id = ?", repo.OwnerID)
-	q.Schedule(query, "user", "repo:update", encoded)
+	q.Schedule(ctx, query, "user", "repo:update", encoded)
 }
 
 func DeliverLegacyRepoDeleted(ctx context.Context, repo *model.Repository) {
@@ -144,5 +145,5 @@ func DeliverLegacyRepoDeleted(ctx context.Context, repo *model.Repository) {
 		Select().
 		From("user_webhook_subscription sub").
 		Where("sub.user_id = ?", repo.OwnerID)
-	q.Schedule(query, "user", "repo:delete", encoded)
+	q.Schedule(ctx, query, "user", "repo:delete", encoded)
 }

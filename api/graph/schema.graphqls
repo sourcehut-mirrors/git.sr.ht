@@ -363,21 +363,21 @@ type Mutation {
   createRepository(name: String!, visibility: Visibility!, description: String): Repository! @access(scope: REPOSITORIES, kind: RW)
 
   # Updates the metadata for a git repository
-  updateRepository(id: Int!, input: RepoInput!): Repository! @access(scope: REPOSITORIES, kind: RW)
+  updateRepository(id: Int!, input: RepoInput!): Repository @access(scope: REPOSITORIES, kind: RW)
 
   # Deletes a git repository
-  deleteRepository(id: Int!): Repository! @access(scope: REPOSITORIES, kind: RW)
+  deleteRepository(id: Int!): Repository @access(scope: REPOSITORIES, kind: RW)
 
   # Adds or updates a user in the access control list
   updateACL(repoId: Int!, mode: AccessMode!, entity: ID!): ACL! @access(scope: ACLS, kind: RW)
 
   # Deletes an entry from the access control list
-  deleteACL(id: Int!): ACL! @access(scope: ACLS, kind: RW)
+  deleteACL(id: Int!): ACL @access(scope: ACLS, kind: RW)
 
   # Uploads an artifact. revspec must match a specific git tag, and the
   # filename must be unique among artifacts for this repository.
   uploadArtifact(repoId: Int!, revspec: String!, file: Upload!): Artifact! @access(scope: OBJECTS, kind: RW)
 
   # Deletes an artifact.
-  deleteArtifact(id: Int!): Artifact! @access(scope: OBJECTS, kind: RW)
+  deleteArtifact(id: Int!): Artifact @access(scope: OBJECTS, kind: RW)
 }
