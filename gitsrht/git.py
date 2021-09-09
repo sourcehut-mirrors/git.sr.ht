@@ -19,16 +19,19 @@ def trim_commit(msg):
         return msg
     return msg[:msg.index("\n")]
 
-def commit_time(commit):
-    author = commit.author if hasattr(commit, 'author') else commit.get_object().author
+def signature_time(signature):
     # Time handling in python is so dumb
     try:
-        tzinfo = timezone(timedelta(minutes=author.offset))
-        tzaware = datetime.fromtimestamp(float(author.time), tzinfo)
+        tzinfo = timezone(timedelta(minutes=signature.offset))
+        tzaware = datetime.fromtimestamp(float(signature.time), tzinfo)
         diff = datetime.now(timezone.utc) - tzaware
         return datetime.utcnow() - diff
     except:
         return datetime.utcnow()
+
+def commit_time(commit):
+    author = commit.author if hasattr(commit, 'author') else commit.get_object().author
+    return signature_time(author)
 
 def _get_ref(repo, ref):
     return repo._get(ref)

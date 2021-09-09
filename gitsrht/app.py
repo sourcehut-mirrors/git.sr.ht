@@ -3,7 +3,7 @@ import os
 import stat
 from functools import lru_cache
 from gitsrht import urls
-from gitsrht.git import commit_time, trim_commit
+from gitsrht.git import commit_time, trim_commit, signature_time
 from gitsrht.repos import GitRepoApi
 from gitsrht.service import oauth_service, webhooks_notify
 from gitsrht.types import Access, Redirect, Repository, User
@@ -54,6 +54,7 @@ class GitApp(ScmSrhtFlask):
                 del session["notice"]
             return {
                 "commit_time": commit_time,
+                "signature_time": signature_time,
                 "humanize": humanize,
                 "notice": notice,
                 "object_storage_enabled": object_storage_enabled,

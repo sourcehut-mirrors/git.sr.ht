@@ -8,7 +8,7 @@
   <h3>
     {{tag.name}}
     <small class="pull-right text-muted">
-      {{commit_time(tag) | date}}
+      {{signature_time(tag.tagger) | date}}
     </small>
   </h3>
   <div class="row">
