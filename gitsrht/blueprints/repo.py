@@ -134,6 +134,7 @@ def summary(owner, repo):
         message = session.pop("message", None)
         return render_template("summary.html", view="summary",
                 owner=owner, repo=repo, readme=readme, commits=commits,
+                signature=lookup_signature(git_repo, latest_tag[0].decode('utf-8'))[1],
                 latest_tag=latest_tag, default_branch=default_branch,
                 is_annotated=lambda t: isinstance(t, pygit2.Tag),
                 message=message, license=license)
@@ -536,7 +537,8 @@ def refs(owner, repo):
 
         tags = [(
                 ref,
-                git_repo.get(git_repo.references[ref].target)
+                git_repo.get(git_repo.references[ref].target),
+                lookup_signature(git_repo, ref.decode('utf-8'))[1]
             ) for ref in git_repo.raw_listall_references()
               if ref.startswith(b"refs/tags/")]
         tags = [tag for tag in tags
@@ -626,5 +628,6 @@ def ref(owner, repo, ref):
                 .filter(Artifact.commit == tag.target.hex)).all()
         return render_template("ref.html", view="refs",
                 owner=owner, repo=repo, git_repo=git_repo, tag=tag,
+                signature=lookup_signature(git_repo, ref)[1],
                 artifacts=artifacts, default_branch=git_repo.default_branch(),
                 strip_pgp_signature=strip_pgp_signature)

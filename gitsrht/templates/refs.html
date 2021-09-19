@@ -25,9 +25,10 @@
   <div class="row">
     <div class="col-md-8">
       <div class="event-list">
-        {% for tag in tags %}
-        {% set ref = tag[0].decode("utf-8", "replace") %}
-        {% set tag = tag[1] %}
+        {% for t in tags %}
+        {% set ref = t[0].decode("utf-8", "replace") %}
+        {% set tag = t[1] %}
+        {% set sig_fmt = t[2] %}
         {% if isinstance(tag, pygit2.Commit) %}
         {% set commit = tag %}
         {% else %}
@@ -58,6 +59,16 @@
                   repo=repo.name, ref=refname)}}"
                 rel="nofollow"
               >.tar.gz {{icon("caret-right")}}</a>
+              {% if sig_fmt %}
+              <a
+                style="margin-left: 0.5rem"
+                href="{{url_for("repo.archivesig",
+                  owner=repo.owner.canonical_name,
+                  repo=repo.name, ref=refname, fmt=sig_fmt)}}"
+                rel="nofollow"
+                title="This release is cryptographically signed, click here to download the signature"
+              >.asc {{icon("caret-right")}}</a>
+              {% endif %}
               <a
                 style="margin-left: 0.5rem"
                 href="{{url_for("repo.tree",
