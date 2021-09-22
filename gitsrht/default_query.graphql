@@ -23,8 +23,7 @@ query {
 
   # Also fetch the API version. Please note that the GraphQL API is considered
   # experimental: as long as this returns 0.0.0, the API is subject to change
-  # without notice. Some features may not be working; notably, all write
-  # operations are presently unsupported.
+  # without notice.
   version {
     major, minor, patch
   }
