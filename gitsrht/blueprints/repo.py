@@ -132,9 +132,13 @@ def summary(owner, repo):
                 break
 
         message = session.pop("message", None)
+        if latest_tag:
+            sig = lookup_signature(git_repo, latest_tag[0].decode('utf-8'))[1]
+        else:
+            sig = None
         return render_template("summary.html", view="summary",
                 owner=owner, repo=repo, readme=readme, commits=commits,
-                signature=lookup_signature(git_repo, latest_tag[0].decode('utf-8'))[1],
+                signature=sig,
                 latest_tag=latest_tag, default_branch=default_branch,
                 is_annotated=lambda t: isinstance(t, pygit2.Tag),
                 message=message, license=license)
