@@ -1634,26 +1634,26 @@ input RepoInput {
 
 type Mutation {
   # Creates a new git repository
-  createRepository(name: String!, visibility: Visibility!, description: String): Repository! @access(scope: REPOSITORIES, kind: RW)
+  createRepository(name: String!, visibility: Visibility!, description: String): Repository @access(scope: REPOSITORIES, kind: RW)
 
   # Updates the metadata for a git repository
-  updateRepository(id: Int!, input: RepoInput!): Repository! @access(scope: REPOSITORIES, kind: RW)
+  updateRepository(id: Int!, input: RepoInput!): Repository @access(scope: REPOSITORIES, kind: RW)
 
   # Deletes a git repository
-  deleteRepository(id: Int!): Repository! @access(scope: REPOSITORIES, kind: RW)
+  deleteRepository(id: Int!): Repository @access(scope: REPOSITORIES, kind: RW)
 
   # Adds or updates a user in the access control list
   updateACL(repoId: Int!, mode: AccessMode!, entity: ID!): ACL! @access(scope: ACLS, kind: RW)
 
   # Deletes an entry from the access control list
-  deleteACL(id: Int!): ACL! @access(scope: ACLS, kind: RW)
+  deleteACL(id: Int!): ACL @access(scope: ACLS, kind: RW)
 
   # Uploads an artifact. revspec must match a specific git tag, and the
   # filename must be unique among artifacts for this repository.
   uploadArtifact(repoId: Int!, revspec: String!, file: Upload!): Artifact! @access(scope: OBJECTS, kind: RW)
 
   # Deletes an artifact.
-  deleteArtifact(id: Int!): Artifact! @access(scope: OBJECTS, kind: RW)
+  deleteArtifact(id: Int!): Artifact @access(scope: OBJECTS, kind: RW)
 }
 `, BuiltIn: false},
 }
@@ -3424,14 +3424,11 @@ func (ec *executionContext) _Mutation_createRepository(ctx context.Context, fiel
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.Repository)
 	fc.Result = res
-	return ec.marshalNRepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
+	return ec.marshalORepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_updateRepository(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3494,14 +3491,11 @@ func (ec *executionContext) _Mutation_updateRepository(ctx context.Context, fiel
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.Repository)
 	fc.Result = res
-	return ec.marshalNRepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
+	return ec.marshalORepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_deleteRepository(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3564,14 +3558,11 @@ func (ec *executionContext) _Mutation_deleteRepository(ctx context.Context, fiel
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.Repository)
 	fc.Result = res
-	return ec.marshalNRepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
+	return ec.marshalORepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_updateACL(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3704,14 +3695,11 @@ func (ec *executionContext) _Mutation_deleteACL(ctx context.Context, field graph
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.ACL)
 	fc.Result = res
-	return ec.marshalNACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACL(ctx, field.Selections, res)
+	return ec.marshalOACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACL(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_uploadArtifact(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -3844,14 +3832,11 @@ func (ec *executionContext) _Mutation_deleteArtifact(ctx context.Context, field 
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.Artifact)
 	fc.Result = res
-	return ec.marshalNArtifact2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐArtifact(ctx, field.Selections, res)
+	return ec.marshalOArtifact2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐArtifact(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_version(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -8569,19 +8554,10 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = graphql.MarshalString("Mutation")
 		case "createRepository":
 			out.Values[i] = ec._Mutation_createRepository(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "updateRepository":
 			out.Values[i] = ec._Mutation_updateRepository(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "deleteRepository":
 			out.Values[i] = ec._Mutation_deleteRepository(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "updateACL":
 			out.Values[i] = ec._Mutation_updateACL(ctx, field)
 			if out.Values[i] == graphql.Null {
@@ -8589,9 +8565,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "deleteACL":
 			out.Values[i] = ec._Mutation_deleteACL(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "uploadArtifact":
 			out.Values[i] = ec._Mutation_uploadArtifact(ctx, field)
 			if out.Values[i] == graphql.Null {
@@ -8599,9 +8572,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "deleteArtifact":
 			out.Values[i] = ec._Mutation_deleteArtifact(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -10478,6 +10448,13 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
+func (ec *executionContext) marshalOACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACL(ctx context.Context, sel ast.SelectionSet, v *model.ACL) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ACL(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOAccessMode2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessMode(ctx context.Context, v interface{}) (model.AccessMode, error) {
 	var res model.AccessMode
 	err := res.UnmarshalGQL(v)
@@ -10486,6 +10463,13 @@ func (ec *executionContext) unmarshalOAccessMode2gitᚗsrᚗhtᚋאsircmpwnᚋgi
 
 func (ec *executionContext) marshalOAccessMode2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessMode(ctx context.Context, sel ast.SelectionSet, v model.AccessMode) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) marshalOArtifact2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐArtifact(ctx context.Context, sel ast.SelectionSet, v *model.Artifact) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Artifact(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {

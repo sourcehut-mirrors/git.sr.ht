@@ -360,7 +360,7 @@ input RepoInput {
 
 type Mutation {
   # Creates a new git repository
-  createRepository(name: String!, visibility: Visibility!, description: String): Repository! @access(scope: REPOSITORIES, kind: RW)
+  createRepository(name: String!, visibility: Visibility!, description: String): Repository @access(scope: REPOSITORIES, kind: RW)
 
   # Updates the metadata for a git repository
   updateRepository(id: Int!, input: RepoInput!): Repository @access(scope: REPOSITORIES, kind: RW)
