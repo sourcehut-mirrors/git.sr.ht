@@ -53,10 +53,11 @@ def get_log(git_repo, commit, path="", commits_per_page=20, until=None):
             _, diff = diff_for_commit(git_repo, commit)
             for patch in diff:
                 exact = False
-                if patch.delta.new_file.path == path:
+                new_path = patch.delta.new_file.raw_path.decode(errors="replace")
+                if new_path == path:
                     path = patch.delta.old_file.path
                     exact = True
-                if exact or patch.delta.new_file.path.startswith(path + "/"):
+                if exact or new_path.startswith(path + "/"):
                     commits.append(commit)
                     break
         else:
