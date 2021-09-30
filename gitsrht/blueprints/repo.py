@@ -192,19 +192,12 @@ def lookup_ref(git_repo, ref, path):
         abort(404)
     return commit, ref, "/".join(path)
 
-def lookup_signature(git_repo, ref, fmt=None):
+def lookup_signature(git_repo, ref, fmt=['tar', 'tar.gz']):
     commit_or_tag = git_repo.revparse_single(ref)
     if not isinstance(commit_or_tag, (pygit2.Commit, pygit2.Tag)):
         return None, None
 
-    fmts = ['tar.gz', 'tar']
-
-    if fmt is not None:
-        if fmt not in fmts:
-            return None, None
-        fmts = [fmt]
-
-    for trial in fmts:
+    for trial in fmt:
         try:
             note = git_repo.lookup_note(commit_or_tag.hex, f'refs/notes/signatures/{trial}')
         except KeyError:
@@ -391,11 +384,11 @@ def archive(owner, repo, ref):
         return send_file(subp.stdout, mimetype="application/tar+gzip",
                 as_attachment=True, attachment_filename=f"{repo.name}-{refname}.tar.gz")
 
-@repo.route("/<owner>/<repo>/archive/<path:ref>.<fmt>.asc")
+@repo.route("/<owner>/<repo>/archive/<path:ref>.<any('tar.gz','tar'):fmt>.asc")
 def archivesig(owner, repo, ref, fmt):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
-        sigdata, _ = lookup_signature(git_repo, ref, fmt)
+        sigdata, _ = lookup_signature(git_repo, ref, [fmt])
         if sigdata is None:
             abort(404)
 
