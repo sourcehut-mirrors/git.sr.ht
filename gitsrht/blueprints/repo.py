@@ -193,7 +193,10 @@ def lookup_ref(git_repo, ref, path):
     return commit, ref, "/".join(path)
 
 def lookup_signature(git_repo, ref, fmt=['tar', 'tar.gz']):
-    commit_or_tag = git_repo.revparse_single(ref)
+    try:
+        commit_or_tag = git_repo.revparse_single(ref)
+    except (KeyError, ValueError):
+        return None, None
     if not isinstance(commit_or_tag, (pygit2.Commit, pygit2.Tag)):
         return None, None
 
