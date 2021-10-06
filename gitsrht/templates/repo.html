@@ -33,11 +33,24 @@
       <a href="{{ url_for("public.user_index",
         username=owner.username) }}"
       >{{owner.canonical_name}}</a>/<wbr>{{repo.name}}
-      {% if repo.visibility.value != 'public' %}
-      <small class="text-muted">{{repo.visibility.value}}</small>
-      {% endif %}
     </h2>
     <ul class="nav nav-tabs">
+      {% if repo.visibility.value != "public" %}
+      <li
+        class="nav-item nav-text vis-{{repo.visibility.value.lower()}}"
+        {% if repo.visibility.value == "unlisted" %}
+        title="This repository is only visible to those who know the URL."
+        {% elif repo.visibility.value == "private" %}
+        title="This repository is only visible to those who were invited to view it."
+        {% endif %}
+      >
+        {% if repo.visibility.value == "unlisted" %}
+        Unlisted
+        {% elif repo.visibility.value == "private" %}
+        Private
+        {% endif %}
+      </li>
+      {% endif %}
       <li class="nav-item">
         {{link(url_for("repo.summary",
           owner=repo.owner.canonical_name,
