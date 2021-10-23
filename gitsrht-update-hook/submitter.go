@@ -13,7 +13,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/danwakefield/fnmatch"
+	"git.sr.ht/~turminal/go-fnmatch"
 	"github.com/fernet/fernet-go"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
