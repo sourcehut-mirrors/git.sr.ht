@@ -556,8 +556,12 @@ def refs(owner, repo):
                 git_repo.get(git_repo.branches[branch].target)
             ) for branch in git_repo.raw_listall_branches(pygit2.GIT_BRANCH_LOCAL)]
         default_branch = git_repo.default_branch()
+        if default_branch:
+            _branch_key = lambda b: (b[1].raw_name == default_branch.raw_name, b[2].commit_time)
+        else:
+            _branch_key = lambda b: b[2].commit_time
         branches = sorted(branches,
-                key=lambda b: (b[1].raw_name == default_branch.raw_name, b[2].commit_time),
+                key=_branch_key,
                 reverse=True)
 
         results_per_page = 10
