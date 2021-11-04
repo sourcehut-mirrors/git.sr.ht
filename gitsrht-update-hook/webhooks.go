@@ -89,7 +89,7 @@ func deliverWebhooks(subs []WebhookSubscription,
 		resp, err := client.Do(req)
 		if err != nil {
 			delivery.Response = fmt.Sprintf("Error sending webhook: %v", err)
-			log.Printf(delivery.Response)
+			log.Println(delivery.Response)
 			deliveries = append(deliveries, delivery)
 			continue
 		}
@@ -98,19 +98,19 @@ func deliverWebhooks(subs []WebhookSubscription,
 		if err != nil {
 			delivery.Response = fmt.Sprintf("Error reading webhook "+
 				"response: %v", err)
-			log.Printf(delivery.Response)
+			log.Println(delivery.Response)
 			deliveries = append(deliveries, delivery)
 			continue
 		}
 		if !utf8.Valid(respBody) {
 			delivery.Response = "Webhook response is not valid UTF-8"
-			log.Printf(delivery.Response)
+			log.Println(delivery.Response)
 			deliveries = append(deliveries, delivery)
 			continue
 		}
 		if printResponse {
 			u, _ := url.Parse(sub.Url) // Errors will have happened earlier
-			log.Println("Response from %s:", u.Host)
+			log.Printf("Response from %s:", u.Host)
 			log.Println(runewidth.Truncate(ansi.ReplaceAllString(
 				string(respBody), ""), 1024, "..."))
 		}

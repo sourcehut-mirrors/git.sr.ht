@@ -235,7 +235,7 @@ func postUpdate() {
 		} else if tag, ok := oldobj.(*object.Tag); ok {
 			oldobj, err = repo.CommitObject(tag.Target)
 			if err != nil {
-				logger.Println("old tag cannot be resolved: %e", err)
+				logger.Printf("old tag cannot be resolved: %v", err)
 				continue
 			}
 		}
@@ -261,7 +261,7 @@ func postUpdate() {
 			}
 			newobj, err = repo.CommitObject(tag.Target)
 			if err != nil {
-				logger.Println("new tag cannot be resovled: %e", err)
+				logger.Printf("new tag cannot be resovled: %v", err)
 				continue
 			}
 		}
