@@ -4,7 +4,9 @@ from pygit2 import Repository as GitRepository, Tag
 from jinja2 import Markup, escape
 from stat import filemode
 import pygit2
-import json
+import json, re
+from srht.config import get_origin
+from srht.markdown import PlainLink
 
 def strip_pgp_signature(text):
     if not text.strip().endswith("-----END PGP SIGNATURE-----"):
@@ -32,6 +34,30 @@ def signature_time(signature):
 def commit_time(commit):
     author = commit.author if hasattr(commit, 'author') else commit.get_object().author
     return signature_time(author)
+
+_gitsrht = get_origin('git.sr.ht')
+_commit_id_re = re.compile( r'\b[a-f0-9]{7,40}\b')
+
+def commit_links(message, repo):
+    def url_or_mail(match):
+        mail = match['mail']
+        if mail:
+            return f'<a href="mailto:{mail}">{mail}</a>'
+        url = match['url']
+        return f'<a href="{url}">{url}</a>'
+
+    msg = PlainLink.pattern.sub(url_or_mail, escape(message))
+
+    repo_url = f'{_gitsrht}/{repo.owner.canonical_name}/{repo.name}'
+    def commit_link(match):
+        try:
+            commit = repo.git_repo.revparse_single(match[0])
+            return f'<a href="{repo_url}/commit/{commit.id}">{match[0]}</a>'
+        except (KeyError, ValueError):
+            # not a valid commit id in this repository, ignore
+            return match[0]
+
+    return _commit_id_re.sub(commit_link, msg)
 
 def _get_ref(repo, ref):
     return repo._get(ref)

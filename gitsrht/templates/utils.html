@@ -145,7 +145,7 @@ endif %}{% endfor %}
 </div>
 {% if not skip_body %}
 {% if full_body %}
-<pre class="commit">{{c.message}}
+<pre class="commit">{{ c.message | commit_links(repo) | safe }}
 {%- if diff %}
 {{diffstat(diff, anchor=c.oid.hex + "-")}}{% endif -%}
 </pre>
