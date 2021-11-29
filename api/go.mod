@@ -3,7 +3,7 @@ module git.sr.ht/~sircmpwn/git.sr.ht/api
 go 1.14
 
 require (
-	git.sr.ht/~sircmpwn/core-go v0.0.0-20210909084213-468752564125
+	git.sr.ht/~sircmpwn/core-go v0.0.0-20211129095809-31e77bac08ee
 	github.com/99designs/gqlgen v0.13.0
 	github.com/Masterminds/squirrel v1.4.0
 	github.com/agnivade/levenshtein v1.1.0 // indirect
@@ -12,6 +12,5 @@ require (
 	github.com/lib/pq v1.8.0
 	github.com/minio/minio-go/v7 v7.0.5
 	github.com/mitchellh/mapstructure v1.3.2 // indirect
-	github.com/vektah/dataloaden v0.3.0 // indirect
 	github.com/vektah/gqlparser/v2 v2.1.0
 )
