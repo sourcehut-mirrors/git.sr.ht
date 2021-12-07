@@ -89,12 +89,12 @@ class RefdbBackend(pygit2.RefdbBackend):
 
     def _get(self, path, *args, **kwargs):
         headers = kwargs.pop("headers", dict())
-        return requests.get(f"{self.base_url}{path}",
+        return self.session.get(f"{self.base_url}{path}",
                 headers={**self.authorization, **headers})
 
     def _head(self, path, *args, **kwargs):
         headers = kwargs.pop("headers", dict())
-        return requests.head(f"{self.base_url}{path}",
+        return self.session.head(f"{self.base_url}{path}",
                 headers={**self.authorization, **headers})
 
     def exists(self, ref):
