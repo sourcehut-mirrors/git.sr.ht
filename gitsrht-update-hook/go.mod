@@ -7,7 +7,7 @@ require (
 	git.sr.ht/~turminal/go-fnmatch v0.0.0-20211021204744-1a55764af6de
 	github.com/fernet/fernet-go v0.0.0-20191111064656-eff2850e6001
 	github.com/go-git/go-git/v5 v5.1.0
-	github.com/go-redis/redis v6.15.9+incompatible
+	github.com/go-redis/redis/v8 v8.11.3
 	github.com/google/uuid v1.1.1
 	github.com/lib/pq v1.8.0
 	github.com/mattn/go-runewidth v0.0.9
