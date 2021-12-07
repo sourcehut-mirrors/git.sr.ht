@@ -1,6 +1,7 @@
 package main
 
 import (
+	ctx "context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -15,7 +16,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/storer"
-	goredis "github.com/go-redis/redis"
+	goredis "github.com/go-redis/redis/v8"
 	_ "github.com/lib/pq"
 )
 
@@ -220,7 +221,7 @@ func postUpdate() {
 		var oldref, newref string
 		var oldobj, newobj object.Object
 		updateKey := fmt.Sprintf("update.%s.%s", pushUuid, refname)
-		update, err := redis.Get(updateKey).Result()
+		update, err := redis.Get(ctx.Background(), updateKey).Result()
 		if update == "" || err != nil {
 			logger.Println("redis.Get: missing key")
 			continue

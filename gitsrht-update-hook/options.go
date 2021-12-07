@@ -1,13 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
-	goredis "github.com/go-redis/redis"
+	goredis "github.com/go-redis/redis/v8"
 )
 
 var options map[string]string
@@ -35,10 +36,10 @@ func loadOptions() {
 	var n int
 	if nopts, ok := os.LookupEnv("GIT_PUSH_OPTION_COUNT"); ok {
 		n, _ = strconv.Atoi(nopts)
-		redis.Set(fmt.Sprintf("git.sr.ht.options.%s", uuid),
+		redis.Set(context.Background(), fmt.Sprintf("git.sr.ht.options.%s", uuid),
 			nopts, 10*time.Minute)
 	} else {
-		nopts, err := redis.Get(fmt.Sprintf(
+		nopts, err := redis.Get(context.Background(), fmt.Sprintf(
 			"git.sr.ht.options.%s", uuid)).Result()
 		if err != nil {
 			return
@@ -51,12 +52,12 @@ func loadOptions() {
 		opt, ok := os.LookupEnv(fmt.Sprintf("GIT_PUSH_OPTION_%d", i))
 		optkey := fmt.Sprintf("git.sr.ht.options.%s.%d", uuid, i)
 		if !ok {
-			opt, err = redis.Get(optkey).Result()
+			opt, err = redis.Get(context.Background(), optkey).Result()
 			if err != nil {
 				return
 			}
 		} else {
-			redis.Set(optkey, opt, 10*time.Minute)
+			redis.Set(context.Background(), optkey, opt, 10*time.Minute)
 		}
 		parts := strings.SplitN(opt, "=", 2)
 		if len(parts) == 1 {

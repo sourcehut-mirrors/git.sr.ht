@@ -1,11 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
 
-	goredis "github.com/go-redis/redis"
+	goredis "github.com/go-redis/redis/v8"
 )
 
 // XXX: This is run once for every single ref that's pushed. If someone pushes
@@ -31,6 +32,6 @@ func update() {
 		logger.Fatalf("Failed to parse redis host: %v", err)
 	}
 	redis := goredis.NewClient(ropts)
-	redis.Set(fmt.Sprintf("update.%s.%s", pushUuid, refname),
+	redis.Set(context.Background(), fmt.Sprintf("update.%s.%s", pushUuid, refname),
 		fmt.Sprintf("%s:%s", oldref, newref), 10*time.Minute)
 }
