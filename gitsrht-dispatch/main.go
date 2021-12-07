@@ -17,6 +17,7 @@ type Dispatcher struct {
 	cmd string
 	uid int
 	gid int
+	gids []int
 }
 
 func main() {
@@ -70,11 +71,20 @@ AuthorizedKeysUser=root`, os.Args[0])
 		if err != nil {
 			logger.Fatalf("Error looking up group %s: %v", spec[1], err)
 		}
+		groups, err := user.GroupIds()
+		if err != nil {
+			logger.Fatalf("Error looking up supplementary groups of user %s: %v", spec[0], err)
+		}
+		gids := make([]int, len(groups))
+		for i, grp := range groups {
+			sgid, _ := strconv.Atoi(grp)
+			gids[i] = sgid
+		}
 		uid, _ := strconv.Atoi(user.Uid)
 		gid, _ := strconv.Atoi(group.Gid)
-		dispatchers[uid] = Dispatcher{cmd, uid, gid}
-		logger.Printf("Registered dispatcher for %s(%d):%s(%d): %s",
-			spec[0], uid, spec[1], gid, cmd)
+		dispatchers[uid] = Dispatcher{cmd, uid, gid, gids}
+		logger.Printf("Registered dispatcher for %s(%d):%s(%d):(%s): %s",
+			spec[0], uid, spec[1], gid, strings.Join(groups, ","), cmd)
 	}
 
 	var user *osuser.User
@@ -93,6 +103,7 @@ AuthorizedKeysUser=root`, os.Args[0])
 
 	if dispatcher, ok := dispatchers[uid]; ok {
 		logger.Printf("Dispatching to %s", dispatcher.cmd)
+		syscall.Setgroups(dispatcher.gids)
 		syscall.Setgid(dispatcher.gid)
 		syscall.Setuid(dispatcher.uid)
 		if err := syscall.Exec(dispatcher.cmd, append([]string{
