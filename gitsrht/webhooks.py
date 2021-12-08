@@ -7,10 +7,13 @@ if not hasattr(db, "session"):
     db.init()
 from srht.webhook import Event
 from srht.webhook.celery import CeleryWebhook, make_worker
+from srht.metrics import RedisQueueCollector
 from scmsrht.webhooks import UserWebhook
 import sqlalchemy as sa
 
-worker = make_worker(broker=cfg("git.sr.ht", "webhooks"))
+webhook_broker = cfg("git.sr.ht", "webhooks")
+worker = make_worker(broker=webhook_broker)
+webhook_metrics_collector = RedisQueueCollector(webhook_broker, "srht_webhooks", "Webhook queue length")
 
 class RepoWebhook(CeleryWebhook):
     events = [

@@ -48,6 +48,9 @@ class GitApp(ScmSrhtFlask):
         self.add_template_filter(url_quote)
         self.add_template_filter(commit_links)
 
+        from gitsrht.webhooks import webhook_metrics_collector
+        self.metrics_registry.register(webhook_metrics_collector)
+
         @self.context_processor
         def inject():
             notice = session.get("notice")
