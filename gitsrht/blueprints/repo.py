@@ -630,6 +630,7 @@ def ref(owner, repo, ref):
                 .filter(Artifact.user_id == repo.owner_id)
                 .filter(Artifact.repo_id == repo.id)
                 .filter(Artifact.commit == tag.target.hex)).all()
+        artifacts.sort(key=lambda ar: ar.filename)
         return render_template("ref.html", view="refs",
                 owner=owner, repo=repo, git_repo=git_repo, tag=tag,
                 signature=lookup_signature(git_repo, ref)[1],
