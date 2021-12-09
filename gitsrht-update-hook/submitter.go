@@ -286,6 +286,7 @@ func configureRequestAuthorization(submitter BuildSubmitter,
 }
 
 // TODO: Move this to scm.sr.ht
+var submitBuildSkipCiPrinted bool
 func SubmitBuild(submitter BuildSubmitter) ([]BuildSubmission, error) {
 	manifests, err := submitter.FindManifests()
 	if err != nil || manifests == nil {
@@ -294,7 +295,10 @@ func SubmitBuild(submitter BuildSubmitter) ([]BuildSubmission, error) {
 
 	loadOptions()
 	if _, ok := options["skip-ci"]; ok {
-		log.Println("skip-ci was requested - not submitting build jobs")
+		if !submitBuildSkipCiPrinted {
+			log.Println("skip-ci was requested - not submitting build jobs")
+			submitBuildSkipCiPrinted = true
+		}
 		return nil, nil
 	}
 
