@@ -38,20 +38,21 @@ def ref_upload(owner, repo, ref):
         else:
             target = tag.target.hex
         valid = Validation(request)
-        f = request.files.get("file")
-        valid.expect(f, "File is required", field="file")
+        valid.expect(request.files.get("file"), "File is required", field="file")
+        file_list = request.files.getlist("file")
         default_branch = git_repo.default_branch()
         if not valid.ok:
             return render_template("ref.html", view="refs",
                     owner=owner, repo=repo, git_repo=git_repo, tag=tag,
                     strip_pgp_signature=strip_pgp_signature,
                     default_branch=default_branch, **valid.kwargs)
-        artifact = upload_artifact(valid, repo, target, f, f.filename)
-        if not valid.ok:
-            return render_template("ref.html", view="refs",
-                    owner=owner, repo=repo, git_repo=git_repo, tag=tag,
-                    strip_pgp_signature=strip_pgp_signature,
-                    default_branch=default_branch, **valid.kwargs)
+        for f in file_list:
+            artifact = upload_artifact(valid, repo, target, f, f.filename)
+            if not valid.ok:
+                return render_template("ref.html", view="refs",
+                        owner=owner, repo=repo, git_repo=git_repo, tag=tag,
+                        strip_pgp_signature=strip_pgp_signature,
+                        default_branch=default_branch, **valid.kwargs)
         db.session.commit()
         return redirect(url_for("repo.ref",
             owner=owner.canonical_name,
