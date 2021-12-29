@@ -48,6 +48,10 @@ type RepositoryCursor struct {
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
+type Settings struct {
+	SSHUser string `json:"sshUser"`
+}
+
 type Signature struct {
 	Name  string    `json:"name"`
 	Email string    `json:"email"`
@@ -78,6 +82,7 @@ type Version struct {
 	Patch           int        `json:"patch"`
 	DeprecationDate *time.Time `json:"deprecationDate"`
 	Features        *Features  `json:"features"`
+	Settings        *Settings  `json:"settings"`
 }
 
 type AccessKind string

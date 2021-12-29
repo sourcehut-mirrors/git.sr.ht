@@ -624,6 +624,9 @@ func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 	bucket, _ := conf.Get("git.sr.ht", "s3-bucket")
 	artifacts := upstream != "" && accessKey != "" && secretKey != "" && bucket != ""
 
+	sshUser, _ := conf.Get("git.sr.ht::dispatch", "/usr/bin/gitsrht-keys")
+	sshUser = strings.Split(sshUser, ":")[0]
+
 	return &model.Version{
 		Major:           0,
 		Minor:           0,
@@ -632,6 +635,10 @@ func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 
 		Features: &model.Features{
 			Artifacts: artifacts,
+		},
+
+		Settings: &model.Settings{
+			SSHUser: sshUser,
 		},
 	}, nil
 }
