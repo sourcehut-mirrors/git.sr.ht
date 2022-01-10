@@ -16,12 +16,12 @@ type BinaryBlob struct {
 
 	Base64 string `json:"base64"`
 
-	blob  *object.Blob
-	repo  *RepoWrapper
+	blob *object.Blob
+	repo *RepoWrapper
 }
 
 func (BinaryBlob) IsObject() {}
-func (BinaryBlob) IsBlob() {}
+func (BinaryBlob) IsBlob()   {}
 
 type TextBlob struct {
 	Type    ObjectType `json:"type"`
@@ -31,12 +31,12 @@ type TextBlob struct {
 
 	Text string `json:"text"`
 
-	blob  *object.Blob
-	repo  *RepoWrapper
+	blob *object.Blob
+	repo *RepoWrapper
 }
 
 func (TextBlob) IsObject() {}
-func (TextBlob) IsBlob() {}
+func (TextBlob) IsBlob()   {}
 
 func BlobFromObject(repo *RepoWrapper, obj *object.Blob) Object {
 	reader, err := obj.Reader()

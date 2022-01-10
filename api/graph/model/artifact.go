@@ -13,11 +13,11 @@ import (
 )
 
 type Artifact struct {
-	ID         int         `json:"id"`
-	Created    time.Time   `json:"created"`
-	Filename   string      `json:"filename"`
-	Checksum   string      `json:"checksum"`
-	Size       int         `json:"size"`
+	ID       int       `json:"id"`
+	Created  time.Time `json:"created"`
+	Filename string    `json:"filename"`
+	Checksum string    `json:"checksum"`
+	Size     int       `json:"size"`
 
 	Commit string
 
@@ -44,16 +44,16 @@ func (a *Artifact) Fields() *database.ModelFields {
 	}
 	a.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{ "id", "id", &a.ID },
-			{ "created", "created", &a.Created },
-			{ "filename", "filename", &a.Filename },
-			{ "checksum", "checksum", &a.Checksum },
-			{ "size", "size", &a.Size },
+			{"id", "id", &a.ID},
+			{"created", "created", &a.Created},
+			{"filename", "filename", &a.Filename},
+			{"checksum", "checksum", &a.Checksum},
+			{"size", "size", &a.Size},
 
 			// Always fetch:
-			{ "id", "", &a.ID },
-			{ "commit", "", &a.Commit },
-			{ "filename", "", &a.Filename },
+			{"id", "", &a.ID},
+			{"commit", "", &a.Commit},
+			{"filename", "", &a.Filename},
 		},
 	}
 	return a.fields
@@ -69,7 +69,7 @@ func (a *Artifact) QueryWithCursor(ctx context.Context,
 
 	if cur.Next != "" {
 		next, _ := strconv.Atoi(cur.Next)
-		q = q.Where(database.WithAlias(a.alias, "id") + "<= ?", next)
+		q = q.Where(database.WithAlias(a.alias, "id")+"<= ?", next)
 	}
 	q = q.
 		OrderBy(database.WithAlias(a.alias, "id") + " DESC").

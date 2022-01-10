@@ -45,18 +45,18 @@ func (u *User) Fields() *database.ModelFields {
 	}
 	u.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{ "id", "id", &u.ID },
-			{ "created", "created", &u.Created },
-			{ "updated", "updated", &u.Updated },
-			{ "username", "username", &u.Username },
-			{ "email", "email", &u.Email },
-			{ "url", "url", &u.URL },
-			{ "location", "location", &u.Location },
-			{ "bio", "bio", &u.Bio },
+			{"id", "id", &u.ID},
+			{"created", "created", &u.Created},
+			{"updated", "updated", &u.Updated},
+			{"username", "username", &u.Username},
+			{"email", "email", &u.Email},
+			{"url", "url", &u.URL},
+			{"location", "location", &u.Location},
+			{"bio", "bio", &u.Bio},
 
 			// Always fetch:
-			{ "id", "", &u.ID },
-			{ "username", "", &u.Username },
+			{"id", "", &u.ID},
+			{"username", "", &u.Username},
 		},
 	}
 	return u.fields

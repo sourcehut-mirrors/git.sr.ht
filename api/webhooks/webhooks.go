@@ -45,9 +45,9 @@ type RepoWebhookPayload struct {
 	Visibility  string    `json:"visibility"`
 
 	Owner struct {
-		CanonicalName string  `json:"canonical_name"`
-		Name          string  `json:"name"`
-	}`json:"owner"`
+		CanonicalName string `json:"canonical_name"`
+		Name          string `json:"name"`
+	} `json:"owner"`
 }
 
 func DeliverLegacyRepoCreate(ctx context.Context, repo *model.Repository) {

@@ -40,8 +40,8 @@ func fetchUsersByID(ctx context.Context) func(ids []int) ([]*model.User, []error
 		users := make([]*model.User, len(ids))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows
@@ -83,8 +83,8 @@ func fetchUsersByName(ctx context.Context) func(names []string) ([]*model.User, 
 		users := make([]*model.User, len(names))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows
@@ -126,8 +126,8 @@ func fetchRepositoriesByID(ctx context.Context) func(ids []int) ([]*model.Reposi
 		repos := make([]*model.Repository, len(ids))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows
@@ -178,8 +178,8 @@ func fetchRepositoriesByName(ctx context.Context) func(names []string) ([]*model
 		repos := make([]*model.Repository, len(names))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows
@@ -225,8 +225,8 @@ func fetchRepositoriesByOwnerRepoName(ctx context.Context) func(names [][2]strin
 		repos := make([]*model.Repository, len(names))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err    error
 				rows   *sql.Rows

@@ -16,8 +16,8 @@ import (
 
 // TODO: Drop updated column from database
 type ACL struct {
-	ID         int        `json:"id"`
-	Created    time.Time  `json:"created"`
+	ID      int       `json:"id"`
+	Created time.Time `json:"created"`
 
 	RawAccessMode string
 	RepoID        int
@@ -54,14 +54,14 @@ func (acl *ACL) Fields() *database.ModelFields {
 	}
 	acl.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{ "id", "id", &acl.ID },
-			{ "created", "created", &acl.Created },
-			{ "mode", "mode", &acl.RawAccessMode },
+			{"id", "id", &acl.ID},
+			{"created", "created", &acl.Created},
+			{"mode", "mode", &acl.RawAccessMode},
 
 			// Always fetch:
-			{ "id", "", &acl.ID },
-			{ "repo_id", "", &acl.RepoID },
-			{ "user_id", "", &acl.UserID },
+			{"id", "", &acl.ID},
+			{"repo_id", "", &acl.RepoID},
+			{"user_id", "", &acl.UserID},
 		},
 	}
 	return acl.fields
@@ -77,7 +77,7 @@ func (acl *ACL) QueryWithCursor(ctx context.Context,
 
 	if cur.Next != "" {
 		next, _ := strconv.Atoi(cur.Next)
-		q = q.Where(database.WithAlias(acl.alias, "id") + "<= ?", next)
+		q = q.Where(database.WithAlias(acl.alias, "id")+"<= ?", next)
 	}
 	q = q.
 		OrderBy(database.WithAlias(acl.alias, "id") + " DESC").
