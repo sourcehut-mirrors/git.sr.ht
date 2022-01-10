@@ -1,5 +1,7 @@
 {% extends "layout.html" %}
 {% block head %}
+{% block repohead %}
+{% endblock %}
 {% if repo.visibility.value =='unlisted' %}
 <meta name="robots" content="noindex">
 {% endif %}

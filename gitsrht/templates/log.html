@@ -4,7 +4,7 @@
 <title>{{repo.owner.canonical_name}}/{{repo.name}}: {% if path != [''] %}{{path_join(*path)}} {% endif %}{{ ref.decode("utf-8", "replace") }} - {{cfg("sr.ht", "site-name")}} git</title>
 {% endblock %}
 
-{% block head %}
+{% block repohead %}
   <link rel="alternate"
     title="{{ repo.owner.canonical_name }}/{{ repo.name }}: {{ ref.decode('utf-8', 'replace') }} log"
     type="application/rss+xml"
