@@ -30,15 +30,17 @@ func main() {
 		scopes[i] = s.String()
 	}
 
+	webhookQueue := webhooks.NewQueue(schema)
 	legacyWebhooks := webhooks.NewLegacyQueue()
 
 	server.NewServer("git.sr.ht", appConfig).
 		WithDefaultMiddleware().
 		WithMiddleware(
 			loaders.Middleware,
+			webhooks.Middleware(webhookQueue),
 			webhooks.LegacyMiddleware(legacyWebhooks),
 		).
 		WithSchema(schema, scopes).
-		WithQueues(legacyWebhooks.Queue).
+		WithQueues(webhookQueue.Queue, legacyWebhooks.Queue).
 		Run()
 }
