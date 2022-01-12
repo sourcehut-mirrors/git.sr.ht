@@ -1032,6 +1032,22 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor
 	return &model.RepositoryCursor{repos, cursor}, nil
 }
 
+func (r *userWebhookSubscriptionResolver) Client(ctx context.Context, obj *model.UserWebhookSubscription) (*model.OAuthClient, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *userWebhookSubscriptionResolver) Deliveries(ctx context.Context, obj *model.UserWebhookSubscription, cursor *coremodel.Cursor) (*model.WebhookDeliveryCursor, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *userWebhookSubscriptionResolver) Sample(ctx context.Context, obj *model.UserWebhookSubscription, event *model.WebhookEvent) (string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *webhookDeliveryResolver) Subscription(ctx context.Context, obj *model.WebhookDelivery) (model.WebhookSubscription, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 // ACL returns api.ACLResolver implementation.
 func (r *Resolver) ACL() api.ACLResolver { return &aCLResolver{r} }
 
@@ -1059,6 +1075,14 @@ func (r *Resolver) Tree() api.TreeResolver { return &treeResolver{r} }
 // User returns api.UserResolver implementation.
 func (r *Resolver) User() api.UserResolver { return &userResolver{r} }
 
+// UserWebhookSubscription returns api.UserWebhookSubscriptionResolver implementation.
+func (r *Resolver) UserWebhookSubscription() api.UserWebhookSubscriptionResolver {
+	return &userWebhookSubscriptionResolver{r}
+}
+
+// WebhookDelivery returns api.WebhookDeliveryResolver implementation.
+func (r *Resolver) WebhookDelivery() api.WebhookDeliveryResolver { return &webhookDeliveryResolver{r} }
+
 type aCLResolver struct{ *Resolver }
 type artifactResolver struct{ *Resolver }
 type commitResolver struct{ *Resolver }
@@ -1068,3 +1092,5 @@ type referenceResolver struct{ *Resolver }
 type repositoryResolver struct{ *Resolver }
 type treeResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
+type userWebhookSubscriptionResolver struct{ *Resolver }
+type webhookDeliveryResolver struct{ *Resolver }

@@ -135,18 +135,6 @@ type UserWebhookInput struct {
 	Query  string         `json:"query"`
 }
 
-type UserWebhookSubscription struct {
-	ID         int                    `json:"id"`
-	Events     []WebhookEvent         `json:"events"`
-	Query      string                 `json:"query"`
-	URL        string                 `json:"url"`
-	Client     *OAuthClient           `json:"client"`
-	Deliveries *WebhookDeliveryCursor `json:"deliveries"`
-	Sample     string                 `json:"sample"`
-}
-
-func (UserWebhookSubscription) IsWebhookSubscription() {}
-
 type Version struct {
 	Major int `json:"major"`
 	Minor int `json:"minor"`
@@ -159,21 +147,6 @@ type Version struct {
 	Features *Features `json:"features"`
 	// Config settings
 	Settings *Settings `json:"settings"`
-}
-
-type WebhookDelivery struct {
-	UUID         string              `json:"uuid"`
-	Date         time.Time           `json:"date"`
-	Event        WebhookEvent        `json:"event"`
-	Subscription WebhookSubscription `json:"subscription"`
-	RequestBody  string              `json:"requestBody"`
-	// These details are provided only after a response is received from the
-	// remote server. If a response is sent whose Content-Type is not text/*, or
-	// cannot be decoded as UTF-8, the response body will be null. It will be
-	// truncated after 64 KiB.
-	ResponseBody    *string `json:"responseBody"`
-	ResponseHeaders *string `json:"responseHeaders"`
-	ResponseStatus  *int    `json:"responseStatus"`
 }
 
 // A cursor for enumerating a list of webhook deliveries
