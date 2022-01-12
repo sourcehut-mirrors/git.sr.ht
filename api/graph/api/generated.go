@@ -51,6 +51,7 @@ type ResolverRoot interface {
 
 type DirectiveRoot struct {
 	Access    func(ctx context.Context, obj interface{}, next graphql.Resolver, scope model.AccessScope, kind model.AccessKind) (res interface{}, err error)
+	Private   func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error)
 	Scopehelp func(ctx context.Context, obj interface{}, next graphql.Resolver, details string) (res interface{}, err error)
 }
 
@@ -114,12 +115,18 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		CreateRepository func(childComplexity int, name string, visibility model.Visibility, description *string) int
+		CreateWebhook    func(childComplexity int, config model.UserWebhookInput) int
 		DeleteACL        func(childComplexity int, id int) int
 		DeleteArtifact   func(childComplexity int, id int) int
 		DeleteRepository func(childComplexity int, id int) int
+		DeleteWebhook    func(childComplexity int, id int) int
 		UpdateACL        func(childComplexity int, repoID int, mode model.AccessMode, entity string) int
 		UpdateRepository func(childComplexity int, id int, input map[string]interface{}) int
 		UploadArtifact   func(childComplexity int, repoID int, revspec string, file graphql.Upload) int
+	}
+
+	OAuthClient struct {
+		UUID func(childComplexity int) int
 	}
 
 	Query struct {
@@ -129,7 +136,10 @@ type ComplexityRoot struct {
 		RepositoryByName  func(childComplexity int, name string) int
 		RepositoryByOwner func(childComplexity int, owner string, repo string) int
 		User              func(childComplexity int, username string) int
+		UserWebhook       func(childComplexity int, id int) int
+		UserWebhooks      func(childComplexity int, cursor *model1.Cursor) int
 		Version           func(childComplexity int) int
+		Webhook           func(childComplexity int) int
 	}
 
 	Reference struct {
@@ -166,6 +176,13 @@ type ComplexityRoot struct {
 	RepositoryCursor struct {
 		Cursor  func(childComplexity int) int
 		Results func(childComplexity int) int
+	}
+
+	RepositoryEvent struct {
+		Date       func(childComplexity int) int
+		Event      func(childComplexity int) int
+		Repository func(childComplexity int) int
+		UUID       func(childComplexity int) int
 	}
 
 	Settings struct {
@@ -231,6 +248,16 @@ type ComplexityRoot struct {
 		Username      func(childComplexity int) int
 	}
 
+	UserWebhookSubscription struct {
+		Client     func(childComplexity int) int
+		Deliveries func(childComplexity int, cursor *model1.Cursor) int
+		Events     func(childComplexity int) int
+		ID         func(childComplexity int) int
+		Query      func(childComplexity int) int
+		Sample     func(childComplexity int, event *model.WebhookEvent) int
+		URL        func(childComplexity int) int
+	}
+
 	Version struct {
 		DeprecationDate func(childComplexity int) int
 		Features        func(childComplexity int) int
@@ -238,6 +265,27 @@ type ComplexityRoot struct {
 		Minor           func(childComplexity int) int
 		Patch           func(childComplexity int) int
 		Settings        func(childComplexity int) int
+	}
+
+	WebhookDelivery struct {
+		Date            func(childComplexity int) int
+		Event           func(childComplexity int) int
+		RequestBody     func(childComplexity int) int
+		ResponseBody    func(childComplexity int) int
+		ResponseHeaders func(childComplexity int) int
+		ResponseStatus  func(childComplexity int) int
+		Subscription    func(childComplexity int) int
+		UUID            func(childComplexity int) int
+	}
+
+	WebhookDeliveryCursor struct {
+		Cursor  func(childComplexity int) int
+		Results func(childComplexity int) int
+	}
+
+	WebhookSubscriptionCursor struct {
+		Cursor  func(childComplexity int) int
+		Results func(childComplexity int) int
 	}
 }
 
@@ -259,6 +307,8 @@ type MutationResolver interface {
 	DeleteACL(ctx context.Context, id int) (*model.ACL, error)
 	UploadArtifact(ctx context.Context, repoID int, revspec string, file graphql.Upload) (*model.Artifact, error)
 	DeleteArtifact(ctx context.Context, id int) (*model.Artifact, error)
+	CreateWebhook(ctx context.Context, config model.UserWebhookInput) (model.WebhookSubscription, error)
+	DeleteWebhook(ctx context.Context, id int) (model.WebhookSubscription, error)
 }
 type QueryResolver interface {
 	Version(ctx context.Context) (*model.Version, error)
@@ -268,6 +318,9 @@ type QueryResolver interface {
 	Repository(ctx context.Context, id int) (*model.Repository, error)
 	RepositoryByName(ctx context.Context, name string) (*model.Repository, error)
 	RepositoryByOwner(ctx context.Context, owner string, repo string) (*model.Repository, error)
+	UserWebhooks(ctx context.Context, cursor *model1.Cursor) (*model.WebhookSubscriptionCursor, error)
+	UserWebhook(ctx context.Context, id int) (model.WebhookSubscription, error)
+	Webhook(ctx context.Context) (model.WebhookPayload, error)
 }
 type ReferenceResolver interface {
 	Artifacts(ctx context.Context, obj *model.Reference, cursor *model1.Cursor) (*model.ArtifactCursor, error)
@@ -548,6 +601,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreateRepository(childComplexity, args["name"].(string), args["visibility"].(model.Visibility), args["description"].(*string)), true
 
+	case "Mutation.createWebhook":
+		if e.complexity.Mutation.CreateWebhook == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createWebhook_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateWebhook(childComplexity, args["config"].(model.UserWebhookInput)), true
+
 	case "Mutation.deleteACL":
 		if e.complexity.Mutation.DeleteACL == nil {
 			break
@@ -584,6 +649,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.DeleteRepository(childComplexity, args["id"].(int)), true
 
+	case "Mutation.deleteWebhook":
+		if e.complexity.Mutation.DeleteWebhook == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteWebhook_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteWebhook(childComplexity, args["id"].(int)), true
+
 	case "Mutation.updateACL":
 		if e.complexity.Mutation.UpdateACL == nil {
 			break
@@ -619,6 +696,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UploadArtifact(childComplexity, args["repoId"].(int), args["revspec"].(string), args["file"].(graphql.Upload)), true
+
+	case "OAuthClient.uuid":
+		if e.complexity.OAuthClient.UUID == nil {
+			break
+		}
+
+		return e.complexity.OAuthClient.UUID(childComplexity), true
 
 	case "Query.me":
 		if e.complexity.Query.Me == nil {
@@ -687,12 +771,43 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.User(childComplexity, args["username"].(string)), true
 
+	case "Query.userWebhook":
+		if e.complexity.Query.UserWebhook == nil {
+			break
+		}
+
+		args, err := ec.field_Query_userWebhook_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.UserWebhook(childComplexity, args["id"].(int)), true
+
+	case "Query.userWebhooks":
+		if e.complexity.Query.UserWebhooks == nil {
+			break
+		}
+
+		args, err := ec.field_Query_userWebhooks_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.UserWebhooks(childComplexity, args["cursor"].(*model1.Cursor)), true
+
 	case "Query.version":
 		if e.complexity.Query.Version == nil {
 			break
 		}
 
 		return e.complexity.Query.Version(childComplexity), true
+
+	case "Query.webhook":
+		if e.complexity.Query.Webhook == nil {
+			break
+		}
+
+		return e.complexity.Query.Webhook(childComplexity), true
 
 	case "Reference.artifacts":
 		if e.complexity.Reference.Artifacts == nil {
@@ -896,6 +1011,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.RepositoryCursor.Results(childComplexity), true
+
+	case "RepositoryEvent.date":
+		if e.complexity.RepositoryEvent.Date == nil {
+			break
+		}
+
+		return e.complexity.RepositoryEvent.Date(childComplexity), true
+
+	case "RepositoryEvent.event":
+		if e.complexity.RepositoryEvent.Event == nil {
+			break
+		}
+
+		return e.complexity.RepositoryEvent.Event(childComplexity), true
+
+	case "RepositoryEvent.repository":
+		if e.complexity.RepositoryEvent.Repository == nil {
+			break
+		}
+
+		return e.complexity.RepositoryEvent.Repository(childComplexity), true
+
+	case "RepositoryEvent.uuid":
+		if e.complexity.RepositoryEvent.UUID == nil {
+			break
+		}
+
+		return e.complexity.RepositoryEvent.UUID(childComplexity), true
 
 	case "Settings.sshUser":
 		if e.complexity.Settings.SSHUser == nil {
@@ -1185,6 +1328,65 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.Username(childComplexity), true
 
+	case "UserWebhookSubscription.client":
+		if e.complexity.UserWebhookSubscription.Client == nil {
+			break
+		}
+
+		return e.complexity.UserWebhookSubscription.Client(childComplexity), true
+
+	case "UserWebhookSubscription.deliveries":
+		if e.complexity.UserWebhookSubscription.Deliveries == nil {
+			break
+		}
+
+		args, err := ec.field_UserWebhookSubscription_deliveries_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.UserWebhookSubscription.Deliveries(childComplexity, args["cursor"].(*model1.Cursor)), true
+
+	case "UserWebhookSubscription.events":
+		if e.complexity.UserWebhookSubscription.Events == nil {
+			break
+		}
+
+		return e.complexity.UserWebhookSubscription.Events(childComplexity), true
+
+	case "UserWebhookSubscription.id":
+		if e.complexity.UserWebhookSubscription.ID == nil {
+			break
+		}
+
+		return e.complexity.UserWebhookSubscription.ID(childComplexity), true
+
+	case "UserWebhookSubscription.query":
+		if e.complexity.UserWebhookSubscription.Query == nil {
+			break
+		}
+
+		return e.complexity.UserWebhookSubscription.Query(childComplexity), true
+
+	case "UserWebhookSubscription.sample":
+		if e.complexity.UserWebhookSubscription.Sample == nil {
+			break
+		}
+
+		args, err := ec.field_UserWebhookSubscription_sample_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.UserWebhookSubscription.Sample(childComplexity, args["event"].(*model.WebhookEvent)), true
+
+	case "UserWebhookSubscription.url":
+		if e.complexity.UserWebhookSubscription.URL == nil {
+			break
+		}
+
+		return e.complexity.UserWebhookSubscription.URL(childComplexity), true
+
 	case "Version.deprecationDate":
 		if e.complexity.Version.DeprecationDate == nil {
 			break
@@ -1226,6 +1428,90 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Version.Settings(childComplexity), true
+
+	case "WebhookDelivery.date":
+		if e.complexity.WebhookDelivery.Date == nil {
+			break
+		}
+
+		return e.complexity.WebhookDelivery.Date(childComplexity), true
+
+	case "WebhookDelivery.event":
+		if e.complexity.WebhookDelivery.Event == nil {
+			break
+		}
+
+		return e.complexity.WebhookDelivery.Event(childComplexity), true
+
+	case "WebhookDelivery.requestBody":
+		if e.complexity.WebhookDelivery.RequestBody == nil {
+			break
+		}
+
+		return e.complexity.WebhookDelivery.RequestBody(childComplexity), true
+
+	case "WebhookDelivery.responseBody":
+		if e.complexity.WebhookDelivery.ResponseBody == nil {
+			break
+		}
+
+		return e.complexity.WebhookDelivery.ResponseBody(childComplexity), true
+
+	case "WebhookDelivery.responseHeaders":
+		if e.complexity.WebhookDelivery.ResponseHeaders == nil {
+			break
+		}
+
+		return e.complexity.WebhookDelivery.ResponseHeaders(childComplexity), true
+
+	case "WebhookDelivery.responseStatus":
+		if e.complexity.WebhookDelivery.ResponseStatus == nil {
+			break
+		}
+
+		return e.complexity.WebhookDelivery.ResponseStatus(childComplexity), true
+
+	case "WebhookDelivery.subscription":
+		if e.complexity.WebhookDelivery.Subscription == nil {
+			break
+		}
+
+		return e.complexity.WebhookDelivery.Subscription(childComplexity), true
+
+	case "WebhookDelivery.uuid":
+		if e.complexity.WebhookDelivery.UUID == nil {
+			break
+		}
+
+		return e.complexity.WebhookDelivery.UUID(childComplexity), true
+
+	case "WebhookDeliveryCursor.cursor":
+		if e.complexity.WebhookDeliveryCursor.Cursor == nil {
+			break
+		}
+
+		return e.complexity.WebhookDeliveryCursor.Cursor(childComplexity), true
+
+	case "WebhookDeliveryCursor.results":
+		if e.complexity.WebhookDeliveryCursor.Results == nil {
+			break
+		}
+
+		return e.complexity.WebhookDeliveryCursor.Results(childComplexity), true
+
+	case "WebhookSubscriptionCursor.cursor":
+		if e.complexity.WebhookSubscriptionCursor.Cursor == nil {
+			break
+		}
+
+		return e.complexity.WebhookSubscriptionCursor.Cursor(childComplexity), true
+
+	case "WebhookSubscriptionCursor.results":
+		if e.complexity.WebhookSubscriptionCursor.Results == nil {
+			break
+		}
+
+		return e.complexity.WebhookSubscriptionCursor.Results(childComplexity), true
 
 	}
 	return 0, false
@@ -1297,8 +1583,14 @@ scalar Cursor
 scalar Time
 scalar Upload
 
-# Used to provide a human-friendly description of an access scope
+"Used to provide a human-friendly description of an access scope"
 directive @scopehelp(details: String!) on ENUM_VALUE
+
+"""
+This is used to decorate fields which are only accessible with a personal
+access token, and are not available to clients using OAuth 2.0 access tokens.
+"""
+directive @private on FIELD_DEFINITION
 
 enum AccessScope {
   PROFILE      @scopehelp(details: "profile information")
@@ -1312,8 +1604,10 @@ enum AccessKind {
   RW @scopehelp(details: "read and write")
 }
 
-# Decorates fields for which access requires a particular OAuth 2.0 scope with
-# read or write access.
+"""
+Decorates fields for which access requires a particular OAuth 2.0 scope with
+read or write access.
+"""
 directive @access(scope: AccessScope!, kind: AccessKind!) on FIELD_DEFINITION
 
 # https://semver.org
@@ -1322,41 +1616,43 @@ type Version {
   minor: Int!
   patch: Int!
 
-  # If this API version is scheduled for deprecation, this is the date on which
-  # it will stop working; or null if this API version is not scheduled for
-  # deprecation.
+  """
+  If this API version is scheduled for deprecation, this is the date on which
+  it will stop working; or null if this API version is not scheduled for
+  deprecation.
+  """
   deprecationDate: Time
 
-  # Optional features
+  "Optional features"
   features: Features!
 
-  # Config settings
+  "Config settings"
   settings: Settings!
 }
 
-# Describes the status of optional features
+"Describes the status of optional features"
 type Features {
   artifacts: Boolean!
 }
 
-# Instance specific settings
+"Instance specific settings"
 type Settings {
   sshUser: String!
 }
 
 enum AccessMode {
-  # Read-only
+  "Read-only"
   RO
-  # Read/write
+  "Read/write"
   RW
 }
 
 enum Visibility {
-  # Visible to everyone, listed on your profile
+  "Visible to everyone, listed on your profile"
   PUBLIC
-  # Visible to everyone (if they know the URL), not listed on your profile
+  "Visible to everyone (if they know the URL), not listed on your profile"
   UNLISTED
-  # Not visible to anyone except those explicitly added to the access list
+  "Not visible to anyone except those explicitly added to the access list"
   PRIVATE
 }
 
@@ -1364,8 +1660,10 @@ interface Entity {
   id: Int!
   created: Time!
   updated: Time!
-  # The canonical name of this entity. For users, this is their username
-  # prefixed with '~'. Additional entity types will be supported in the future.
+  """
+  The canonical name of this entity. For users, this is their username
+  prefixed with '~'. Additional entity types will be supported in the future.
+  """
   canonicalName: String!
 
   repositories(cursor: Cursor, filter: Filter): RepositoryCursor! @access(scope: REPOSITORIES, kind: RO)
@@ -1394,14 +1692,18 @@ type Repository {
   description: String
   visibility: Visibility!
 
-  # The repository's custom README, if set.
-  #
-  # NOTICE: This returns unsanitized HTML. It is the client's responsibility to
-  # sanitize this for display on the web, if so desired.
+  """
+  The repository's custom README, if set.
+
+  NOTICE: This returns unsanitized HTML. It is the client's responsibility to
+  sanitize this for display on the web, if so desired.
+  """
   readme: String
 
-  # If this repository was cloned from another, this is set to the original
-  # clone URL.
+  """
+  If this repository was cloned from another, this is set to the original
+  clone URL.
+  """
   upstreamUrl: String
 
   accessControlList(cursor: Cursor): ACLCursor! @access(scope: ACLS, kind: RO)
@@ -1414,82 +1716,191 @@ type Repository {
   ## Porcelain API:
 
   # NOTE: revspecs are git-compatible, e.g. "HEAD~4", "master", "9790b10")
-  
-  # The HEAD reference for this repository (equivalent to the default branch)
+
+  "The HEAD reference for this repository (equivalent to the default branch)"
   HEAD: Reference @access(scope: OBJECTS, kind: RO)
 
-  # Returns a list of comments sorted by committer time (similar to ` + "`" + `git log` + "`" + `'s
-  # default ordering).
-  #
-  # If ` + "`" + `from` + "`" + ` is specified, it is interpreted as a revspec to start logging
-  # from. A clever reader may notice that using commits[-1].from + "^" as the
-  # from parameter is equivalent to passing the cursor to the next call.
+  """
+  Returns a list of comments sorted by committer time (similar to ` + "`" + `git log` + "`" + `'s
+  default ordering).
+
+  If ` + "`" + `from` + "`" + ` is specified, it is interpreted as a revspec to start logging
+  from. A clever reader may notice that using commits[-1].from + "^" as the
+  from parameter is equivalent to passing the cursor to the next call.
+  """
   log(cursor: Cursor, from: String): CommitCursor! @access(scope: OBJECTS, kind: RO)
 
-  # Returns a tree entry for a given path, at the given revspec.
+  "Returns a tree entry for a given path, at the given revspec."
   path(revspec: String = "HEAD", path: String!): TreeEntry @access(scope: OBJECTS, kind: RO)
 
-  # Returns the commit for a given revspec.
+  "Returns the commit for a given revspec."
   revparse_single(revspec: String!): Commit @access(scope: OBJECTS, kind: RO)
 }
 
-# A cursor for enumerating a list of repositories
-#
-# If there are additional results available, the cursor object may be passed
-# back into the same endpoint to retrieve another page. If the cursor is null,
-# there are no remaining results to return.
+type OAuthClient {
+  uuid: String!
+}
+
+enum WebhookEvent {
+  REPO_CREATED @access(scope: REPOSITORIES, kind: RO)
+  REPO_UPDATE  @access(scope: REPOSITORIES, kind: RO)
+  REPO_DELETED @access(scope: REPOSITORIES, kind: RO)
+}
+
+interface WebhookSubscription {
+  id: Int!
+  events: [WebhookEvent!]!
+  query: String!
+  url: String!
+
+  """
+  If this webhook was registered by an authorized OAuth 2.0 client, this
+  field is non-null.
+  """
+  client: OAuthClient @private
+
+  "All deliveries which have been sent to this webhook."
+  deliveries(cursor: Cursor): WebhookDeliveryCursor!
+
+  "Returns a sample payload for this subscription, for testing purposes"
+  sample(event: WebhookEvent!): String!
+}
+
+type UserWebhookSubscription implements WebhookSubscription {
+  id: Int!
+  events: [WebhookEvent!]!
+  query: String!
+  url: String!
+  client: OAuthClient @private
+  deliveries(cursor: Cursor): WebhookDeliveryCursor!
+  sample(event: WebhookEvent): String!
+}
+
+type WebhookDelivery {
+  uuid: String!
+  date: Time!
+  event: WebhookEvent!
+  subscription: WebhookSubscription!
+  requestBody: String!
+
+  """
+  These details are provided only after a response is received from the
+  remote server. If a response is sent whose Content-Type is not text/*, or
+  cannot be decoded as UTF-8, the response body will be null. It will be
+  truncated after 64 KiB.
+  """
+  responseBody: String
+  responseHeaders: String
+  responseStatus: Int
+}
+
+interface WebhookPayload {
+  uuid: String!
+  event: WebhookEvent!
+  date: Time!
+}
+
+type RepositoryEvent implements WebhookPayload {
+  uuid: String!
+  event: WebhookEvent!
+  date: Time!
+
+  repository: Repository!
+}
+
+"""
+A cursor for enumerating a list of repositories
+
+If there are additional results available, the cursor object may be passed
+back into the same endpoint to retrieve another page. If the cursor is null,
+there are no remaining results to return.
+"""
 type RepositoryCursor {
   results: [Repository!]!
   cursor: Cursor
 }
 
-# A cursor for enumerating access control list entries
-#
-# If there are additional results available, the cursor object may be passed
-# back into the same endpoint to retrieve another page. If the cursor is null,
-# there are no remaining results to return.
+"""
+A cursor for enumerating access control list entries
+
+If there are additional results available, the cursor object may be passed
+back into the same endpoint to retrieve another page. If the cursor is null,
+there are no remaining results to return.
+"""
 type ACLCursor {
   results: [ACL!]!
   cursor: Cursor
 }
 
-# A cursor for enumerating a list of references
-#
-# If there are additional results available, the cursor object may be passed
-# back into the same endpoint to retrieve another page. If the cursor is null,
-# there are no remaining results to return.
+"""
+A cursor for enumerating a list of references
+
+If there are additional results available, the cursor object may be passed
+back into the same endpoint to retrieve another page. If the cursor is null,
+there are no remaining results to return.
+"""
 type ReferenceCursor {
   results: [Reference!]!
   cursor: Cursor
 }
 
-# A cursor for enumerating commits
-#
-# If there are additional results available, the cursor object may be passed
-# back into the same endpoint to retrieve another page. If the cursor is null,
-# there are no remaining results to return.
+"""
+A cursor for enumerating commits
+
+If there are additional results available, the cursor object may be passed
+back into the same endpoint to retrieve another page. If the cursor is null,
+there are no remaining results to return.
+"""
 type CommitCursor {
   results: [Commit!]!
   cursor: Cursor
 }
 
-# A cursor for enumerating tree entries
-#
-# If there are additional results available, the cursor object may be passed
-# back into the same endpoint to retrieve another page. If the cursor is null,
-# there are no remaining results to return.
+"""
+A cursor for enumerating tree entries
+
+If there are additional results available, the cursor object may be passed
+back into the same endpoint to retrieve another page. If the cursor is null,
+there are no remaining results to return.
+"""
 type TreeEntryCursor {
   results: [TreeEntry!]!
   cursor: Cursor
 }
 
-# A cursor for enumerating artifacts
-#
-# If there are additional results available, the cursor object may be passed
-# back into the same endpoint to retrieve another page. If the cursor is null,
-# there are no remaining results to return.
+"""
+A cursor for enumerating artifacts
+
+If there are additional results available, the cursor object may be passed
+back into the same endpoint to retrieve another page. If the cursor is null,
+there are no remaining results to return.
+"""
 type ArtifactCursor {
   results: [Artifact!]!
+  cursor: Cursor
+}
+
+"""
+A cursor for enumerating a list of webhook deliveries
+
+If there are additional results available, the cursor object may be passed
+back into the same endpoint to retrieve another page. If the cursor is null,
+there are no remaining results to return.
+"""
+type WebhookDeliveryCursor {
+  results: [WebhookDelivery!]!
+  cursor: Cursor
+}
+
+"""
+A cursor for enumerating a list of webhook subscriptions
+
+If there are additional results available, the cursor object may be passed
+back into the same endpoint to retrieve another page. If the cursor is null,
+there are no remaining results to return.
+"""
+type WebhookSubscriptionCursor {
+  results: [WebhookSubscription!]!
   cursor: Cursor
 }
 
@@ -1501,7 +1912,7 @@ type ACL {
   mode: AccessMode
 }
 
-# Arbitrary file attached to a git repository
+"Arbitrary file attached to a git repository"
 type Artifact {
   id: Int!
   created: Time!
@@ -1530,7 +1941,7 @@ interface Object {
   type: ObjectType!
   id: String!
   shortId: String!
-  # Raw git object, base64 encoded
+  "Raw git object, base64 encoded"
   raw: String!
 }
 
@@ -1568,7 +1979,7 @@ type TreeEntry {
   id: String!
   name: String!
   object: Object!
-  # Unix-style file mode, i.e. 0755 or 0644 (octal)
+  "Unix-style file mode, i.e. 0755 or 0644 (octal)"
   mode: Int!
 }
 
@@ -1608,42 +2019,67 @@ type Tag implements Object {
 }
 
 input Filter {
-  # Number of results to return.
+  "Number of results to return."
   count: Int = 20
 
-  # Search terms. The exact meaning varies by usage, but generally these are
-  # compatible with the web UI's search syntax.
+  """
+  Search terms. The exact meaning varies by usage, but generally these are
+  compatible with the web UI's search syntax.
+  """
   search: String
 }
 
 type Query {
-  # Returns API version information.
+  "Returns API version information."
   version: Version!
 
-  # Returns the authenticated user.
+  "Returns the authenticated user."
   me: User! @access(scope: PROFILE, kind: RO)
 
-  # Returns a specific user.
+  "Returns a specific user."
   user(username: String!): User @access(scope: PROFILE, kind: RO)
 
-  # Returns repositories that the authenticated user has access to.
-  #
-  # NOTE: in this version of the API, only repositories owned by the
-  # authenticated user are returned, but in the future the default behavior
-  # will be to return all repositories that the user either (1) has been given
-  # explicit access to via ACLs or (2) has implicit access to either by
-  # ownership or group membership.
+  """
+  Returns repositories that the authenticated user has access to.
+
+  NOTE: in this version of the API, only repositories owned by the
+  authenticated user are returned, but in the future the default behavior
+  will be to return all repositories that the user either (1) has been given
+  explicit access to via ACLs or (2) has implicit access to either by
+  ownership or group membership.
+  """
   repositories(cursor: Cursor, filter: Filter): RepositoryCursor @access(scope: REPOSITORIES, kind: RO)
 
-  # Returns a specific repository by ID.
+  "Returns a specific repository by ID."
   repository(id: Int!): Repository @access(scope: REPOSITORIES, kind: RO)
 
-  # Returns a specific repository, owned by the authenticated user.
+  "Returns a specific repository, owned by the authenticated user."
   repositoryByName(name: String!): Repository @access(scope: REPOSITORIES, kind: RO)
 
-  # Returns a specific repository, owned by the given canonical name (e.g.
-  # "~sircmpwn").
+  """
+  Returns a specific repository, owned by the given canonical name (e.g.
+  "~sircmpwn").
+  """
   repositoryByOwner(owner: String!, repo: String!): Repository @access(scope: REPOSITORIES, kind: RO)
+
+  """
+  Returns a list of user webhook subscriptions. For clients
+  authenticated with a personal access token, this returns all webhooks
+  configured by all GraphQL clients for your account. For clients
+  authenticated with an OAuth 2.0 access token, this returns only webhooks
+  registered for your client.
+  """
+  userWebhooks(cursor: Cursor): WebhookSubscriptionCursor!
+
+  "Returns details of a user webhook subscription by its ID."
+  userWebhook(id: Int!): WebhookSubscription
+
+  """
+  Returns information about the webhook currently being processed. This is
+  not valid during normal queries over HTTP, and will return an error if used
+  outside of a webhook context.
+  """
+  webhook: WebhookPayload!
 }
 
 input RepoInput {
@@ -1653,34 +2089,67 @@ input RepoInput {
   description: String
   visibility: Visibility
 
-  # Updates the custom README associated with this repository. Note that the
-  # provided HTML will be sanitized when displayed on the web; see
-  # https://man.sr.ht/markdown/#post-processing
+  """
+  Updates the custom README associated with this repository. Note that the
+  provided HTML will be sanitized when displayed on the web; see
+  https://man.sr.ht/markdown/#post-processing
+  """
   readme: String
 }
 
+input UserWebhookInput {
+  url: String!
+  events: [WebhookEvent!]!
+  query: String!
+}
+
 type Mutation {
-  # Creates a new git repository
+  "Creates a new git repository"
   createRepository(name: String!, visibility: Visibility!, description: String): Repository @access(scope: REPOSITORIES, kind: RW)
 
-  # Updates the metadata for a git repository
+  "Updates the metadata for a git repository"
   updateRepository(id: Int!, input: RepoInput!): Repository @access(scope: REPOSITORIES, kind: RW)
 
-  # Deletes a git repository
+  "Deletes a git repository"
   deleteRepository(id: Int!): Repository @access(scope: REPOSITORIES, kind: RW)
 
-  # Adds or updates a user in the access control list
+  "Adds or updates a user in the access control list"
   updateACL(repoId: Int!, mode: AccessMode!, entity: ID!): ACL! @access(scope: ACLS, kind: RW)
 
-  # Deletes an entry from the access control list
+  "Deletes an entry from the access control list"
   deleteACL(id: Int!): ACL @access(scope: ACLS, kind: RW)
 
-  # Uploads an artifact. revspec must match a specific git tag, and the
-  # filename must be unique among artifacts for this repository.
+  """
+  Uploads an artifact. revspec must match a specific git tag, and the
+  filename must be unique among artifacts for this repository.
+  """
   uploadArtifact(repoId: Int!, revspec: String!, file: Upload!): Artifact! @access(scope: OBJECTS, kind: RW)
 
-  # Deletes an artifact.
+  "Deletes an artifact."
   deleteArtifact(id: Int!): Artifact @access(scope: OBJECTS, kind: RW)
+
+  """
+  Creates a new user webhook subscription. When an event from the
+  provided list of events occurs, the 'query' parameter (a GraphQL query)
+  will be evaluated and the results will be sent to the provided URL as the
+  body of an HTTP POST request. The list of events must include at least one
+  event, and no duplicates.
+
+  This query is evaluated in the webhook context, such that query { webhook }
+  may be used to access details of the event which trigged the webhook. The
+  query may not make any mutations.
+  """
+  createWebhook(config: UserWebhookInput!): WebhookSubscription!
+
+  """
+  Deletes a user webhook. Any events already queued may still be
+  delivered after this request completes. Clients authenticated with a
+  personal access token may delete any webhook registered for their account,
+  but authorized OAuth 2.0 clients may only delete their own webhooks.
+  Manually deleting a webhook configured by a third-party client may cause
+  unexpected behavior with the third-party integration.
+  """
+  deleteWebhook(id: Int!): WebhookSubscription
 }
 `, BuiltIn: false},
 }
@@ -1762,6 +2231,21 @@ func (ec *executionContext) field_Mutation_createRepository_args(ctx context.Con
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_createWebhook_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.UserWebhookInput
+	if tmp, ok := rawArgs["config"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("config"))
+		arg0, err = ec.unmarshalNUserWebhookInput2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐUserWebhookInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["config"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_deleteACL_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1793,6 +2277,21 @@ func (ec *executionContext) field_Mutation_deleteArtifact_args(ctx context.Conte
 }
 
 func (ec *executionContext) field_Mutation_deleteRepository_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteWebhook_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 int
@@ -1990,6 +2489,36 @@ func (ec *executionContext) field_Query_repository_args(ctx context.Context, raw
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_userWebhook_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_userWebhooks_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model1.Cursor
+	if tmp, ok := rawArgs["cursor"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cursor"))
+		arg0, err = ec.unmarshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["cursor"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_user_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -2155,6 +2684,36 @@ func (ec *executionContext) field_Tree_entry_args(ctx context.Context, rawArgs m
 		}
 	}
 	args["path"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_UserWebhookSubscription_deliveries_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model1.Cursor
+	if tmp, ok := rawArgs["cursor"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cursor"))
+		arg0, err = ec.unmarshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["cursor"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_UserWebhookSubscription_sample_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model.WebhookEvent
+	if tmp, ok := rawArgs["event"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("event"))
+		arg0, err = ec.unmarshalOWebhookEvent2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookEvent(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["event"] = arg0
 	return args, nil
 }
 
@@ -3866,6 +4425,122 @@ func (ec *executionContext) _Mutation_deleteArtifact(ctx context.Context, field 
 	return ec.marshalOArtifact2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐArtifact(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_createWebhook(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createWebhook_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateWebhook(rctx, args["config"].(model.UserWebhookInput))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.WebhookSubscription)
+	fc.Result = res
+	return ec.marshalNWebhookSubscription2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookSubscription(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_deleteWebhook(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_deleteWebhook_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteWebhook(rctx, args["id"].(int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(model.WebhookSubscription)
+	fc.Result = res
+	return ec.marshalOWebhookSubscription2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookSubscription(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _OAuthClient_uuid(ctx context.Context, field graphql.CollectedField, obj *model.OAuthClient) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "OAuthClient",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UUID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_version(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -4297,6 +4972,122 @@ func (ec *executionContext) _Query_repositoryByOwner(ctx context.Context, field 
 	res := resTmp.(*model.Repository)
 	fc.Result = res
 	return ec.marshalORepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_userWebhooks(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_userWebhooks_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().UserWebhooks(rctx, args["cursor"].(*model1.Cursor))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.WebhookSubscriptionCursor)
+	fc.Result = res
+	return ec.marshalNWebhookSubscriptionCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookSubscriptionCursor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_userWebhook(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_userWebhook_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().UserWebhook(rctx, args["id"].(int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(model.WebhookSubscription)
+	fc.Result = res
+	return ec.marshalOWebhookSubscription2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookSubscription(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_webhook(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Webhook(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.WebhookPayload)
+	fc.Result = res
+	return ec.marshalNWebhookPayload2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookPayload(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -5454,6 +6245,146 @@ func (ec *executionContext) _RepositoryCursor_cursor(ctx context.Context, field 
 	res := resTmp.(*model1.Cursor)
 	fc.Result = res
 	return ec.marshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RepositoryEvent_uuid(ctx context.Context, field graphql.CollectedField, obj *model.RepositoryEvent) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "RepositoryEvent",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UUID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RepositoryEvent_event(ctx context.Context, field graphql.CollectedField, obj *model.RepositoryEvent) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "RepositoryEvent",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Event, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.WebhookEvent)
+	fc.Result = res
+	return ec.marshalNWebhookEvent2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookEvent(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RepositoryEvent_date(ctx context.Context, field graphql.CollectedField, obj *model.RepositoryEvent) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "RepositoryEvent",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Date, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _RepositoryEvent_repository(ctx context.Context, field graphql.CollectedField, obj *model.RepositoryEvent) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "RepositoryEvent",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Repository, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Repository)
+	fc.Result = res
+	return ec.marshalNRepository2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepository(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Settings_sshUser(ctx context.Context, field graphql.CollectedField, obj *model.Settings) (ret graphql.Marshaler) {
@@ -6852,6 +7783,282 @@ func (ec *executionContext) _User_repositories(ctx context.Context, field graphq
 	return ec.marshalNRepositoryCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐRepositoryCursor(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _UserWebhookSubscription_id(ctx context.Context, field graphql.CollectedField, obj *model.UserWebhookSubscription) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "UserWebhookSubscription",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserWebhookSubscription_events(ctx context.Context, field graphql.CollectedField, obj *model.UserWebhookSubscription) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "UserWebhookSubscription",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Events, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]model.WebhookEvent)
+	fc.Result = res
+	return ec.marshalNWebhookEvent2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookEventᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserWebhookSubscription_query(ctx context.Context, field graphql.CollectedField, obj *model.UserWebhookSubscription) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "UserWebhookSubscription",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Query, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserWebhookSubscription_url(ctx context.Context, field graphql.CollectedField, obj *model.UserWebhookSubscription) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "UserWebhookSubscription",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.URL, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserWebhookSubscription_client(ctx context.Context, field graphql.CollectedField, obj *model.UserWebhookSubscription) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "UserWebhookSubscription",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return obj.Client, nil
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Private == nil {
+				return nil, errors.New("directive private is not implemented")
+			}
+			return ec.directives.Private(ctx, obj, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.OAuthClient); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model.OAuthClient`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.OAuthClient)
+	fc.Result = res
+	return ec.marshalOOAuthClient2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐOAuthClient(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserWebhookSubscription_deliveries(ctx context.Context, field graphql.CollectedField, obj *model.UserWebhookSubscription) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "UserWebhookSubscription",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_UserWebhookSubscription_deliveries_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Deliveries, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.WebhookDeliveryCursor)
+	fc.Result = res
+	return ec.marshalNWebhookDeliveryCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookDeliveryCursor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserWebhookSubscription_sample(ctx context.Context, field graphql.CollectedField, obj *model.UserWebhookSubscription) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "UserWebhookSubscription",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_UserWebhookSubscription_sample_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Sample, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Version_major(ctx context.Context, field graphql.CollectedField, obj *model.Version) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -7057,6 +8264,411 @@ func (ec *executionContext) _Version_settings(ctx context.Context, field graphql
 	res := resTmp.(*model.Settings)
 	fc.Result = res
 	return ec.marshalNSettings2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSettings(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _WebhookDelivery_uuid(ctx context.Context, field graphql.CollectedField, obj *model.WebhookDelivery) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "WebhookDelivery",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.UUID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _WebhookDelivery_date(ctx context.Context, field graphql.CollectedField, obj *model.WebhookDelivery) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "WebhookDelivery",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Date, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _WebhookDelivery_event(ctx context.Context, field graphql.CollectedField, obj *model.WebhookDelivery) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "WebhookDelivery",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Event, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.WebhookEvent)
+	fc.Result = res
+	return ec.marshalNWebhookEvent2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookEvent(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _WebhookDelivery_subscription(ctx context.Context, field graphql.CollectedField, obj *model.WebhookDelivery) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "WebhookDelivery",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Subscription, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.WebhookSubscription)
+	fc.Result = res
+	return ec.marshalNWebhookSubscription2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookSubscription(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _WebhookDelivery_requestBody(ctx context.Context, field graphql.CollectedField, obj *model.WebhookDelivery) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "WebhookDelivery",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RequestBody, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _WebhookDelivery_responseBody(ctx context.Context, field graphql.CollectedField, obj *model.WebhookDelivery) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "WebhookDelivery",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ResponseBody, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _WebhookDelivery_responseHeaders(ctx context.Context, field graphql.CollectedField, obj *model.WebhookDelivery) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "WebhookDelivery",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ResponseHeaders, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _WebhookDelivery_responseStatus(ctx context.Context, field graphql.CollectedField, obj *model.WebhookDelivery) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "WebhookDelivery",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ResponseStatus, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int)
+	fc.Result = res
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _WebhookDeliveryCursor_results(ctx context.Context, field graphql.CollectedField, obj *model.WebhookDeliveryCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "WebhookDeliveryCursor",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Results, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.WebhookDelivery)
+	fc.Result = res
+	return ec.marshalNWebhookDelivery2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookDeliveryᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _WebhookDeliveryCursor_cursor(ctx context.Context, field graphql.CollectedField, obj *model.WebhookDeliveryCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "WebhookDeliveryCursor",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model1.Cursor)
+	fc.Result = res
+	return ec.marshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _WebhookSubscriptionCursor_results(ctx context.Context, field graphql.CollectedField, obj *model.WebhookSubscriptionCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "WebhookSubscriptionCursor",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Results, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]model.WebhookSubscription)
+	fc.Result = res
+	return ec.marshalNWebhookSubscription2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookSubscriptionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _WebhookSubscriptionCursor_cursor(ctx context.Context, field graphql.CollectedField, obj *model.WebhookSubscriptionCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "WebhookSubscriptionCursor",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model1.Cursor)
+	fc.Result = res
+	return ec.marshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -8216,6 +9828,45 @@ func (ec *executionContext) unmarshalInputFilter(ctx context.Context, obj interf
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputUserWebhookInput(ctx context.Context, obj interface{}) (model.UserWebhookInput, error) {
+	var it model.UserWebhookInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "url":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("url"))
+			it.URL, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "events":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("events"))
+			it.Events, err = ec.unmarshalNWebhookEvent2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookEventᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "query":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("query"))
+			it.Query, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -8298,6 +9949,38 @@ func (ec *executionContext) _Object(ctx context.Context, sel ast.SelectionSet, o
 			return graphql.Null
 		}
 		return ec._Tag(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _WebhookPayload(ctx context.Context, sel ast.SelectionSet, obj model.WebhookPayload) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case model.RepositoryEvent:
+		return ec._RepositoryEvent(ctx, sel, &obj)
+	case *model.RepositoryEvent:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._RepositoryEvent(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _WebhookSubscription(ctx context.Context, sel ast.SelectionSet, obj model.WebhookSubscription) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case model.UserWebhookSubscription:
+		return ec._UserWebhookSubscription(ctx, sel, &obj)
+	case *model.UserWebhookSubscription:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._UserWebhookSubscription(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -8707,6 +10390,40 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			}
 		case "deleteArtifact":
 			out.Values[i] = ec._Mutation_deleteArtifact(ctx, field)
+		case "createWebhook":
+			out.Values[i] = ec._Mutation_createWebhook(ctx, field)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "deleteWebhook":
+			out.Values[i] = ec._Mutation_deleteWebhook(ctx, field)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var oAuthClientImplementors = []string{"OAuthClient"}
+
+func (ec *executionContext) _OAuthClient(ctx context.Context, sel ast.SelectionSet, obj *model.OAuthClient) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, oAuthClientImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("OAuthClient")
+		case "uuid":
+			out.Values[i] = ec._OAuthClient_uuid(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8814,6 +10531,45 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_repositoryByOwner(ctx, field)
+				return res
+			})
+		case "userWebhooks":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_userWebhooks(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "userWebhook":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_userWebhook(ctx, field)
+				return res
+			})
+		case "webhook":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_webhook(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
 				return res
 			})
 		case "__type":
@@ -9073,6 +10829,48 @@ func (ec *executionContext) _RepositoryCursor(ctx context.Context, sel ast.Selec
 			}
 		case "cursor":
 			out.Values[i] = ec._RepositoryCursor_cursor(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var repositoryEventImplementors = []string{"RepositoryEvent", "WebhookPayload"}
+
+func (ec *executionContext) _RepositoryEvent(ctx context.Context, sel ast.SelectionSet, obj *model.RepositoryEvent) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, repositoryEventImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RepositoryEvent")
+		case "uuid":
+			out.Values[i] = ec._RepositoryEvent_uuid(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "event":
+			out.Values[i] = ec._RepositoryEvent_event(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "date":
+			out.Values[i] = ec._RepositoryEvent_date(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "repository":
+			out.Values[i] = ec._RepositoryEvent_repository(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -9455,6 +11253,60 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 	return out
 }
 
+var userWebhookSubscriptionImplementors = []string{"UserWebhookSubscription", "WebhookSubscription"}
+
+func (ec *executionContext) _UserWebhookSubscription(ctx context.Context, sel ast.SelectionSet, obj *model.UserWebhookSubscription) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, userWebhookSubscriptionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UserWebhookSubscription")
+		case "id":
+			out.Values[i] = ec._UserWebhookSubscription_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "events":
+			out.Values[i] = ec._UserWebhookSubscription_events(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "query":
+			out.Values[i] = ec._UserWebhookSubscription_query(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "url":
+			out.Values[i] = ec._UserWebhookSubscription_url(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "client":
+			out.Values[i] = ec._UserWebhookSubscription_client(ctx, field, obj)
+		case "deliveries":
+			out.Values[i] = ec._UserWebhookSubscription_deliveries(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "sample":
+			out.Values[i] = ec._UserWebhookSubscription_sample(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var versionImplementors = []string{"Version"}
 
 func (ec *executionContext) _Version(ctx context.Context, sel ast.SelectionSet, obj *model.Version) graphql.Marshaler {
@@ -9493,6 +11345,117 @@ func (ec *executionContext) _Version(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var webhookDeliveryImplementors = []string{"WebhookDelivery"}
+
+func (ec *executionContext) _WebhookDelivery(ctx context.Context, sel ast.SelectionSet, obj *model.WebhookDelivery) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, webhookDeliveryImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("WebhookDelivery")
+		case "uuid":
+			out.Values[i] = ec._WebhookDelivery_uuid(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "date":
+			out.Values[i] = ec._WebhookDelivery_date(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "event":
+			out.Values[i] = ec._WebhookDelivery_event(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "subscription":
+			out.Values[i] = ec._WebhookDelivery_subscription(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "requestBody":
+			out.Values[i] = ec._WebhookDelivery_requestBody(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "responseBody":
+			out.Values[i] = ec._WebhookDelivery_responseBody(ctx, field, obj)
+		case "responseHeaders":
+			out.Values[i] = ec._WebhookDelivery_responseHeaders(ctx, field, obj)
+		case "responseStatus":
+			out.Values[i] = ec._WebhookDelivery_responseStatus(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var webhookDeliveryCursorImplementors = []string{"WebhookDeliveryCursor"}
+
+func (ec *executionContext) _WebhookDeliveryCursor(ctx context.Context, sel ast.SelectionSet, obj *model.WebhookDeliveryCursor) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, webhookDeliveryCursorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("WebhookDeliveryCursor")
+		case "results":
+			out.Values[i] = ec._WebhookDeliveryCursor_results(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "cursor":
+			out.Values[i] = ec._WebhookDeliveryCursor_cursor(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var webhookSubscriptionCursorImplementors = []string{"WebhookSubscriptionCursor"}
+
+func (ec *executionContext) _WebhookSubscriptionCursor(ctx context.Context, sel ast.SelectionSet, obj *model.WebhookSubscriptionCursor) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, webhookSubscriptionCursorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("WebhookSubscriptionCursor")
+		case "results":
+			out.Values[i] = ec._WebhookSubscriptionCursor_results(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "cursor":
+			out.Values[i] = ec._WebhookSubscriptionCursor_cursor(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -10420,6 +12383,11 @@ func (ec *executionContext) marshalNUser2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗs
 	return ec._User(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNUserWebhookInput2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐUserWebhookInput(ctx context.Context, v interface{}) (model.UserWebhookInput, error) {
+	res, err := ec.unmarshalInputUserWebhookInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNVersion2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVersion(ctx context.Context, sel ast.SelectionSet, v model.Version) graphql.Marshaler {
 	return ec._Version(ctx, sel, &v)
 }
@@ -10442,6 +12410,223 @@ func (ec *executionContext) unmarshalNVisibility2gitᚗsrᚗhtᚋאsircmpwnᚋgi
 
 func (ec *executionContext) marshalNVisibility2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx context.Context, sel ast.SelectionSet, v model.Visibility) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) marshalNWebhookDelivery2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookDeliveryᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.WebhookDelivery) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNWebhookDelivery2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookDelivery(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNWebhookDelivery2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookDelivery(ctx context.Context, sel ast.SelectionSet, v *model.WebhookDelivery) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._WebhookDelivery(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNWebhookDeliveryCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookDeliveryCursor(ctx context.Context, sel ast.SelectionSet, v *model.WebhookDeliveryCursor) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._WebhookDeliveryCursor(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNWebhookEvent2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookEvent(ctx context.Context, v interface{}) (model.WebhookEvent, error) {
+	var res model.WebhookEvent
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNWebhookEvent2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookEvent(ctx context.Context, sel ast.SelectionSet, v model.WebhookEvent) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) unmarshalNWebhookEvent2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookEventᚄ(ctx context.Context, v interface{}) ([]model.WebhookEvent, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]model.WebhookEvent, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNWebhookEvent2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookEvent(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNWebhookEvent2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookEventᚄ(ctx context.Context, sel ast.SelectionSet, v []model.WebhookEvent) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNWebhookEvent2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookEvent(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNWebhookPayload2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookPayload(ctx context.Context, sel ast.SelectionSet, v model.WebhookPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._WebhookPayload(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNWebhookSubscription2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookSubscription(ctx context.Context, sel ast.SelectionSet, v model.WebhookSubscription) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._WebhookSubscription(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNWebhookSubscription2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookSubscriptionᚄ(ctx context.Context, sel ast.SelectionSet, v []model.WebhookSubscription) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNWebhookSubscription2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookSubscription(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNWebhookSubscriptionCursor2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookSubscriptionCursor(ctx context.Context, sel ast.SelectionSet, v model.WebhookSubscriptionCursor) graphql.Marshaler {
+	return ec._WebhookSubscriptionCursor(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNWebhookSubscriptionCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookSubscriptionCursor(ctx context.Context, sel ast.SelectionSet, v *model.WebhookSubscriptionCursor) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._WebhookSubscriptionCursor(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -10795,6 +12980,13 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 	return graphql.MarshalInt(*v)
 }
 
+func (ec *executionContext) marshalOOAuthClient2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐOAuthClient(ctx context.Context, sel ast.SelectionSet, v *model.OAuthClient) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._OAuthClient(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalOObject2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐObject(ctx context.Context, sel ast.SelectionSet, v model.Object) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -10932,6 +13124,29 @@ func (ec *executionContext) marshalOVisibility2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋg
 		return graphql.Null
 	}
 	return v
+}
+
+func (ec *executionContext) unmarshalOWebhookEvent2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookEvent(ctx context.Context, v interface{}) (*model.WebhookEvent, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.WebhookEvent)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOWebhookEvent2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookEvent(ctx context.Context, sel ast.SelectionSet, v *model.WebhookEvent) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
+func (ec *executionContext) marshalOWebhookSubscription2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐWebhookSubscription(ctx context.Context, sel ast.SelectionSet, v model.WebhookSubscription) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._WebhookSubscription(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

@@ -19,35 +19,83 @@ type Entity interface {
 	IsEntity()
 }
 
+type WebhookPayload interface {
+	IsWebhookPayload()
+}
+
+type WebhookSubscription interface {
+	IsWebhookSubscription()
+}
+
+// A cursor for enumerating access control list entries
+//
+// If there are additional results available, the cursor object may be passed
+// back into the same endpoint to retrieve another page. If the cursor is null,
+// there are no remaining results to return.
 type ACLCursor struct {
 	Results []*ACL        `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
+// A cursor for enumerating artifacts
+//
+// If there are additional results available, the cursor object may be passed
+// back into the same endpoint to retrieve another page. If the cursor is null,
+// there are no remaining results to return.
 type ArtifactCursor struct {
 	Results []*Artifact   `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
+// A cursor for enumerating commits
+//
+// If there are additional results available, the cursor object may be passed
+// back into the same endpoint to retrieve another page. If the cursor is null,
+// there are no remaining results to return.
 type CommitCursor struct {
 	Results []*Commit     `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
+// Describes the status of optional features
 type Features struct {
 	Artifacts bool `json:"artifacts"`
 }
 
+type OAuthClient struct {
+	UUID string `json:"uuid"`
+}
+
+// A cursor for enumerating a list of references
+//
+// If there are additional results available, the cursor object may be passed
+// back into the same endpoint to retrieve another page. If the cursor is null,
+// there are no remaining results to return.
 type ReferenceCursor struct {
 	Results []*Reference  `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
+// A cursor for enumerating a list of repositories
+//
+// If there are additional results available, the cursor object may be passed
+// back into the same endpoint to retrieve another page. If the cursor is null,
+// there are no remaining results to return.
 type RepositoryCursor struct {
 	Results []*Repository `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
+type RepositoryEvent struct {
+	UUID       string       `json:"uuid"`
+	Event      WebhookEvent `json:"event"`
+	Date       time.Time    `json:"date"`
+	Repository *Repository  `json:"repository"`
+}
+
+func (RepositoryEvent) IsWebhookPayload() {}
+
+// Instance specific settings
 type Settings struct {
 	SSHUser string `json:"sshUser"`
 }
@@ -71,18 +119,81 @@ type Tag struct {
 
 func (Tag) IsObject() {}
 
+// A cursor for enumerating tree entries
+//
+// If there are additional results available, the cursor object may be passed
+// back into the same endpoint to retrieve another page. If the cursor is null,
+// there are no remaining results to return.
 type TreeEntryCursor struct {
 	Results []*TreeEntry  `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
+type UserWebhookInput struct {
+	URL    string         `json:"url"`
+	Events []WebhookEvent `json:"events"`
+	Query  string         `json:"query"`
+}
+
+type UserWebhookSubscription struct {
+	ID         int                    `json:"id"`
+	Events     []WebhookEvent         `json:"events"`
+	Query      string                 `json:"query"`
+	URL        string                 `json:"url"`
+	Client     *OAuthClient           `json:"client"`
+	Deliveries *WebhookDeliveryCursor `json:"deliveries"`
+	Sample     string                 `json:"sample"`
+}
+
+func (UserWebhookSubscription) IsWebhookSubscription() {}
+
 type Version struct {
-	Major           int        `json:"major"`
-	Minor           int        `json:"minor"`
-	Patch           int        `json:"patch"`
+	Major int `json:"major"`
+	Minor int `json:"minor"`
+	Patch int `json:"patch"`
+	// If this API version is scheduled for deprecation, this is the date on which
+	// it will stop working; or null if this API version is not scheduled for
+	// deprecation.
 	DeprecationDate *time.Time `json:"deprecationDate"`
-	Features        *Features  `json:"features"`
-	Settings        *Settings  `json:"settings"`
+	// Optional features
+	Features *Features `json:"features"`
+	// Config settings
+	Settings *Settings `json:"settings"`
+}
+
+type WebhookDelivery struct {
+	UUID         string              `json:"uuid"`
+	Date         time.Time           `json:"date"`
+	Event        WebhookEvent        `json:"event"`
+	Subscription WebhookSubscription `json:"subscription"`
+	RequestBody  string              `json:"requestBody"`
+	// These details are provided only after a response is received from the
+	// remote server. If a response is sent whose Content-Type is not text/*, or
+	// cannot be decoded as UTF-8, the response body will be null. It will be
+	// truncated after 64 KiB.
+	ResponseBody    *string `json:"responseBody"`
+	ResponseHeaders *string `json:"responseHeaders"`
+	ResponseStatus  *int    `json:"responseStatus"`
+}
+
+// A cursor for enumerating a list of webhook deliveries
+//
+// If there are additional results available, the cursor object may be passed
+// back into the same endpoint to retrieve another page. If the cursor is null,
+// there are no remaining results to return.
+type WebhookDeliveryCursor struct {
+	Results []*WebhookDelivery `json:"results"`
+	Cursor  *model.Cursor      `json:"cursor"`
+}
+
+// A cursor for enumerating a list of webhook subscriptions
+//
+// If there are additional results available, the cursor object may be passed
+// back into the same endpoint to retrieve another page. If the cursor is null,
+// there are no remaining results to return.
+type WebhookSubscriptionCursor struct {
+	Results []WebhookSubscription `json:"results"`
+	Cursor  *model.Cursor         `json:"cursor"`
 }
 
 type AccessKind string
@@ -129,7 +240,9 @@ func (e AccessKind) MarshalGQL(w io.Writer) {
 type AccessMode string
 
 const (
+	// Read-only
 	AccessModeRo AccessMode = "RO"
+	// Read/write
 	AccessModeRw AccessMode = "RW"
 )
 
@@ -260,9 +373,12 @@ func (e ObjectType) MarshalGQL(w io.Writer) {
 type Visibility string
 
 const (
-	VisibilityPublic   Visibility = "PUBLIC"
+	// Visible to everyone, listed on your profile
+	VisibilityPublic Visibility = "PUBLIC"
+	// Visible to everyone (if they know the URL), not listed on your profile
 	VisibilityUnlisted Visibility = "UNLISTED"
-	VisibilityPrivate  Visibility = "PRIVATE"
+	// Not visible to anyone except those explicitly added to the access list
+	VisibilityPrivate Visibility = "PRIVATE"
 )
 
 var AllVisibility = []Visibility{
@@ -297,5 +413,48 @@ func (e *Visibility) UnmarshalGQL(v interface{}) error {
 }
 
 func (e Visibility) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type WebhookEvent string
+
+const (
+	WebhookEventRepoCreated WebhookEvent = "REPO_CREATED"
+	WebhookEventRepoUpdate  WebhookEvent = "REPO_UPDATE"
+	WebhookEventRepoDeleted WebhookEvent = "REPO_DELETED"
+)
+
+var AllWebhookEvent = []WebhookEvent{
+	WebhookEventRepoCreated,
+	WebhookEventRepoUpdate,
+	WebhookEventRepoDeleted,
+}
+
+func (e WebhookEvent) IsValid() bool {
+	switch e {
+	case WebhookEventRepoCreated, WebhookEventRepoUpdate, WebhookEventRepoDeleted:
+		return true
+	}
+	return false
+}
+
+func (e WebhookEvent) String() string {
+	return string(e)
+}
+
+func (e *WebhookEvent) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = WebhookEvent(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid WebhookEvent", str)
+	}
+	return nil
+}
+
+func (e WebhookEvent) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
