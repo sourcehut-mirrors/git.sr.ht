@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path"
 	"sort"
@@ -24,6 +25,8 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/database"
 	coremodel "git.sr.ht/~sircmpwn/core-go/model"
+	"git.sr.ht/~sircmpwn/core-go/server"
+	corewebhooks "git.sr.ht/~sircmpwn/core-go/webhooks"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
@@ -34,6 +37,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/storer"
+	"github.com/lib/pq"
 	minio "github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
@@ -617,11 +621,105 @@ func (r *mutationResolver) DeleteArtifact(ctx context.Context, id int) (*model.A
 }
 
 func (r *mutationResolver) CreateWebhook(ctx context.Context, config model.UserWebhookInput) (model.WebhookSubscription, error) {
-	panic(fmt.Errorf("not implemented"))
+	schema := server.ForContext(ctx).Schema
+	if err := corewebhooks.Validate(schema, config.Query); err != nil {
+		return nil, err
+	}
+
+	user := auth.ForContext(ctx)
+	ac, err := corewebhooks.NewAuthConfig(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var sub model.UserWebhookSubscription
+	if len(config.Events) == 0 {
+		return nil, fmt.Errorf("Must specify at least one event")
+	}
+	events := make([]string, len(config.Events))
+	for i, ev := range config.Events {
+		events[i] = ev.String()
+		// TODO: gqlgen does not support doing anything useful with directives
+		// on enums at the time of writing, so we have to do a little bit of
+		// manual fuckery
+		var access string
+		switch ev {
+		case model.WebhookEventRepoCreated, model.WebhookEventRepoUpdate,
+			model.WebhookEventRepoDeleted:
+			access = "REPOSITORIES"
+		}
+		if !user.Grants.Has(access, auth.RO) {
+			return nil, fmt.Errorf("Insufficient access granted for webhook event %s", ev.String())
+		}
+	}
+
+	u, err := url.Parse(config.URL)
+	if err != nil {
+		return nil, err
+	} else if u.Host == "" {
+		return nil, fmt.Errorf("Cannot use URL without host")
+	} else if u.Scheme != "http" && u.Scheme != "https" {
+		return nil, fmt.Errorf("Cannot use non-HTTP or HTTPS URL")
+	}
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			INSERT INTO gql_user_wh_sub (
+				created, events, url, query,
+				auth_method,
+				token_hash, grants, client_id, expires,
+				node_id,
+				user_id
+			) VALUES (
+				NOW() at time zone 'utc',
+				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+			) RETURNING id, url, query, events, user_id;`,
+			pq.Array(events), config.URL, config.Query,
+			ac.AuthMethod,
+			ac.TokenHash, ac.Grants, ac.ClientID, ac.Expires, // OAUTH2
+			ac.NodeID, // INTERNAL
+			user.UserID)
+
+		if err := row.Scan(&sub.ID, &sub.URL,
+			&sub.Query, pq.Array(&sub.Events), &sub.UserID); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &sub, nil
 }
 
 func (r *mutationResolver) DeleteWebhook(ctx context.Context, id int) (model.WebhookSubscription, error) {
-	panic(fmt.Errorf("not implemented"))
+	var sub model.UserWebhookSubscription
+
+	filter, err := corewebhooks.FilterWebhooks(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := sq.Delete(`gql_user_wh_sub`).
+			PlaceholderFormat(sq.Dollar).
+			Where(sq.And{sq.Expr(`id = ?`, id), filter}).
+			Suffix(`RETURNING id, url, query, events, user_id`).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		if err := row.Scan(&sub.ID, &sub.URL,
+			&sub.Query, pq.Array(&sub.Events), &sub.UserID); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &sub, nil
 }
 
 func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
@@ -712,15 +810,76 @@ func (r *queryResolver) RepositoryByOwner(ctx context.Context, owner string, rep
 }
 
 func (r *queryResolver) UserWebhooks(ctx context.Context, cursor *coremodel.Cursor) (*model.WebhookSubscriptionCursor, error) {
-	panic(fmt.Errorf("not implemented"))
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	filter, err := corewebhooks.FilterWebhooks(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var subs []model.WebhookSubscription
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		sub := (&model.UserWebhookSubscription{}).As(`sub`)
+		query := database.
+			Select(ctx, sub).
+			From(`gql_user_wh_sub sub`).
+			Where(filter)
+		subs, cursor = sub.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.WebhookSubscriptionCursor{subs, cursor}, nil
 }
 
 func (r *queryResolver) UserWebhook(ctx context.Context, id int) (model.WebhookSubscription, error) {
-	panic(fmt.Errorf("not implemented"))
+	var sub model.UserWebhookSubscription
+
+	filter, err := corewebhooks.FilterWebhooks(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		row := database.
+			Select(ctx, &sub).
+			From(`gql_user_wh_sub`).
+			Where(sq.And{sq.Expr(`id = ?`, id), filter}).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		if err := row.Scan(database.Scan(ctx, &sub)...); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &sub, nil
 }
 
 func (r *queryResolver) Webhook(ctx context.Context) (model.WebhookPayload, error) {
-	panic(fmt.Errorf("not implemented"))
+	raw, err := corewebhooks.Payload(ctx)
+	if err != nil {
+		return nil, err
+	}
+	payload, ok := raw.(model.WebhookPayload)
+	if !ok {
+		panic("Invalid webhook payload context")
+	}
+	return payload, nil
 }
 
 func (r *referenceResolver) Artifacts(ctx context.Context, obj *model.Reference, cursor *coremodel.Cursor) (*model.ArtifactCursor, error) {
@@ -1033,19 +1192,75 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor
 }
 
 func (r *userWebhookSubscriptionResolver) Client(ctx context.Context, obj *model.UserWebhookSubscription) (*model.OAuthClient, error) {
-	panic(fmt.Errorf("not implemented"))
+	if obj.ClientID == nil {
+		return nil, nil
+	}
+	return &model.OAuthClient{
+		UUID: *obj.ClientID,
+	}, nil
 }
 
 func (r *userWebhookSubscriptionResolver) Deliveries(ctx context.Context, obj *model.UserWebhookSubscription, cursor *coremodel.Cursor) (*model.WebhookDeliveryCursor, error) {
-	panic(fmt.Errorf("not implemented"))
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var deliveries []*model.WebhookDelivery
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		d := (&model.WebhookDelivery{}).
+			WithName(`profile`).
+			As(`delivery`)
+		query := database.
+			Select(ctx, d).
+			From(`gql_user_wh_delivery delivery`).
+			Where(`delivery.subscription_id = ?`, obj.ID)
+		deliveries, cursor = d.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.WebhookDeliveryCursor{deliveries, cursor}, nil
 }
 
 func (r *userWebhookSubscriptionResolver) Sample(ctx context.Context, obj *model.UserWebhookSubscription, event *model.WebhookEvent) (string, error) {
+	// TODO
 	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *webhookDeliveryResolver) Subscription(ctx context.Context, obj *model.WebhookDelivery) (model.WebhookSubscription, error) {
-	panic(fmt.Errorf("not implemented"))
+	if obj.Name == "" {
+		panic("WebhookDelivery without name")
+	}
+
+	// XXX: This could use a loader but it's unlikely to be a bottleneck
+	var sub model.WebhookSubscription
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		// XXX: This needs some work to generalize to other kinds of webhooks
+		subscription := (&model.UserWebhookSubscription{}).As(`sub`)
+		// Note: No filter needed because, if we have access to the delivery,
+		// we also have access to the subscription.
+		row := database.
+			Select(ctx, subscription).
+			From(`gql_user_wh_sub sub`).
+			Where(`sub.id = ?`, obj.SubscriptionID).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		if err := row.Scan(database.Scan(ctx, subscription)...); err != nil {
+			return err
+		}
+		sub = subscription
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return sub, nil
 }
 
 // ACL returns api.ACLResolver implementation.
