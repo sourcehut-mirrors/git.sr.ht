@@ -616,6 +616,14 @@ func (r *mutationResolver) DeleteArtifact(ctx context.Context, id int) (*model.A
 	return &artifact, nil
 }
 
+func (r *mutationResolver) CreateWebhook(ctx context.Context, config model.UserWebhookInput) (model.WebhookSubscription, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) DeleteWebhook(ctx context.Context, id int) (model.WebhookSubscription, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 	conf := config.ForContext(ctx)
 	upstream, _ := conf.Get("objects", "s3-upstream")
@@ -701,6 +709,18 @@ func (r *queryResolver) RepositoryByOwner(ctx context.Context, owner string, rep
 	}
 	return loaders.ForContext(ctx).
 		RepositoriesByOwnerRepoName.Load([2]string{owner, repo})
+}
+
+func (r *queryResolver) UserWebhooks(ctx context.Context, cursor *coremodel.Cursor) (*model.WebhookSubscriptionCursor, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *queryResolver) UserWebhook(ctx context.Context, id int) (model.WebhookSubscription, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *queryResolver) Webhook(ctx context.Context) (model.WebhookPayload, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *referenceResolver) Artifacts(ctx context.Context, obj *model.Reference, cursor *coremodel.Cursor) (*model.ArtifactCursor, error) {
