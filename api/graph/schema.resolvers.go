@@ -254,6 +254,17 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 				return fmt.Errorf("Invalid type for 'name' field (expected string)")
 			}
 
+			if !repoNameRE.MatchString(name) {
+				return fmt.Errorf("Invalid repository name '%s' (must match %s)",
+					name, repoNameRE.String())
+			}
+			if name == "." || name == ".." {
+				return fmt.Errorf("Invalid repository name '%s' (must not be . or ..)", name)
+			}
+			if name == ".git" || name == ".hg" {
+				return fmt.Errorf("Invalid repository name '%s' (must not be .git or .hg)", name)
+			}
+
 			var origPath string
 			row := tx.QueryRowContext(ctx, `
 				INSERT INTO redirect (
