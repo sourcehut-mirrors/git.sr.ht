@@ -471,9 +471,6 @@ type Query {
   """
   repositories(cursor: Cursor, filter: Filter): RepositoryCursor @access(scope: REPOSITORIES, kind: RO)
 
-  "Returns a specific repository by ID."
-  repository(id: Int!): Repository @access(scope: REPOSITORIES, kind: RO)
-
   "Returns a specific repository, owned by the authenticated user."
   repositoryByName(name: String!): Repository @access(scope: REPOSITORIES, kind: RO)
 
