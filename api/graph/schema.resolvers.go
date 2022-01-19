@@ -805,10 +805,6 @@ func (r *queryResolver) Repositories(ctx context.Context, cursor *coremodel.Curs
 	return &model.RepositoryCursor{repos, cursor}, nil
 }
 
-func (r *queryResolver) Repository(ctx context.Context, id int) (*model.Repository, error) {
-	return loaders.ForContext(ctx).RepositoriesByID.Load(id)
-}
-
 func (r *queryResolver) RepositoryByName(ctx context.Context, name string) (*model.Repository, error) {
 	return loaders.ForContext(ctx).RepositoriesByName.Load(name)
 }
