@@ -11,7 +11,7 @@ from gitsrht.webhooks import RepoWebhook
 from io import BytesIO
 from itertools import groupby
 from scmsrht.access import UserAccess
-from scmsrht.blueprints.api import get_user, get_repo
+from gitsrht.blueprints.api import get_user, get_repo
 from srht.api import paginated_response
 from srht.database import db
 from srht.oauth import current_token, oauth

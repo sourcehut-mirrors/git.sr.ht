@@ -8,7 +8,6 @@ if not hasattr(db, "session"):
 from srht.webhook import Event
 from srht.webhook.celery import CeleryWebhook, make_worker
 from srht.metrics import RedisQueueCollector
-from scmsrht.webhooks import UserWebhook
 import sqlalchemy as sa
 
 webhook_broker = cfg("git.sr.ht", "webhooks")
