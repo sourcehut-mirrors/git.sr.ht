@@ -1,12 +1,15 @@
 import hashlib
 import os.path
 import pygit2
+import re
+import shutil
 import subprocess
 from gitsrht.types import Artifact, Repository, Redirect
 from minio import Minio
-from scmsrht.repos import SimpleRepoApi
+from scmsrht.repos.repository import RepoVisibility
 from srht.config import cfg
 from srht.database import db
+from srht.graphql import exec_gql, GraphQLError
 from werkzeug.utils import secure_filename
 
 repos_path = cfg("git.sr.ht", "repos")
@@ -75,44 +78,68 @@ def upload_artifact(valid, repo, commit, f, filename):
     db.session.add(artifact)
     return artifact
 
-class GitRepoApi(SimpleRepoApi):
-    def __init__(self):
-        super().__init__(repos_path,
-                redirect_class=Redirect,
-                repository_class=Repository)
+# TODO: Remove repo API wrapper class
 
-    def do_init_repo(self, owner, repo):
-        # Note: update gitsrht-shell when changing this,
-        # do_clone_repo(), or _repo_config_init()
-        git_repo = pygit2.init_repository(repo.path, bare=True,
-            flags=pygit2.GIT_REPOSITORY_INIT_BARE |
-                  pygit2.GIT_REPOSITORY_INIT_MKPATH)
-        self._repo_config_init(repo, git_repo)
+class GitRepoApi():
+    def get_repo_path(self, owner, repo_name):
+        return os.path.join(repos_path, "~" + owner.username, repo_name)
 
-    def _repo_config_init(self, repo, git_repo):
-        git_repo.config["srht.repo-id"] = repo.id
-        # We handle this ourselves in the post-update hook, and git's
-        # default behaviour is to print a large notice and reject the push entirely
-        git_repo.config["receive.denyDeleteCurrent"] = "ignore"
-        git_repo.config["receive.advertisePushOptions"] = True
-        os.unlink(os.path.join(repo.path, "info", "exclude"))
-        os.unlink(os.path.join(repo.path, "hooks", "README.sample"))
-        os.unlink(os.path.join(repo.path, "description"))
-        os.symlink(post_update, os.path.join(repo.path, "hooks", "pre-receive"))
-        os.symlink(post_update, os.path.join(repo.path, "hooks", "update"))
-        os.symlink(post_update, os.path.join(repo.path, "hooks", "post-update"))
+    def create_repo(self, valid, user=None):
+        repo_name = valid.require("name", friendly_name="Name")
+        description = valid.optional("description")
+        visibility = valid.optional("visibility")
+        if not valid.ok:
+            return None
 
-    def do_delete_repo(self, repo):
-        from gitsrht.webhooks import RepoWebhook
-        RepoWebhook.Subscription.query.filter(
-                RepoWebhook.Subscription.repo_id == repo.id).delete()
-        # TODO: Should we delete these asynchronously?
-        for artifact in (Artifact.query
-                .filter(Artifact.user_id == repo.owner_id)
-                .filter(Artifact.repo_id == repo.id)):
-            delete_artifact(artifact)
-        super().do_delete_repo(repo)
+        resp = exec_gql("git.sr.ht", """
+            mutation CreateRepository($name: String!, $visibility: Visibility = PUBLIC, $description: String) {
+                createRepository(name: $name, visibility: $visibility, description: $description) {
+                    id
+                    created
+                    updated
+                    name
+                    owner {
+                        canonicalName
+                        ... on User {
+                            name: username
+                        }
+                    }
+                    description
+                    visibility
+                }
+            }
+        """, valid=valid, user=user, name=repo_name, description=description, visibility=visibility)
 
-    def do_clone_repo(self, source, repo):
-        git_repo = pygit2.clone_repository(source, repo.path, bare=True)
-        self._repo_config_init(repo, git_repo)
+        print(valid)
+
+        if not valid.ok:
+            return None
+        return resp["createRepository"]
+
+    def clone_repo(self, valid):
+        cloneUrl = valid.require("cloneUrl", friendly_name="Clone URL")
+        name = valid.require("name", friendly_name="Name")
+        description = valid.optional("description")
+        visibility = valid.optional("visibility")
+        if not valid.ok:
+            return None
+
+        resp = exec_gql("git.sr.ht", """
+            mutation CreateRepository($name: String!, $visibility: Visibility = UNLISTED, $description: String, $cloneUrl: String) {
+                createRepository(name: $name, visibility: $visibility, description: $description, cloneUrl: $cloneUrl) {
+                    name
+                }
+            }
+        """, valid=valid, name=name, visibility=visibility,
+            description=description, cloneUrl=cloneUrl)
+
+        if not valid.ok:
+            return None
+        return resp["createRepository"]
+
+    def delete_repo(self, repo, user=None):
+        exec_gql("git.sr.ht", """
+            mutation DeleteRepository($id: Int!) {
+                deleteRepository(id: $id) { id }
+            }
+        """, user=user, id=repo.id)

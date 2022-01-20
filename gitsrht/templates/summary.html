@@ -89,7 +89,10 @@
           {% elif current_user != repo.owner %}
           <form method="POST" action="{{url_for('manage.clone_POST')}}">
             {{csrf_token()}}
-            <input type="hidden" name="source_repo_id" value="{{repo.id}}" />
+            <input type="hidden" name="cloneUrl" value="{{(repo|clone_urls)[0]}}" />
+            <input type="hidden" name="name" value="{{repo.name}}" />
+            <input type="hidden" name="description" value="Clone of {{(repo|clone_urls)[0]}}" />
+            <input type="hidden" name="visibility" value="{% if repo.visibility.value == 'private' %}PRIVATE{% else %}UNLISTED{% endif %}" />
             <button type="submit" class="btn btn-primary btn-block">
               Clone repo to your account {{icon('caret-right')}}
             </button>
