@@ -71,7 +71,7 @@ func (r *commitResolver) Diff(ctx context.Context, obj *model.Commit) (string, e
 	return obj.DiffContext(ctx), nil
 }
 
-func (r *mutationResolver) CreateRepository(ctx context.Context, name string, visibility model.Visibility, description *string) (*model.Repository, error) {
+func (r *mutationResolver) CreateRepository(ctx context.Context, name string, visibility model.Visibility, description *string, cloneURL *string) (*model.Repository, error) {
 	if !repoNameRE.MatchString(name) {
 		return nil, fmt.Errorf("Invalid repository name '%s' (must match %s)",
 			name, repoNameRE.String())
@@ -141,15 +141,67 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 			&repo.Description, &repo.RawVisibility, &repo.UpstreamURL,
 			&repo.Path, &repo.OwnerID); err != nil {
 			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
-				return fmt.Errorf("A repository with this name already exists.")
+				return gqlErrorf(ctx, "name", "A repository with this name already exists.")
 			}
 			return err
 		}
 
-		gitrepo, err := git.PlainInit(repoPath, true)
-		if err != nil {
-			return err
+		var gitrepo *git.Repository
+		if cloneURL != nil {
+			u, err := url.Parse(*cloneURL)
+			if err != nil {
+				return err
+			} else if u.Host == "" {
+				return gqlErrorf(ctx, "cloneUrl", "Cannot use URL without host")
+			} else if _, ok := allowedCloneSchemes[u.Scheme]; !ok {
+				return gqlErrorf(ctx, "cloneUrl", "Unsupported protocol %q", u.Scheme)
+			}
+
+			origin := config.GetOrigin(conf, "git.sr.ht", true)
+			o, err := url.Parse(origin)
+			if err != nil {
+				panic(err)
+			}
+
+			// Check if this is a local repository
+			if u.Scheme == o.Scheme && u.Host == o.Host {
+				u.Path = strings.TrimPrefix(u.Path, "/")
+				split := strings.SplitN(u.Path, "/", 2)
+				if len(split) != 2 {
+					return gqlErrorf(ctx, "cloneUrl", "Invalid clone URL")
+				}
+				canonicalName, repoName := split[0], split[1]
+				entity := canonicalName
+				if strings.HasPrefix(entity, "~") {
+					entity = entity[1:]
+				} else {
+					return gqlErrorf(ctx, "cloneUrl", "Invalid username")
+				}
+				repo, err := loaders.ForContext(ctx).
+					RepositoriesByOwnerRepoName.Load([2]string{entity, repoName})
+				if err != nil {
+					return err
+				} else if repo == nil {
+					return gqlErrorf(ctx, "cloneUrl", "Repository not found")
+				}
+				cloneURL = &repo.Path
+			}
+
+			gitrepo, err = git.PlainClone(repoPath, true, &git.CloneOptions{
+				URL:               *cloneURL,
+				RecurseSubmodules: git.NoRecurseSubmodules,
+			})
+			if err != nil {
+				return gqlErrorf(ctx, "cloneUrl", "%s", err)
+			}
+		} else {
+			var err error
+			gitrepo, err = git.PlainInit(repoPath, true)
+			if err != nil {
+				return err
+			}
 		}
+
 		repoCreated = true
 		config, err := gitrepo.Config()
 		if err != nil {

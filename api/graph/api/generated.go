@@ -116,7 +116,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		CreateRepository func(childComplexity int, name string, visibility model.Visibility, description *string) int
+		CreateRepository func(childComplexity int, name string, visibility model.Visibility, description *string, cloneURL *string) int
 		CreateWebhook    func(childComplexity int, config model.UserWebhookInput) int
 		DeleteACL        func(childComplexity int, id int) int
 		DeleteArtifact   func(childComplexity int, id int) int
@@ -301,7 +301,7 @@ type CommitResolver interface {
 	Diff(ctx context.Context, obj *model.Commit) (string, error)
 }
 type MutationResolver interface {
-	CreateRepository(ctx context.Context, name string, visibility model.Visibility, description *string) (*model.Repository, error)
+	CreateRepository(ctx context.Context, name string, visibility model.Visibility, description *string, cloneURL *string) (*model.Repository, error)
 	UpdateRepository(ctx context.Context, id int, input map[string]interface{}) (*model.Repository, error)
 	DeleteRepository(ctx context.Context, id int) (*model.Repository, error)
 	UpdateACL(ctx context.Context, repoID int, mode model.AccessMode, entity string) (*model.ACL, error)
@@ -607,7 +607,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateRepository(childComplexity, args["name"].(string), args["visibility"].(model.Visibility), args["description"].(*string)), true
+		return e.complexity.Mutation.CreateRepository(childComplexity, args["name"].(string), args["visibility"].(model.Visibility), args["description"].(*string), args["cloneUrl"].(*string)), true
 
 	case "Mutation.createWebhook":
 		if e.complexity.Mutation.CreateWebhook == nil {
@@ -2097,8 +2097,11 @@ input UserWebhookInput {
 }
 
 type Mutation {
-  "Creates a new git repository"
-  createRepository(name: String!, visibility: Visibility!, description: String): Repository @access(scope: REPOSITORIES, kind: RW)
+  """
+  Creates a new git repository. If the cloneUrl parameter is specified, the
+  repository will be cloned from the given URL.
+  """
+  createRepository(name: String!, visibility: Visibility!, description: String, cloneUrl: String): Repository @access(scope: REPOSITORIES, kind: RW)
 
   "Updates the metadata for a git repository"
   updateRepository(id: Int!, input: RepoInput!): Repository @access(scope: REPOSITORIES, kind: RW)
@@ -2221,6 +2224,15 @@ func (ec *executionContext) field_Mutation_createRepository_args(ctx context.Con
 		}
 	}
 	args["description"] = arg2
+	var arg3 *string
+	if tmp, ok := rawArgs["cloneUrl"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cloneUrl"))
+		arg3, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["cloneUrl"] = arg3
 	return args, nil
 }
 
@@ -3954,7 +3966,7 @@ func (ec *executionContext) _Mutation_createRepository(ctx context.Context, fiel
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().CreateRepository(rctx, args["name"].(string), args["visibility"].(model.Visibility), args["description"].(*string))
+			return ec.resolvers.Mutation().CreateRepository(rctx, args["name"].(string), args["visibility"].(model.Visibility), args["description"].(*string), args["cloneUrl"].(*string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋgitᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "REPOSITORIES")

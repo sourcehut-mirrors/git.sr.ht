@@ -522,8 +522,11 @@ input UserWebhookInput {
 }
 
 type Mutation {
-  "Creates a new git repository"
-  createRepository(name: String!, visibility: Visibility!, description: String): Repository @access(scope: REPOSITORIES, kind: RW)
+  """
+  Creates a new git repository. If the cloneUrl parameter is specified, the
+  repository will be cloned from the given URL.
+  """
+  createRepository(name: String!, visibility: Visibility!, description: String, cloneUrl: String): Repository @access(scope: REPOSITORIES, kind: RW)
 
   "Updates the metadata for a git repository"
   updateRepository(id: Int!, input: RepoInput!): Repository @access(scope: REPOSITORIES, kind: RW)
