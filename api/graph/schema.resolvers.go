@@ -846,20 +846,6 @@ func (r *queryResolver) Repositories(ctx context.Context, cursor *coremodel.Curs
 	return &model.RepositoryCursor{repos, cursor}, nil
 }
 
-func (r *queryResolver) RepositoryByName(ctx context.Context, name string) (*model.Repository, error) {
-	return loaders.ForContext(ctx).RepositoriesByName.Load(name)
-}
-
-func (r *queryResolver) RepositoryByOwner(ctx context.Context, owner string, repo string) (*model.Repository, error) {
-	if strings.HasPrefix(owner, "~") {
-		owner = owner[1:]
-	} else {
-		return nil, fmt.Errorf("Expected owner to be a canonical name")
-	}
-	return loaders.ForContext(ctx).
-		RepositoriesByOwnerRepoName.Load([2]string{owner, repo})
-}
-
 func (r *queryResolver) UserWebhooks(ctx context.Context, cursor *coremodel.Cursor) (*model.WebhookSubscriptionCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -1209,6 +1195,11 @@ func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *cor
 	}
 
 	return &model.TreeEntryCursor{entries, cursor}, nil
+}
+
+func (r *userResolver) Repository(ctx context.Context, obj *model.User, name string) (*model.Repository, error) {
+	// TODO: Load repository with user ID instead of username. Needs a new loader.
+	return loaders.ForContext(ctx).RepositoriesByOwnerRepoName.Load([2]string{obj.Username, name})
 }
 
 func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor *coremodel.Cursor, filter *coremodel.Filter) (*model.RepositoryCursor, error) {
