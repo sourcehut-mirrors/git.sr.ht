@@ -87,6 +87,18 @@ interface Entity {
   """
   canonicalName: String!
 
+  "Returns a specific repository owned by the user."
+  repository(name: String!): Repository @access(scope: REPOSITORIES, kind: RO)
+
+  """
+  Returns repositories that the user has access to.
+
+  NOTE: in this version of the API, only repositories owned by the
+  authenticated user are returned, but in the future the default behavior
+  will be to return all repositories that the user either (1) has been given
+  explicit access to via ACLs or (2) has implicit access to either by
+  ownership or group membership.
+  """
   repositories(cursor: Cursor, filter: Filter): RepositoryCursor! @access(scope: REPOSITORIES, kind: RO)
 }
 
@@ -101,6 +113,7 @@ type User implements Entity {
   location: String
   bio: String
 
+  repository(name: String!): Repository @access(scope: REPOSITORIES, kind: RO)
   repositories(cursor: Cursor, filter: Filter): RepositoryCursor! @access(scope: REPOSITORIES, kind: RO)
 }
 
@@ -470,15 +483,6 @@ type Query {
   ownership or group membership.
   """
   repositories(cursor: Cursor, filter: Filter): RepositoryCursor @access(scope: REPOSITORIES, kind: RO)
-
-  "Returns a specific repository, owned by the authenticated user."
-  repositoryByName(name: String!): Repository @access(scope: REPOSITORIES, kind: RO)
-
-  """
-  Returns a specific repository, owned by the given canonical name (e.g.
-  "~sircmpwn").
-  """
-  repositoryByOwner(owner: String!, repo: String!): Repository @access(scope: REPOSITORIES, kind: RO)
 
   """
   Returns a list of user webhook subscriptions. For clients
