@@ -281,6 +281,9 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 
 		if val, ok := input["visibility"]; ok {
 			delete(input, "visibility")
+			if val == nil {
+				return fmt.Errorf("Visibility cannot be null")
+			}
 			vis := model.Visibility(val.(string))
 			if !vis.IsValid() {
 				return fmt.Errorf("Invalid visibility '%s'", val)
@@ -306,6 +309,9 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 				upstream_uri, path, owner_id`)
 
 		if n, ok := input["name"]; ok {
+			if n == nil {
+				return fmt.Errorf("Name cannot be null")
+			}
 			name, ok := n.(string)
 			if !ok {
 				return fmt.Errorf("Invalid type for 'name' field (expected string)")
