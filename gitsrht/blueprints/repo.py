@@ -334,6 +334,31 @@ def lookup_user():
     cache = {}
     return lambda email: _lookup_user(email, cache)
 
+# We only care about these fields in in blame.html, so we discard
+# boundary, final_start_line_number, orig_commit_id, orig_committer,
+# orig_path, and orig_start_line_number here
+class FakeBlameHunk:
+    def __init__(self, hunk):
+        self.final_commit_id = hunk.final_commit_id
+        self.final_committer = hunk.final_committer
+        self.lines_in_hunk = hunk.lines_in_hunk
+
+# Blame hunks of the same final commit are split if they're not consecutive
+# lines in the original commit (cf. https://todo.sr.ht/~sircmpwn/git.sr.ht/357)
+def weld_hunks(blame):
+    last = None
+    for nxt in map(FakeBlameHunk, blame):
+        if last is None:
+            last = nxt
+            continue
+        if last.final_commit_id == nxt.final_commit_id:
+            last.lines_in_hunk += nxt.lines_in_hunk
+        else:
+            yield last
+            last = nxt
+    if last is not None:
+        yield last
+
 @repo.route("/<owner>/<repo>/blame/<path:ref>", defaults={"path": ""})
 @repo.route("/<owner>/<repo>/blame/<ref>/<path:path>")
 def blame(owner, repo, ref, path):
@@ -361,7 +386,7 @@ def blame(owner, repo, ref, path):
 
         return render_template("blame.html", view="blame", owner=owner,
                 repo=repo, ref=ref, path=path, entry=entry, blob=blob, data=data,
-                blame=blame, commit=orig_commit, highlight_file=_highlight_file,
+                blame=list(weld_hunks(blame)), commit=orig_commit, highlight_file=_highlight_file,
                 editorconfig=EditorConfig(git_repo, orig_commit.tree, path),
                 lookup_user=lookup_user(), pygit2=pygit2)
 
