@@ -26,6 +26,7 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/database"
 	coremodel "git.sr.ht/~sircmpwn/core-go/model"
 	"git.sr.ht/~sircmpwn/core-go/server"
+	"git.sr.ht/~sircmpwn/core-go/valid"
 	corewebhooks "git.sr.ht/~sircmpwn/core-go/webhooks"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
@@ -141,7 +142,7 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 			&repo.Description, &repo.RawVisibility, &repo.UpstreamURL,
 			&repo.Path, &repo.OwnerID); err != nil {
 			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
-				return gqlErrorf(ctx, "name", "A repository with this name already exists.")
+				return valid.Errorf(ctx, "name", "A repository with this name already exists.")
 			}
 			return err
 		}
@@ -152,9 +153,9 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 			if err != nil {
 				return err
 			} else if u.Host == "" {
-				return gqlErrorf(ctx, "cloneUrl", "Cannot use URL without host")
+				return valid.Errorf(ctx, "cloneUrl", "Cannot use URL without host")
 			} else if _, ok := allowedCloneSchemes[u.Scheme]; !ok {
-				return gqlErrorf(ctx, "cloneUrl", "Unsupported protocol %q", u.Scheme)
+				return valid.Errorf(ctx, "cloneUrl", "Unsupported protocol %q", u.Scheme)
 			}
 
 			origin := config.GetOrigin(conf, "git.sr.ht", true)
@@ -168,21 +169,21 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 				u.Path = strings.TrimPrefix(u.Path, "/")
 				split := strings.SplitN(u.Path, "/", 2)
 				if len(split) != 2 {
-					return gqlErrorf(ctx, "cloneUrl", "Invalid clone URL")
+					return valid.Errorf(ctx, "cloneUrl", "Invalid clone URL")
 				}
 				canonicalName, repoName := split[0], split[1]
 				entity := canonicalName
 				if strings.HasPrefix(entity, "~") {
 					entity = entity[1:]
 				} else {
-					return gqlErrorf(ctx, "cloneUrl", "Invalid username")
+					return valid.Errorf(ctx, "cloneUrl", "Invalid username")
 				}
 				repo, err := loaders.ForContext(ctx).
 					RepositoriesByOwnerRepoName.Load([2]string{entity, repoName})
 				if err != nil {
 					return err
 				} else if repo == nil {
-					return gqlErrorf(ctx, "cloneUrl", "Repository not found")
+					return valid.Errorf(ctx, "cloneUrl", "Repository not found")
 				}
 				cloneURL = &repo.Path
 			}
@@ -192,7 +193,7 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 				RecurseSubmodules: git.NoRecurseSubmodules,
 			})
 			if err != nil {
-				return gqlErrorf(ctx, "cloneUrl", "%s", err)
+				return valid.Errorf(ctx, "cloneUrl", "%s", err)
 			}
 		} else {
 			var err error
