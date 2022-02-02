@@ -17,7 +17,7 @@
             name="name"
             id="name"
             class="form-control {{valid.cls("name")}}"
-            value="{{ repo_name or "" }}" />
+            value="{{ name or "" }}" />
           {{valid.summary("name")}}
         </div>
         <div class="form-group">
@@ -27,7 +27,7 @@
             name="description"
             id="description"
             class="form-control {{valid.cls("description")}}"
-            value="{{ repo_description or "" }}" />
+            value="{{ description or "" }}" />
           {{valid.summary("description")}}
         </div>
         <fieldset class="form-group">
