@@ -14,10 +14,10 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/go-git/go-git/v5"
 	"github.com/google/shlex"
 	_ "github.com/lib/pq"
 	"github.com/vaughan0/go-ini"
-	"github.com/go-git/go-git/v5"
 )
 
 const (
@@ -352,8 +352,8 @@ func main() {
 	if pusherSuspendNotice != nil {
 		snotice = *pusherSuspendNotice
 	}
-	logger.Printf("repo ID %d; name '%s'; owner ID %d; owner name '%s'; " +
-		"visibility '%s'; pusher type '%s'; pusher suspension notice '%s'; " +
+	logger.Printf("repo ID %d; name '%s'; owner ID %d; owner name '%s'; "+
+		"visibility '%s'; pusher type '%s'; pusher suspension notice '%s'; "+
 		"access grant '%s'", repoId, repoName, repoOwnerId, repoOwnerName,
 		repoVisibility, pusherType, snotice, agrant)
 
