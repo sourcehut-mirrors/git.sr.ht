@@ -126,23 +126,18 @@ def settings_rename_POST(owner_name, repo_name):
         repo = repo.new_repo
 
     valid = Validation(request)
-    name = valid.require("name")
+    name = valid.require("name", friendly_name="Name")
     if not valid.ok:
         return render_template("settings_rename.html", owner=owner, repo=repo,
                 **valid.kwargs)
 
-    resp = None
-    try:
-        resp = exec_gql("git.sr.ht", """
-            mutation RenameRepository($id: Int!, $name: String!) {
-                updateRepository(id: $id, input: {name: $name}) {
-                    name
-                }
+    resp = exec_gql("git.sr.ht", """
+        mutation RenameRepository($id: Int!, $name: String!) {
+            updateRepository(id: $id, input: {name: $name}) {
+                name
             }
-        """, id=repo.id, name=name)
-    except GraphQLError as e:
-        for err in e.errors:
-            valid.error(err["message"], field="name")
+        }
+    """, valid=valid, id=repo.id, name=name)
 
     if not valid.ok:
         return render_template("settings_rename.html", owner=owner, repo=repo,
