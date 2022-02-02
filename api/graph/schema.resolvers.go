@@ -74,14 +74,14 @@ func (r *commitResolver) Diff(ctx context.Context, obj *model.Commit) (string, e
 
 func (r *mutationResolver) CreateRepository(ctx context.Context, name string, visibility model.Visibility, description *string, cloneURL *string) (*model.Repository, error) {
 	if !repoNameRE.MatchString(name) {
-		return nil, fmt.Errorf("Invalid repository name '%s' (must match %s)",
+		return nil, valid.Errorf(ctx, "name", "Invalid repository name '%s' (must match %s)",
 			name, repoNameRE.String())
 	}
 	if name == "." || name == ".." {
-		return nil, fmt.Errorf("Invalid repository name '%s' (must not be . or ..)", name)
+		return nil, valid.Errorf(ctx, "name", "Invalid repository name '%s' (must not be . or ..)", name)
 	}
 	if name == ".git" || name == ".hg" {
-		return nil, fmt.Errorf("Invalid repository name '%s' (must not be .git or .hg)", name)
+		return nil, valid.Errorf(ctx, "name", "Invalid repository name '%s' (must not be .git or .hg)", name)
 	}
 
 	conf := config.ForContext(ctx)
