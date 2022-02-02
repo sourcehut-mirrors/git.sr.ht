@@ -287,6 +287,7 @@ func configureRequestAuthorization(submitter BuildSubmitter,
 
 // TODO: Move this to scm.sr.ht
 var submitBuildSkipCiPrinted bool
+
 func SubmitBuild(submitter BuildSubmitter) ([]BuildSubmission, error) {
 	manifests, err := submitter.FindManifests()
 	if err != nil || manifests == nil {

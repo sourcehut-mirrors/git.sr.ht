@@ -4,8 +4,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/vaughan0/go-ini"
 	"git.sr.ht/~sircmpwn/core-go/crypto"
+	"github.com/vaughan0/go-ini"
 )
 
 var (
