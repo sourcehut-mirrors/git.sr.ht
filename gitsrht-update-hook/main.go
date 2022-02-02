@@ -47,7 +47,7 @@ func init() {
 		logger = log.New(logf, os.Args[0]+" ", log.LstdFlags)
 	}
 
-	for _, path := range []string{"../config.ini", "/etc/sr.ht/config.ini"} {
+	for _, path := range []string{os.Getenv("SRHT_CONFIG"), "/etc/sr.ht/config.ini"} {
 		config, err = ini.LoadFile(path)
 		if err == nil {
 			break
