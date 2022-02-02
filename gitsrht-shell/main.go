@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -11,13 +12,15 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
-	"strings"
 	"syscall"
 
-	"github.com/go-git/go-git/v5"
+	"git.sr.ht/~sircmpwn/core-go/client"
+	coreconfig "git.sr.ht/~sircmpwn/core-go/config"
+	"git.sr.ht/~sircmpwn/core-go/crypto"
 	"github.com/google/shlex"
 	_ "github.com/lib/pq"
 	"github.com/vaughan0/go-ini"
+	"github.com/vektah/gqlparser/gqlerror"
 )
 
 const (
@@ -49,7 +52,6 @@ func main() {
 		repos          string
 		siteOwnerName  string
 		siteOwnerEmail string
-		postUpdate     string
 
 		cmdstr string
 		cmd    []string
@@ -97,11 +99,6 @@ func main() {
 		logger.Fatalf("No repo path configured for git.sr.ht")
 	}
 
-	postUpdate, ok = config.Get("git.sr.ht", "post-update-script")
-	if !ok {
-		logger.Fatalf("No post-update script configured for git.sr.ht")
-	}
-
 	siteOwnerName, _ = config.Get("sr.ht", "owner-name")
 	siteOwnerEmail, _ = config.Get("sr.ht", "owner-email")
 
@@ -138,18 +135,14 @@ func main() {
 		os.Exit(128)
 	}
 
-	os.Chdir(repos)
-
 	// Validate the path that they're trying to access is in the repos directory
-	path := cmd[len(cmd)-1]
-	path, err = filepath.Abs(path)
+	path := gopath.Join("/", cmd[len(cmd)-1])
+	path = gopath.Join(repos, path)
+	absPath, err := filepath.Abs(path)
 	if err != nil {
 		logger.Fatalf("filepath.Abs(%s): %v", path, err)
 	}
-	if !strings.HasPrefix(path, repos) {
-		path = gopath.Join(repos, path)
-	}
-	cmd[len(cmd)-1] = path
+	cmd[len(cmd)-1] = absPath
 
 	// Check what kind of access they're interested in
 	needsAccess := ACCESS_READ
@@ -182,6 +175,7 @@ func main() {
 		pusherType          string
 		pusherSuspendNotice *string
 		accessGrant         *string
+		autocreated         bool
 	)
 	logger.Printf("Looking up repo: pusher ID %d, repo path %s", pusherId, path)
 	row := db.QueryRow(`
@@ -248,8 +242,8 @@ func main() {
 				repoOwnerName = repoOwnerName[1:]
 			}
 
-			notFound := func(ctx string, err error) {
-				if err != nil {
+			notFound := func(ctx string, errs ...error) {
+				for _, err := range errs {
 					logger.Printf("Error autocreating repo: %s: %v", ctx, err)
 				}
 				logger.Println("Repository not found.")
@@ -272,63 +266,43 @@ func main() {
 
 				repoOwnerId = pusherId
 				repoOwnerName = pusherName
-				repoVisibility = "autocreated"
+				repoVisibility = "private"
 
-				createQuery, err := db.Prepare(`
-					INSERT INTO repository (
-						created,
-						updated,
-						name,
-						owner_id,
-						path,
-						visibility
-					) VALUES (
-						NOW() at time zone 'utc',
-						NOW() at time zone 'utc',
-						$1, $2, $3, 'autocreated'
-					) RETURNING id;
-				`)
+				query := client.GraphQLQuery{
+					Query: `
+						mutation CreateRepository($name: String!) {
+							createRepository(name: $name, visibility: PRIVATE) {
+								id
+							}
+						}
+					`,
+					Variables: map[string]interface{}{
+						"name": repoName,
+					},
+				}
+				resp := struct {
+					Data struct {
+						CreateRepository struct {
+							ID int `json:"id"`
+						} `json:"createRepository"`
+					} `json:"data"`
+					Errors []gqlerror.Error `json:"errors"`
+				}{}
+
+				crypto.InitCrypto(config)
+				ctx := coreconfig.Context(context.Background(), config, "git.sr.ht")
+				err := client.Execute(ctx, pusherName, "git.sr.ht", query, &resp)
 				if err != nil {
-					notFound("create query prepare", err)
-				}
-				defer createQuery.Close()
-
-				if err = createQuery.QueryRow(repoName, repoOwnerId, path).
-					Scan(&repoId); err != nil {
-
-					notFound("insert", err)
-				}
-
-				// Note: update gitsrht/repos.py when changing this
-				// Also update api/graph/schema.resolvers.go:CreateRepository
-				repo, err := git.PlainInit(path, true)
-				if err != nil {
-					notFound("git init", err)
-				}
-				config, err := repo.Config()
-				if err != nil {
-					notFound("git config load", err)
-				}
-				// These two are set by default by git(1) and libgit2
-				config.Raw.SetOption("core", "", "repositoryformatversion", "0")
-				config.Raw.SetOption("core", "", "filemode", "true")
-				config.Raw.SetOption("srht", "", "repo-id", strconv.Itoa(repoId))
-				config.Raw.SetOption("receive", "", "denyDeleteCurrent", "ignore")
-				config.Raw.SetOption("receive", "", "advertisePushOptions", "true")
-				if err = repo.Storer.SetConfig(config); err != nil {
-					notFound("git config save", err)
-				}
-
-				hookdir := gopath.Join(path, "hooks")
-				if err = os.Mkdir(hookdir, os.ModePerm); err != nil {
-					notFound("git hook directory", err)
-				}
-				for _, hook := range []string{"pre-receive", "update", "post-update"} {
-					if err = os.Symlink(postUpdate, gopath.Join(hookdir, hook)); err != nil {
-						notFound(fmt.Sprintf("linking git hook %v"), err)
+					notFound("create repository", err)
+				} else if len(resp.Errors) > 0 {
+					errs := []error{}
+					for i := range resp.Errors {
+						errs = append(errs, &resp.Errors[i])
 					}
+					notFound("create repository", errs...)
 				}
-
+				repoId = resp.Data.CreateRepository.ID
+				autocreated = true
 				logger.Printf("Autocreated repo %s", path)
 			}
 		} else if err != nil {
@@ -409,12 +383,14 @@ func main() {
 	// context" so that steps later in the pipeline don't have to repeat our
 	// lookups, then exec(2) into git.
 	type RepoContext struct {
-		Id         int    `json:"id"`
-		Name       string `json:"name"`
-		OwnerId    int    `json:"owner_id"`
-		OwnerName  string `json:"owner_name"`
-		Path       string `json:"path"`
-		Visibility string `json:"visibility"`
+		Id           int    `json:"id"`
+		Name         string `json:"name"`
+		OwnerId      int    `json:"owner_id"`
+		OwnerName    string `json:"owner_name"`
+		Path         string `json:"path"`
+		AbsolutePath string `json:"absolute_path"`
+		Visibility   string `json:"visibility"`
+		Autocreated  bool   `json:"autocreated"`
 	}
 
 	type UserContext struct {
@@ -427,12 +403,14 @@ func main() {
 		User UserContext `json:"user"`
 	}{
 		Repo: RepoContext{
-			Id:         repoId,
-			Name:       repoName,
-			OwnerId:    repoOwnerId,
-			OwnerName:  repoOwnerName,
-			Path:       path,
-			Visibility: repoVisibility,
+			Id:           repoId,
+			Name:         repoName,
+			OwnerId:      repoOwnerId,
+			OwnerName:    repoOwnerName,
+			Path:         path,
+			AbsolutePath: absPath,
+			Visibility:   repoVisibility,
+			Autocreated:  autocreated,
 		},
 		User: UserContext{
 			CanonicalName: "~" + pusherName,
