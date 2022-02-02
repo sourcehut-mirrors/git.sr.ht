@@ -280,53 +280,24 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		user := auth.ForContext(ctx)
 
-		if val, ok := input["visibility"]; ok {
-			delete(input, "visibility")
-			if val == nil {
-				return fmt.Errorf("Visibility cannot be null")
-			}
-			vis := model.Visibility(val.(string))
-			if !vis.IsValid() {
-				return fmt.Errorf("Invalid visibility '%s'", val)
-			}
-			switch vis {
-			case model.VisibilityPublic:
-				input["visibility"] = "public"
-			case model.VisibilityUnlisted:
-				input["visibility"] = "unlisted"
-			case model.VisibilityPrivate:
-				input["visibility"] = "private"
-			default:
-				panic("Invariant broken; unknown visibility")
-			}
-		}
+		query := sq.Update(repo.Table()).
+			PlaceholderFormat(sq.Dollar)
 
-		query := database.Apply(&repo, input).
-			Where(`id = ?`, id).
-			Where(`owner_id = ?`, auth.ForContext(ctx).UserID).
-			Set(`updated`, sq.Expr(`now() at time zone 'utc'`)).
-			Suffix(`RETURNING
-				id, created, updated, name, description, visibility,
-				upstream_uri, path, owner_id`)
+		valid := valid.New(ctx).WithInput(input)
 
-		if n, ok := input["name"]; ok {
-			if n == nil {
-				return fmt.Errorf("Name cannot be null")
-			}
-			name, ok := n.(string)
-			if !ok {
-				return fmt.Errorf("Invalid type for 'name' field (expected string)")
-			}
-
-			if !repoNameRE.MatchString(name) {
-				return fmt.Errorf("Invalid repository name '%s' (must match %s)",
-					name, repoNameRE.String())
-			}
-			if name == "." || name == ".." {
-				return fmt.Errorf("Invalid repository name '%s' (must not be . or ..)", name)
-			}
-			if name == ".git" || name == ".hg" {
-				return fmt.Errorf("Invalid repository name '%s' (must not be .git or .hg)", name)
+		valid.OptionalString("name", func(name string) {
+			valid.Expect(repoNameRE.MatchString(name),
+				"Invalid repository name '%s' (must match %s)",
+				name, repoNameRE.String()).
+				WithField("name")
+			valid.Expect(name != "." && name != "..",
+				"Invalid repository name '%s' (must not be . or ..)", name).
+				WithField("name")
+			valid.Expect(name != ".git" && name != ".hg",
+				"Invalid repository name '%s' (must not be .git or .hg)", name).
+				WithField("name")
+			if !valid.Ok() {
+				return
 			}
 
 			var origPath string
@@ -342,9 +313,13 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 			`, id, auth.ForContext(ctx).UserID)
 			if err := row.Scan(&origPath); err != nil {
 				if err == sql.ErrNoRows {
-					return fmt.Errorf("No repository by ID %d found for this user", id)
+					// TODO: Ability to return errors from OptionalString callback?
+					valid.Error("No repository by ID %d found for this user", id).
+						WithField("id")
+					return
 				}
-				return err
+				valid.Error(err.Error())
+				return
 			}
 
 			conf := config.ForContext(ctx)
@@ -356,13 +331,51 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 			repoPath := path.Join(repoStore, "~"+user.Username, name)
 			err := os.Rename(origPath, repoPath)
 			if errors.Is(err, os.ErrExist) {
-				return fmt.Errorf("A repository with this name already exists.")
+				valid.Error("A repository with this name already exists.").
+					WithField("name")
 			} else if err != nil {
-				return err
+				valid.Error(err.Error())
+				return
 			}
 			moved = true
+			query = query.Set(`name`, name)
 			query = query.Set(`path`, repoPath)
+		})
+
+		valid.NullableString("description", func(description *string) {
+			if description == nil {
+				query = query.Set(`description`, nil)
+			} else {
+				// XXX: Should we allow an empty description?
+				query = query.Set(`description`, *description)
+			}
+		})
+
+		valid.OptionalString("visibility", func(vis string) {
+			valid.Expect(model.Visibility(vis).IsValid(),
+				"Invalid visibility '%s'", vis)
+			query = query.Set(`visibility`, strings.ToLower(vis)) // TODO: Can we use uppercase here?
+		})
+
+		valid.NullableString("readme", func(readme *string) {
+			if readme == nil {
+				query = query.Set(`readme`, nil)
+			} else {
+				query = query.Set(`readme`, *readme)
+			}
+		})
+
+		if !valid.Ok() {
+			return errors.New("placeholder") // TODO: Avoid surfacing placeholder error
 		}
+
+		query = query.
+			Where(`id = ?`, id).
+			Where(`owner_id = ?`, auth.ForContext(ctx).UserID).
+			Set(`updated`, sq.Expr(`now() at time zone 'utc'`)).
+			Suffix(`RETURNING
+				id, created, updated, name, description, visibility,
+				upstream_uri, path, owner_id`)
 
 		row := query.RunWith(tx).QueryRowContext(ctx)
 		if err := row.Scan(&repo.ID, &repo.Created, &repo.Updated,
