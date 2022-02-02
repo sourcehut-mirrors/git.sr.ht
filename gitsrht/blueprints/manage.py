@@ -23,7 +23,7 @@ manage = Blueprint('manage', __name__)
 def create_GET():
     another = request.args.get("another")
     name = request.args.get("name")
-    return render_template("create.html", another=another, repo_name=name)
+    return render_template("create.html", another=another, name=name)
 
 @manage.route("/create", methods=["POST"])
 @loginrequired
