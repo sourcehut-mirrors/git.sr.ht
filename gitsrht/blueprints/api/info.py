@@ -2,6 +2,7 @@ from flask import Blueprint, Response, current_app, request
 from scmsrht.access import UserAccess
 from scmsrht.repos import RepoVisibility
 from scmsrht.types import Access, Repository, User
+from gitsrht.webhooks import UserWebhook
 from gitsrht.blueprints.api import get_user, get_repo
 from srht.api import paginated_response
 from srht.database import db
@@ -156,3 +157,14 @@ def repos_by_name_readme_DELETE(reponame):
     if not valid.ok:
         return valid.response
     return {}, 204
+
+def _webhook_filters(query):
+    user = get_user(None)
+    return query.filter(UserWebhook.Subscription.user_id == user.id)
+
+def _webhook_create(sub, valid):
+    user = get_user(None)
+    return sub
+
+UserWebhook.api_routes(info, "/api/user",
+        filters=_webhook_filters, create=_webhook_create)

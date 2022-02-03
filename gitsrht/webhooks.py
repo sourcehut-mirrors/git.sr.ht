@@ -14,6 +14,13 @@ webhook_broker = cfg("git.sr.ht", "webhooks")
 worker = make_worker(broker=webhook_broker)
 webhook_metrics_collector = RedisQueueCollector(webhook_broker, "srht_webhooks", "Webhook queue length")
 
+class UserWebhook(CeleryWebhook):
+    events = [
+        Event("repo:create", "info:read"),
+        Event("repo:delete", "info:read"),
+        Event("repo:update", "info:read"),
+    ]
+
 class RepoWebhook(CeleryWebhook):
     events = [
         Event("repo:post-update", "data:read"),
