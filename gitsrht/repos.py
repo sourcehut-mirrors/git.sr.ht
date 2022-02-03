@@ -110,8 +110,6 @@ class GitRepoApi():
             }
         """, valid=valid, user=user, name=repo_name, description=description, visibility=visibility)
 
-        print(valid)
-
         if not valid.ok:
             return None
         return resp["createRepository"]
