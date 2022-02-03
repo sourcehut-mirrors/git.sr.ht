@@ -9,12 +9,14 @@ import (
 )
 
 type RepoContext struct {
-	Id         int    `json:"id"`
-	Name       string `json:"name"`
-	OwnerId    int    `json:"owner_id"`
-	OwnerName  string `json:"owner_name"`
-	Path       string `json:"path"`
-	Visibility string `json:"visibility"`
+	Id           int    `json:"id"`
+	Name         string `json:"name"`
+	OwnerId      int    `json:"owner_id"`
+	OwnerName    string `json:"owner_name"`
+	Path         string `json:"path"`
+	AbsolutePath string `json:"absolute_path"`
+	Visibility   string `json:"visibility"`
+	Autocreated  bool   `json:"autocreated"`
 }
 
 type UserContext struct {

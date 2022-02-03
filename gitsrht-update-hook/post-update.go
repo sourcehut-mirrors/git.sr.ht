@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	ctx "context"
 	"database/sql"
 	"encoding/json"
@@ -11,72 +12,112 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
+	"git.sr.ht/~sircmpwn/core-go/client"
+	coreconfig "git.sr.ht/~sircmpwn/core-go/config"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	goredis "github.com/go-redis/redis/v8"
 	_ "github.com/lib/pq"
+	"github.com/vektah/gqlparser/gqlerror"
 )
 
 func printAutocreateInfo(context PushContext) {
 	log.Println("\n\t\033[93mNOTICE\033[0m")
-	log.Println("\tWe saved your changes, but this repository does not exist.")
-	log.Println("\tClick here to create it:")
-	log.Println()
-	log.Printf("\t%s/create?name=%s", origin, context.Repo.Name)
-	log.Println()
-	log.Println("\tYour changes will be discarded in 20 minutes.")
-	log.Println()
+	log.Printf(`
+	You have pushed to a repository which did not exist. %[2]s/%[3]s
+	has been created automatically. You can re-configure or delete this
+	repository at the following URL:
+
+	%[1]s/%[2]s/%[3]s/settings/info
+
+`, origin, context.User.CanonicalName, context.Repo.Name)
 }
 
 type DbInfo struct {
-	RepoId        int
-	RepoName      string
-	Visibility    string
-	OwnerUsername string
-	OwnerToken    *string
-	AsyncWebhooks []WebhookSubscription
-	SyncWebhooks  []WebhookSubscription
+	RepoId        int                   `json:"-"`
+	RepoName      string                `json:"name"`
+	Visibility    string                `json:"visibility"`
+	OwnerUsername string                `json:"-"`
+	OwnerToken    *string               `json:"-"`
+	AsyncWebhooks []WebhookSubscription `json:"-"`
+	SyncWebhooks  []WebhookSubscription `json:"-"`
 }
 
-func fetchInfoForPush(db *sql.DB, repoId int, newDescription *string,
+func fetchInfoForPush(db *sql.DB, username string, repoId int, newDescription *string,
 	newVisibility *string) (DbInfo, error) {
 	var dbinfo DbInfo = DbInfo{RepoId: repoId}
 
+	type RepoInput struct {
+		Description *string `json:"description,omitempty"`
+		Visibility  *string `json:"visibility,omitempty"`
+	}
+
+	input := RepoInput{newDescription, newVisibility}
+
+	type Response struct {
+		Data   *DbInfo          `json:"data"`
+		Errors []gqlerror.Error `json:"errors"`
+	}
+
+	resp := Response{
+		Data: &dbinfo,
+	}
+
+	// TODO: GraphQL repo webhooks
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	ctx = coreconfig.Context(ctx, config, "git.sr.ht")
+	err := client.Execute(ctx, username, "git.sr.ht", client.GraphQLQuery{
+		Query: `
+		mutation UpdateRepository($id: Int!, $input: RepoInput!) {
+			updateRepository(id: $id, input: $input) {
+				name
+				visibility
+			}
+		}`,
+		Variables: map[string]interface{}{
+			"id":    repoId,
+			"input": input,
+		},
+	}, &resp)
+	if err != nil {
+		return dbinfo, err
+	} else if len(resp.Errors) > 0 {
+		for _, err := range resp.Errors {
+			logger.Printf("Error updating repository: %s", err.Error())
+		}
+		return dbinfo, fmt.Errorf("Failed to update repository: %s", resp.Errors[0].Message)
+	}
+
 	// With this query, we:
 	// 1. Fetch the owner's username and OAuth token
-	// 2. Fetch the repository's name and visibility
-	// 3. Update the repository's mtime, description, visibility
-	// 4. Determine how many webhooks this repo has: if there are zero sync
+	// 2. Determine how many webhooks this repo has: if there are zero sync
 	//    webhooks then we can defer looking them up until after we've sent the
 	//    user on their way.
+
 	query, err := db.Prepare(`
-		UPDATE repository repo
-		SET updated     = NOW() AT TIME ZONE 'UTC',
-		    description = COALESCE($2, repo.description),
-		    visibility  = COALESCE($3, repo.visibility)
-		FROM (
+		WITH owner AS (
 			SELECT "user".username, "user".oauth_token
 			FROM "user"
 			JOIN repository r ON r.owner_id = "user".id
 			WHERE r.id = $1
-		) AS owner, (
+		), webhooks AS (
 			SELECT
 				COUNT(*) FILTER(WHERE rws.sync = true) sync_count,
 				COUNT(*) FILTER(WHERE rws.sync = false) async_count
 			FROM repo_webhook_subscription rws
 			WHERE rws.repo_id = $1 AND rws.events LIKE '%repo:post-update%'
-		) AS webhooks
-		WHERE repo.id = $1
-		RETURNING
-			repo.name,
-			repo.visibility,
+		)
+		SELECT
 			owner.username,
 			owner.oauth_token,
 			webhooks.sync_count,
-			webhooks.async_count;
+			webhooks.async_count
+		FROM owner, webhooks;
 	`)
 	if err != nil {
 		return dbinfo, err
@@ -84,8 +125,7 @@ func fetchInfoForPush(db *sql.DB, repoId int, newDescription *string,
 	defer query.Close()
 
 	var nasync, nsync int
-	if err = query.QueryRow(repoId, newDescription, newVisibility).Scan(
-		&dbinfo.RepoName, &dbinfo.Visibility, &dbinfo.OwnerUsername,
+	if err = query.QueryRow(repoId).Scan(&dbinfo.OwnerUsername,
 		&dbinfo.OwnerToken, &nsync, &nasync); err != nil {
 
 		return dbinfo, err
@@ -130,18 +170,9 @@ func parseUpdatables() (*string, *string) {
 		desc = &newDescription
 	}
 	if newVisibility, ok := options["visibility"]; ok {
+		newVisibility = strings.ToUpper(newVisibility)
 		vis = &newVisibility
 	}
-
-	if vis != nil {
-		lvis := strings.ToLower(*vis)
-		vis = &lvis
-		if *vis != "public" && *vis != "unlisted" && *vis != "private" {
-			log.Printf("Invalid visibility %v, can be one of: public, unlisted, private", *vis)
-			vis = nil
-		}
-	}
-
 	return desc, vis
 }
 
@@ -177,7 +208,7 @@ func postUpdate() {
 	initSubmitter()
 
 	newDescription, newVisibility := parseUpdatables()
-	if context.Repo.Visibility == "autocreated" && newVisibility == nil {
+	if context.Repo.Autocreated && newVisibility == nil {
 		printAutocreateInfo(context)
 	}
 
@@ -190,9 +221,9 @@ func postUpdate() {
 	}
 
 	oids := make(map[string]interface{})
-	repo, err := git.PlainOpen(context.Repo.Path)
+	repo, err := git.PlainOpen(context.Repo.AbsolutePath)
 	if err != nil {
-		logger.Fatalf("git.PlainOpen: %v", err)
+		logger.Fatalf("git.PlainOpen(%q): %v", context.Repo.AbsolutePath, err)
 	}
 
 	db, err := sql.Open("postgres", pgcs)
@@ -200,7 +231,7 @@ func postUpdate() {
 		logger.Fatalf("Failed to open a database connection: %v", err)
 	}
 
-	dbinfo, err := fetchInfoForPush(db, context.Repo.Id, newDescription, newVisibility)
+	dbinfo, err := fetchInfoForPush(db, context.User.Name, context.Repo.Id, newDescription, newVisibility)
 	if err != nil {
 		logger.Fatalf("Failed to fetch info from database: %v", err)
 	}
