@@ -77,16 +77,16 @@
         </div>
       </fieldset>
       <div class="form-group">
-        <label for="default_branch_name">
+        <label for="HEAD">
           Default branch
         </label>
         <select
-          class="form-control {{valid.cls('default_branch_name')}}"
-          id="default_branch_name"
-          name="default_branch_name"
+          class="form-control {{valid.cls('HEAD')}}"
+          id="HEAD"
+          name="HEAD"
           {% if repo.git_repo.is_empty %}disabled{% endif %}
         >
-          {% set default_branch_name = repo.git_repo.default_branch_name() or "" %}
+          {% set default_branch_name = HEAD or repo.git_repo.default_branch_name() %}
           {% for branch in repo.git_repo.raw_listall_branches() %}
             {% set branch = branch.decode("utf-8", "replace") %}
             <option
@@ -98,7 +98,7 @@
             <option>No branches</option>
           {% endfor %}
         </select>
-        {{valid.summary('default_branch_name')}}
+        {{valid.summary('HEAD')}}
       </div>
       <button type="submit" class="btn btn-primary pull-right">
         Save {{icon("caret-right")}}
