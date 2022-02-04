@@ -76,24 +76,12 @@ def settings_info_POST(owner_name, repo_name):
     if isinstance(repo, BaseRedirectMixin):
         repo = repo.new_repo
 
-    # TODO: GraphQL mutation to set default branch name
     valid = Validation(request)
-    branch = valid.optional("default_branch_name")
-    if branch:
-        with GitRepository(repo.path) as git_repo:
-            new_default_branch = git_repo.branches.get(branch)
-            if new_default_branch:
-                head_ref = git_repo.lookup_reference("HEAD")
-                head_ref.set_target(new_default_branch.name)
-            else:
-                valid.error(f"Branch {branch} not found", field="default_branch_name")
-                return render_template("settings_info.html",
-                        owner=owner, repo=repo, **valid.kwargs)
 
     rewrite = lambda value: None if value == "" else value
     input = {
         key: rewrite(valid.source[key]) for key in [
-            "description", "visibility",
+            "description", "visibility", "HEAD",
         ] if valid.source.get(key) is not None
     }
 

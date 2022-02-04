@@ -517,6 +517,12 @@ input RepoInput {
   https://man.sr.ht/markdown/#post-processing
   """
   readme: String
+
+  """
+  Updates the repository HEAD reference, which serves as the default branch.
+  Must be a valid branch name.
+  """
+  HEAD: String
 }
 
 input UserWebhookInput {

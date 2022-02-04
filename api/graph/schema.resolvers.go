@@ -387,6 +387,29 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 			return err
 		}
 
+		// This must be done after the query so that repo.Path is populated
+		valid.OptionalString("HEAD", func(ref string) {
+			gitRepo := repo.Repo()
+			gitRepo.Lock()
+			defer gitRepo.Unlock()
+			branchName := plumbing.NewBranchReferenceName(ref)
+			// Make sure that the branch exists
+			branch, err := gitRepo.Storer.Reference(branchName)
+			if err != nil {
+				valid.Error("%s", err.Error()).WithField("HEAD")
+				return
+			}
+			head := plumbing.NewSymbolicReference(plumbing.HEAD, branch.Name())
+			if err := gitRepo.Storer.SetReference(head); err != nil {
+				valid.Error("%s", err.Error()).WithField("HEAD")
+				return
+			}
+		})
+
+		if !valid.Ok() {
+			return errors.New("placeholder") // TODO: Avoid surfacing placeholder error
+		}
+
 		export := path.Join(repo.Path, "git-daemon-export-ok")
 		if repo.Visibility() == model.VisibilityPrivate {
 			err := os.Remove(export)
