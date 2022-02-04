@@ -5,7 +5,8 @@ include ${SRHT_PATH}/Makefile
 all: api
 
 api:
-	cd api && go generate ./...
+	cd api && go generate ./loaders
+	cd api && go generate ./graph
 	cd api && go build
 
 .PHONY: all api
