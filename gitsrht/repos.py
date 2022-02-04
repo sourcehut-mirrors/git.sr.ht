@@ -92,8 +92,14 @@ class GitRepoApi():
             return None
 
         resp = exec_gql("git.sr.ht", """
-            mutation CreateRepository($name: String!, $visibility: Visibility = PUBLIC, $description: String) {
-                createRepository(name: $name, visibility: $visibility, description: $description) {
+            mutation CreateRepository(
+                    $name: String!,
+                    $visibility: Visibility = PUBLIC,
+                    $description: String) {
+                createRepository(
+                        name: $name,
+                        visibility: $visibility,
+                        description: $description) {
                     id
                     created
                     updated
@@ -108,7 +114,8 @@ class GitRepoApi():
                     visibility
                 }
             }
-        """, valid=valid, user=user, name=repo_name, description=description, visibility=visibility)
+        """, valid=valid, user=user, name=repo_name,
+            description=description, visibility=visibility)
 
         if not valid.ok:
             return None
@@ -123,8 +130,15 @@ class GitRepoApi():
             return None
 
         resp = exec_gql("git.sr.ht", """
-            mutation CreateRepository($name: String!, $visibility: Visibility = UNLISTED, $description: String, $cloneUrl: String) {
-                createRepository(name: $name, visibility: $visibility, description: $description, cloneUrl: $cloneUrl) {
+            mutation CreateRepository(
+                    $name: String!,
+                    $visibility: Visibility = UNLISTED,
+                    $description: String,
+                    $cloneUrl: String) {
+                createRepository(name: $name,
+                        visibility: $visibility,
+                        description: $description,
+                        cloneUrl: $cloneUrl) {
                     name
                 }
             }
