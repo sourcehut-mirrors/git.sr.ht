@@ -5,6 +5,7 @@
 {% if repo.visibility.value =='unlisted' %}
 <meta name="robots" content="noindex">
 {% endif %}
+{# VCS meta tags #}
 <meta name="vcs" content="git">
 {% if default_branch %}
 {% set default_branch_name = default_branch.raw_name.decode("utf-8", "replace")[len("refs/heads/"):] %}
@@ -14,25 +15,15 @@
 {% for clone_url in (repo | clone_urls) %}
 <meta name="vcs:clone" content="{{clone_url}}">
 {% endfor %}
+{# Forge meta tags #}
 {% set project_root = root + url_for("repo.summary", owner=repo.owner.canonical_name, repo=repo.name) %}
 <meta name="forge:summary" content="{{project_root}}">
 <meta name="forge:dir" content="{{project_root}}/tree/{ref}/item/{path}">
 <meta name="forge:file" content="{{project_root}}/tree/{ref}/item/{path}">
 <meta name="forge:rawfile" content="{{project_root}}/blob/{ref}/{path}">
 <meta name="forge:line" content="{{project_root}}/tree/{ref}/item/{path}#L{line}">
-
-{# Man, this is lame #}
-<meta name="go-import"
-  content="{{domain}}/{{owner.canonical_name}}/{{repo.name}} git {{(repo | clone_urls)[0]}}">
-{% if default_branch %}
-  {% set default_branch_name = default_branch.raw_name.decode("utf-8", "replace")[len("refs/heads/"):] %}
-  <meta name="go-source"
-    content="{{domain}}/{{owner.canonical_name}}/{{repo.name}} {{(repo | clone_urls)[0]}}
-             {{(repo | clone_urls)[0]}}/tree/
-               {{- default_branch_name}}{/dir}
-             {{(repo | clone_urls)[0]}}/tree/
-               {{- default_branch_name}}{/dir}/{file}#L{line}">
-{% endif %}
+{# Go meta tags #}
+<meta name="go-import" content="{{domain}}/{{owner.canonical_name}}/{{repo.name}} git {{(repo | clone_urls)[0]}}">
 {% endblock %}
 {% block body %}
 <div class="header-tabbed">
