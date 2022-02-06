@@ -28,6 +28,7 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/server"
 	"git.sr.ht/~sircmpwn/core-go/valid"
 	corewebhooks "git.sr.ht/~sircmpwn/core-go/webhooks"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/clones"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
@@ -147,11 +148,39 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 			return err
 		}
 
-		var gitrepo *git.Repository
+		gitrepo, err := git.PlainInit(repoPath, true)
+		if err != nil {
+			return err
+		}
+		repoCreated = true
+
+		gitconfig, err := gitrepo.Config()
+		if err != nil {
+			return err
+		}
+		gitconfig.Raw.SetOption("core", "", "repositoryformatversion", "0")
+		gitconfig.Raw.SetOption("core", "", "filemode", "true")
+		gitconfig.Raw.SetOption("srht", "", "repo-id", strconv.Itoa(repo.ID))
+		gitconfig.Raw.SetOption("receive", "", "denyDeleteCurrent", "ignore")
+		gitconfig.Raw.SetOption("receive", "", "advertisePushOptions", "true")
+		if err := gitrepo.Storer.SetConfig(gitconfig); err != nil {
+			return err
+		}
+
+		hookdir := path.Join(repoPath, "hooks")
+		if err := os.Mkdir(hookdir, os.ModePerm); err != nil {
+			return err
+		}
+		for _, hook := range []string{"pre-receive", "update", "post-update"} {
+			if err := os.Symlink(postUpdate, path.Join(hookdir, hook)); err != nil {
+				return err
+			}
+		}
+
 		if cloneURL != nil {
 			u, err := url.Parse(*cloneURL)
 			if err != nil {
-				return err
+				return valid.Errorf(ctx, "cloneUrl", "Invalid clone URL: %s", err)
 			} else if u.Host == "" {
 				return valid.Errorf(ctx, "cloneUrl", "Cannot use URL without host")
 			} else if _, ok := allowedCloneSchemes[u.Scheme]; !ok {
@@ -181,50 +210,14 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 				repo, err := loaders.ForContext(ctx).
 					RepositoriesByOwnerRepoName.Load([2]string{entity, repoName})
 				if err != nil {
-					return err
+					panic(err)
 				} else if repo == nil {
 					return valid.Errorf(ctx, "cloneUrl", "Repository not found")
 				}
 				cloneURL = &repo.Path
 			}
 
-			gitrepo, err = git.PlainClone(repoPath, true, &git.CloneOptions{
-				URL:               *cloneURL,
-				RecurseSubmodules: git.NoRecurseSubmodules,
-			})
-			if err != nil {
-				return valid.Errorf(ctx, "cloneUrl", "%s", err)
-			}
-		} else {
-			var err error
-			gitrepo, err = git.PlainInit(repoPath, true)
-			if err != nil {
-				return err
-			}
-		}
-
-		repoCreated = true
-		config, err := gitrepo.Config()
-		if err != nil {
-			return err
-		}
-		config.Raw.SetOption("core", "", "repositoryformatversion", "0")
-		config.Raw.SetOption("core", "", "filemode", "true")
-		config.Raw.SetOption("srht", "", "repo-id", strconv.Itoa(repo.ID))
-		config.Raw.SetOption("receive", "", "denyDeleteCurrent", "ignore")
-		config.Raw.SetOption("receive", "", "advertisePushOptions", "true")
-		if err = gitrepo.Storer.SetConfig(config); err != nil {
-			return err
-		}
-
-		hookdir := path.Join(repoPath, "hooks")
-		if err = os.Mkdir(hookdir, os.ModePerm); err != nil {
-			return err
-		}
-		for _, hook := range []string{"pre-receive", "update", "post-update"} {
-			if err = os.Symlink(postUpdate, path.Join(hookdir, hook)); err != nil {
-				return err
-			}
+			clones.Schedule(ctx, gitrepo, *cloneURL)
 		}
 
 		webhooks.DeliverRepoEvent(ctx, model.WebhookEventRepoCreated, &repo)

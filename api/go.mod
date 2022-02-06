@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	git.sr.ht/~sircmpwn/core-go v0.0.0-20220203103213-b2c8e81ee698
+	git.sr.ht/~sircmpwn/dowork v0.0.0-20210820133136-d3970e97def3
 	github.com/99designs/gqlgen v0.14.0
 	github.com/Masterminds/squirrel v1.4.0
 	github.com/go-git/go-git/v5 v5.0.0
