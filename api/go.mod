@@ -17,3 +17,5 @@ require (
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/vektah/gqlparser/v2 v2.2.0
 )
+
+replace github.com/go-git/go-git/v5 => git.sr.ht/~sircmpwn/go-git/v5 v5.0.0-20220207102101-70373b908e0a
