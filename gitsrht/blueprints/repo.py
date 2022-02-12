@@ -64,11 +64,11 @@ def _highlight_file(repo, ref, entry, data, blob_id, commit_id):
     else:
         return get_highlighted_file("git.sr.ht:git", entry.name, blob_id, data)
 
-def render_empty_repo(owner, repo):
+def render_empty_repo(owner, repo, view):
     origin = cfg("git.sr.ht", "origin")
     git_user = cfg("git.sr.ht::dispatch", "/usr/bin/gitsrht-keys", "git:git").split(":")[0]
     urls = get_clone_urls(origin, owner, repo, git_user + '@{origin}:{user}/{repo}')
-    return render_template("empty-repo.html", owner=owner, repo=repo,
+    return render_template("empty-repo.html", owner=owner, repo=repo, view=view,
             clone_urls=urls)
 
 def get_last_3_commits(git_repo, commit):
@@ -85,11 +85,11 @@ def summary(owner, repo):
 
     with GitRepository(repo.path) as git_repo:
         if git_repo.is_empty:
-            return render_empty_repo(owner, repo)
+            return render_empty_repo(owner, repo, "summary")
 
         default_branch = git_repo.default_branch()
         if not default_branch:
-            return render_empty_repo(owner, repo)
+            return render_empty_repo(owner, repo, "summary")
 
         default_branch_name = default_branch.raw_name \
             .decode("utf-8", "replace")[len("refs/heads/"):]
@@ -220,7 +220,7 @@ def tree(owner, repo, ref, path):
 
     with GitRepository(repo.path) as git_repo:
         if git_repo.is_empty:
-            return render_empty_repo(owner, repo)
+            return render_empty_repo(owner, repo, "tree")
 
         # lookup_ref will cycle through the path to separate
         # the actual ref from the actual path
@@ -461,7 +461,7 @@ def log(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
         if git_repo.is_empty:
-            return render_empty_repo(owner, repo)
+            return render_empty_repo(owner, repo, "log")
 
         commit, ref, path = lookup_ref(git_repo, ref, path)
         if not isinstance(commit, pygit2.Commit):
@@ -558,7 +558,7 @@ def refs(owner, repo):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
         if git_repo.is_empty:
-            return render_empty_repo(owner, repo)
+            return render_empty_repo(owner, repo, "refs")
 
         tags = [(
                 ref,
