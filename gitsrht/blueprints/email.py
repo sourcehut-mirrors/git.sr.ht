@@ -101,6 +101,26 @@ def send_email_end(owner, repo):
                 commits=log, start=start, diffs=diffs,
                 diffstat=diffstat)
 
+def wrap_each_line(text):
+    # Account for TextWrapper ignoring newlines (see Python issue #1859)
+    wrapper = TextWrapper(
+        expand_tabs=False,
+        replace_whitespace=False,
+        width=72,
+        drop_whitespace=True,
+        break_long_words=False)
+
+    short_lines = []
+    for long_line in text.splitlines():
+        if len(long_line) == 0 or long_line.isspace():
+            # Bypass TextWrapper to ensure a line is still inserted.
+            short_lines.append('')
+        else:
+            for short_line in wrapper.wrap(long_line):
+                short_lines.append(short_line)
+    # Replace the original newline indicators.
+    return '\n'.join(short_lines)
+
 commentary_re = re.compile(r"""
 ---\n
 (?P<context>
@@ -114,13 +134,6 @@ commentary_re = re.compile(r"""
 def prepare_patchset(repo, git_repo, cover_letter=None, extra_headers=False,
         to=None, cc=None):
     with NamedTemporaryFile() as ntf:
-        wrapper = TextWrapper(
-                expand_tabs=False,
-                replace_whitespace=False,
-                width=72,
-                drop_whitespace=True,
-                break_long_words=False)
-
         valid = Validation(request)
         start_commit = valid.require("start_commit")
         end_commit = valid.require("end_commit")
@@ -188,7 +201,7 @@ def prepare_patchset(repo, git_repo, cover_letter=None, extra_headers=False,
             emails[0]["Subject"] = (subject
                     .replace("*** SUBJECT HERE ***", cover_letter_subject))
             body = emails[0].get_content()
-            cover_letter = "\n".join(wrapper.wrap(cover_letter))
+            cover_letter = wrap_each_line(cover_letter)
             body = body.replace("*** BLURB HERE ***", cover_letter)
             emails[0].set_content(body)
 
@@ -198,7 +211,7 @@ def prepare_patchset(repo, git_repo, cover_letter=None, extra_headers=False,
                 commentary = session.get(f"commentary_{i}")
             if not commentary:
                 continue
-            commentary = "\n".join(wrapper.wrap(commentary))
+            commentary = wrap_each_line(commentary)
             body = msg.get_content()
             body = commentary_re.sub(r"---\n" + commentary.replace(
                 "\\", r"\\") + r"\n\n\g<context>", body, count=1)
