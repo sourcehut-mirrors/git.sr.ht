@@ -453,13 +453,13 @@ func (r *mutationResolver) DeleteRepository(ctx context.Context, id int) (*model
 			return err
 		}
 
+		webhooks.DeliverRepoEvent(ctx, model.WebhookEventRepoDeleted, &repo)
+		webhooks.DeliverLegacyRepoDeleted(ctx, &repo)
+
 		err := os.RemoveAll(repo.Path)
 		if err != nil {
 			return err
 		}
-
-		webhooks.DeliverRepoEvent(ctx, model.WebhookEventRepoDeleted, &repo)
-		webhooks.DeliverLegacyRepoDeleted(ctx, &repo)
 		return nil
 	}); err != nil {
 		return nil, err
