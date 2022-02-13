@@ -25,25 +25,6 @@ tg = Gauge("gitsrht_periodic_time",
         ["section"],
         registry=registry)
 
-cleanup_autocreated_t = tg.labels("cleanup_autocreated")
-@cleanup_autocreated_t.time()
-def cleanup_autocreated():
-    rc = Gauge("gitsrht_periodic_cleanup_autocreated_count",
-            "Amount of repos cleaned by the cleanup_autocreated job",
-            registry=registry)
-
-    due = datetime.utcnow() - timedelta(minutes=20)
-    repos = (Repository.query
-            .filter(Repository.visibility == RepoVisibility.autocreated)
-            .filter(Repository.created < due)).all()
-    for r in repos:
-      # Use session.delete()+do_delete_repo() instead of d_r(),
-      # which commits immediately
-      repo_api.do_delete_repo(r)
-      db.session.delete(r)
-      rc.inc()
-    db.session.commit()
-
 gc_git_t = tg.labels("gc_git")
 @gc_git_t.time()
 def gc_git():
@@ -123,7 +104,6 @@ def gc_s3():
 all_t = tg.labels("total")
 @all_t.time()
 def all():
-    cleanup_autocreated()
     gc_git()
     gc_s3()
 all()
