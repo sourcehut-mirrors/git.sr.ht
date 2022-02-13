@@ -19,8 +19,7 @@ info = Blueprint("api_info", __name__)
 def repos_by_user_GET(username):
     user = get_user(username)
     repos = (Repository.query
-            .filter(Repository.owner_id == user.id)
-            .filter(Repository.visibility != RepoVisibility.autocreated))
+            .filter(Repository.owner_id == user.id))
     if user.id != current_token.user_id:
         repos = (repos
                 .outerjoin(Access._get_current_object(),
