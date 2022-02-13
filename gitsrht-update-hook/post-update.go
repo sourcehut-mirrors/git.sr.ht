@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path"
 	"strconv"
 	"strings"
 	"syscall"
@@ -38,59 +37,61 @@ func printAutocreateInfo(context PushContext) {
 }
 
 type DbInfo struct {
-	RepoId        int                   `json:"-"`
-	RepoName      string                `json:"name"`
-	Visibility    string                `json:"visibility"`
-	OwnerUsername string                `json:"-"`
-	OwnerToken    *string               `json:"-"`
-	AsyncWebhooks []WebhookSubscription `json:"-"`
-	SyncWebhooks  []WebhookSubscription `json:"-"`
+	RepoId        int
+	RepoName      string
+	Visibility    string
+	OwnerUsername string
+	OwnerToken    *string
+	AsyncWebhooks []WebhookSubscription
+	SyncWebhooks  []WebhookSubscription
 }
 
-func fetchInfoForPush(db *sql.DB, username string, repoId int, newDescription *string,
-	newVisibility *string) (DbInfo, error) {
-	var dbinfo DbInfo = DbInfo{RepoId: repoId}
+func fetchInfoForPush(db *sql.DB, username string, repoId int, repoName string,
+	repoVisibility string, newDescription *string, newVisibility *string) (DbInfo, error) {
+	var dbinfo DbInfo = DbInfo{
+		RepoId:     repoId,
+		RepoName:   repoName,
+		Visibility: repoVisibility,
+	}
 
 	type RepoInput struct {
 		Description *string `json:"description,omitempty"`
 		Visibility  *string `json:"visibility,omitempty"`
 	}
 
-	input := RepoInput{newDescription, newVisibility}
-
 	type Response struct {
-		Data   *DbInfo          `json:"data"`
 		Errors []gqlerror.Error `json:"errors"`
 	}
 
-	resp := Response{
-		Data: &dbinfo,
-	}
+	if newDescription != nil || newVisibility != nil {
+		input := RepoInput{newDescription, newVisibility}
+		resp := Response{}
 
-	// TODO: GraphQL repo webhooks
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	ctx = coreconfig.Context(ctx, config, "git.sr.ht")
-	err := client.Execute(ctx, username, "git.sr.ht", client.GraphQLQuery{
-		Query: `
-		mutation UpdateRepository($id: Int!, $input: RepoInput!) {
-			updateRepository(id: $id, input: $input) {
-				name
-				visibility
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		ctx = coreconfig.Context(ctx, config, "git.sr.ht")
+		err := client.Execute(ctx, username, "git.sr.ht", client.GraphQLQuery{
+			Query: `
+			mutation UpdateRepository($id: Int!, $input: RepoInput!) {
+				updateRepository(id: $id, input: $input) { id }
+			}`,
+			Variables: map[string]interface{}{
+				"id":    repoId,
+				"input": input,
+			},
+		}, &resp)
+		if err != nil {
+			return dbinfo, err
+		} else if len(resp.Errors) > 0 {
+			for _, err := range resp.Errors {
+				logger.Printf("Error updating repository: %s", err.Error())
 			}
-		}`,
-		Variables: map[string]interface{}{
-			"id":    repoId,
-			"input": input,
-		},
-	}, &resp)
-	if err != nil {
-		return dbinfo, err
-	} else if len(resp.Errors) > 0 {
-		for _, err := range resp.Errors {
-			logger.Printf("Error updating repository: %s", err.Error())
+			return dbinfo, fmt.Errorf("Failed to update repository: %s", resp.Errors[0].Message)
 		}
-		return dbinfo, fmt.Errorf("Failed to update repository: %s", resp.Errors[0].Message)
+
+		if newVisibility != nil {
+			dbinfo.Visibility = *newVisibility
+		}
 	}
 
 	// With this query, we:
@@ -176,18 +177,6 @@ func parseUpdatables() (*string, *string) {
 	return desc, vis
 }
 
-// Must match gitsrht/types/__init__.py#update_visibility()
-func updateRepoVisibility(repoPath string, visibility string) {
-	daemonPath := path.Join(repoPath, "git-daemon-export-ok")
-	shouldExist := visibility == "public" || visibility == "unlisted"
-
-	if shouldExist {
-		os.Create(daemonPath)
-	} else {
-		os.Remove(daemonPath)
-	}
-}
-
 func postUpdate() {
 	var context PushContext
 	refs := os.Args[1:]
@@ -231,11 +220,10 @@ func postUpdate() {
 		logger.Fatalf("Failed to open a database connection: %v", err)
 	}
 
-	dbinfo, err := fetchInfoForPush(db, context.User.Name, context.Repo.Id, newDescription, newVisibility)
+	dbinfo, err := fetchInfoForPush(db, context.User.Name, context.Repo.Id, context.Repo.Name, context.Repo.Visibility, newDescription, newVisibility)
 	if err != nil {
 		logger.Fatalf("Failed to fetch info from database: %v", err)
 	}
-	updateRepoVisibility(context.Repo.Path, dbinfo.Visibility)
 
 	refsDeleted := false
 	redisHost, ok := config.Get("sr.ht", "redis-host")
