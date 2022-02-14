@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"log"
 	"net/http"
+	"time"
 
 	"git.sr.ht/~sircmpwn/core-go/database"
 	work "git.sr.ht/~sircmpwn/dowork"
@@ -57,7 +58,9 @@ func Schedule(ctx context.Context, repoID int, repo *git.Repository, cloneURL st
 				panic(err)
 			}
 		}()
-		err := repo.Clone(ctx, &git.CloneOptions{
+		cloneCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+		defer cancel()
+		err := repo.Clone(cloneCtx, &git.CloneOptions{
 			URL:               cloneURL,
 			RecurseSubmodules: git.NoRecurseSubmodules,
 		})
