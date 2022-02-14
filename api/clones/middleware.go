@@ -44,6 +44,7 @@ func Schedule(ctx context.Context, repoID int, repo *git.Repository, cloneURL st
 	}
 	task := work.NewTask(func(ctx context.Context) error {
 		defer func() {
+			recovered := recover()
 			err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 				_, err := tx.Exec(
 					`UPDATE repository SET clone_in_progress = false WHERE id = $1;`,
@@ -56,6 +57,9 @@ func Schedule(ctx context.Context, repoID int, repo *git.Repository, cloneURL st
 			})
 			if err != nil {
 				panic(err)
+			}
+			if recovered != nil {
+				panic(recovered)
 			}
 		}()
 		cloneCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
