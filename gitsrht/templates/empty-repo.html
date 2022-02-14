@@ -1,0 +1,37 @@
+{% extends "repo.html" %}
+{% block repohead %}
+<meta http-equiv="refresh" content="5">
+{% endblock %}
+
+{% block content %}
+{% if repo.description %}
+<div class="header-extension">
+  <div class="container">{{ repo.description }}</div>
+</div>
+{% endif %}
+<div class="container">
+  <div class="row" style="margin-bottom: 1rem">
+    <div class="col-md-4">
+      <h3>clone</h3>
+      <dl>
+        {% for url in clone_urls %}
+        <dt>{{url.desc}}</dt>
+        {% if url.link %}<dd><a href="{{url.url}}">{{url.url}}</a></dd>
+        {% else %}<dd>{{url.url}}</dd>
+        {% endif -%}
+        {% endfor -%}
+      </dl>
+    </div>
+    <div class="col-md-8">
+      {% if repo.clone_in_progress %}
+      <div class="alert alert-primary">
+        A clone operation is currently in progress.
+      </div>
+      {% endif %}
+      <p>
+        Nothing here yet!
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

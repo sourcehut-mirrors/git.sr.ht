@@ -2,9 +2,11 @@ package clones
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"net/http"
 
+	"git.sr.ht/~sircmpwn/core-go/database"
 	work "git.sr.ht/~sircmpwn/dowork"
 	"github.com/go-git/go-git/v5"
 )
@@ -34,12 +36,27 @@ func Middleware(queue *ClonesQueue) func(next http.Handler) http.Handler {
 }
 
 // Schedules a clone.
-func Schedule(ctx context.Context, repo *git.Repository, cloneURL string) {
+func Schedule(ctx context.Context, repoID int, repo *git.Repository, cloneURL string) {
 	queue, ok := ctx.Value(clonesCtxKey).(*ClonesQueue)
 	if !ok {
 		panic("No clones worker for this context")
 	}
 	task := work.NewTask(func(ctx context.Context) error {
+		defer func() {
+			err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+				_, err := tx.Exec(
+					`UPDATE repository SET clone_in_progress = false WHERE id = $1;`,
+					repoID,
+				)
+				if err != nil {
+					return err
+				}
+				return nil
+			})
+			if err != nil {
+				panic(err)
+			}
+		}()
 		err := repo.Clone(ctx, &git.CloneOptions{
 			URL:               cloneURL,
 			RecurseSubmodules: git.NoRecurseSubmodules,

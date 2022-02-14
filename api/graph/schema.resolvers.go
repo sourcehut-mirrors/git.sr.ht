@@ -128,17 +128,20 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 			panic(fmt.Errorf("Unknown visibility %s", visibility)) // Invariant
 		}
 
+		cloneInProgress := cloneURL != nil
+
 		row := tx.QueryRowContext(ctx, `
 			INSERT INTO repository (
-				created, updated, name, description, path, visibility, owner_id
+				created, updated, name, description, path, visibility, owner_id,
+				clone_in_progress
 			) VALUES (
 				NOW() at time zone 'utc',
 				NOW() at time zone 'utc',
-				$1, $2, $3, $4, $5
+				$1, $2, $3, $4, $5, $6
 			) RETURNING 
 				id, created, updated, name, description, visibility,
 				upstream_uri, path, owner_id;
-		`, name, description, repoPath, dvis, user.UserID)
+		`, name, description, repoPath, dvis, user.UserID, cloneInProgress)
 		if err := row.Scan(&repo.ID, &repo.Created, &repo.Updated, &repo.Name,
 			&repo.Description, &repo.RawVisibility, &repo.UpstreamURL,
 			&repo.Path, &repo.OwnerID); err != nil {
@@ -177,7 +180,7 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 			}
 		}
 
-		if cloneURL != nil {
+		if cloneInProgress {
 			u, err := url.Parse(*cloneURL)
 			if err != nil {
 				return valid.Errorf(ctx, "cloneUrl", "Invalid clone URL: %s", err)
@@ -217,7 +220,7 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 				cloneURL = &repo.Path
 			}
 
-			clones.Schedule(ctx, gitrepo, *cloneURL)
+			clones.Schedule(ctx, repo.ID, gitrepo, *cloneURL)
 		}
 
 		webhooks.DeliverRepoEvent(ctx, model.WebhookEventRepoCreated, &repo)

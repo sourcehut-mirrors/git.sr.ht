@@ -22,6 +22,8 @@ class Redirect(Base, BaseRedirectMixin):
 class Repository(Base, BaseRepositoryMixin):
     _git_repo = None
 
+    clone_in_progress = sa.Column(sa.Boolean, nullable=False)
+
     # Must match gitsrht-update-hook/post-update.go#updateRepoVisibility()
     def update_visibility(self):
         if not os.path.exists(self.path):
