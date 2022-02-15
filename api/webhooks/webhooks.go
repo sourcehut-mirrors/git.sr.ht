@@ -2,7 +2,6 @@ package webhooks
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
@@ -15,10 +14,7 @@ import (
 
 func deliverUserWebhook(ctx context.Context, event model.WebhookEvent,
 	payload model.WebhookPayload, payloadUUID uuid.UUID) {
-	q, ok := ctx.Value(webhooksCtxKey).(*webhooks.WebhookQueue)
-	if !ok {
-		log.Fatalf("No webhooks worker for this context")
-	}
+	q := webhooks.ForContext(ctx)
 	userID := auth.ForContext(ctx).UserID
 	query := sq.
 		Select().

@@ -5,6 +5,7 @@ import (
 
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/server"
+	"git.sr.ht/~sircmpwn/core-go/webhooks"
 	work "git.sr.ht/~sircmpwn/dowork"
 	"github.com/99designs/gqlgen/graphql"
 
@@ -13,7 +14,6 @@ import (
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/repos"
-	"git.sr.ht/~sircmpwn/git.sr.ht/api/webhooks"
 )
 
 func main() {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"net/http"
 	"time"
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
@@ -13,28 +12,6 @@ import (
 
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 )
-
-func NewLegacyQueue() *webhooks.LegacyQueue {
-	return webhooks.NewLegacyQueue()
-}
-
-var legacyUserCtxKey = &contextKey{"legacyUser"}
-
-type contextKey struct {
-	name string
-}
-
-func LegacyMiddleware(
-	queue *webhooks.LegacyQueue,
-) func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := context.WithValue(r.Context(), legacyUserCtxKey, queue)
-			r = r.WithContext(ctx)
-			next.ServeHTTP(w, r)
-		})
-	}
-}
 
 type RepoWebhookPayload struct {
 	ID          int       `json:"id"`
@@ -51,11 +28,7 @@ type RepoWebhookPayload struct {
 }
 
 func DeliverLegacyRepoCreate(ctx context.Context, repo *model.Repository) {
-	q, ok := ctx.Value(legacyUserCtxKey).(*webhooks.LegacyQueue)
-	if !ok {
-		panic(errors.New("No legacy user webhooks worker for this context"))
-	}
-
+	q := webhooks.LegacyForContext(ctx)
 	payload := RepoWebhookPayload{
 		ID:          repo.ID,
 		Created:     repo.Created,
@@ -89,11 +62,7 @@ func DeliverLegacyRepoCreate(ctx context.Context, repo *model.Repository) {
 }
 
 func DeliverLegacyRepoUpdate(ctx context.Context, repo *model.Repository) {
-	q, ok := ctx.Value(legacyUserCtxKey).(*webhooks.LegacyQueue)
-	if !ok {
-		panic(errors.New("No legacy user webhooks worker for this context"))
-	}
-
+	q := webhooks.LegacyForContext(ctx)
 	payload := RepoWebhookPayload{
 		ID:          repo.ID,
 		Created:     repo.Created,
@@ -127,11 +96,7 @@ func DeliverLegacyRepoUpdate(ctx context.Context, repo *model.Repository) {
 }
 
 func DeliverLegacyRepoDeleted(ctx context.Context, repo *model.Repository) {
-	q, ok := ctx.Value(legacyUserCtxKey).(*webhooks.LegacyQueue)
-	if !ok {
-		panic(errors.New("No legacy user webhooks worker for this context"))
-	}
-
+	q := webhooks.LegacyForContext(ctx)
 	payload := struct {
 		ID int `json:"id"`
 	}{repo.ID}
