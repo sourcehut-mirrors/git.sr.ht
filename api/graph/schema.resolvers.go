@@ -180,6 +180,14 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 			}
 		}
 
+		export := path.Join(repoPath, "git-daemon-export-ok")
+		if repo.Visibility() != model.VisibilityPrivate {
+			_, err := os.Create(export)
+			if err != nil {
+				return err
+			}
+		}
+
 		if cloneInProgress {
 			u, err := url.Parse(*cloneURL)
 			if err != nil {
