@@ -25,11 +25,7 @@ Session = sessionmaker()
 
 
 def upgrade():
-    bind = op.get_bind()
-    session = Session(bind=bind)
-    print("Creating git-daemon-export-ok files")
-    for repo in tqdm(session.query(Repository).all()):
-        repo.update_visibility()
+    print("/!\ WARNING: Not creating git-daemon-export-ok files")
 
 
 def downgrade():
