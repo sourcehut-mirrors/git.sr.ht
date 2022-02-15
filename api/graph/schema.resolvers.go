@@ -28,10 +28,10 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/server"
 	"git.sr.ht/~sircmpwn/core-go/valid"
 	corewebhooks "git.sr.ht/~sircmpwn/core-go/webhooks"
-	"git.sr.ht/~sircmpwn/git.sr.ht/api/clones"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/repos"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/webhooks"
 	"github.com/99designs/gqlgen/graphql"
 	sq "github.com/Masterminds/squirrel"
@@ -228,7 +228,7 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 				cloneURL = &repo.Path
 			}
 
-			clones.Schedule(ctx, repo.ID, gitrepo, *cloneURL)
+			repos.Clone(ctx, repo.ID, gitrepo, *cloneURL)
 		}
 
 		webhooks.DeliverRepoEvent(ctx, model.WebhookEventRepoCreated, &repo)
