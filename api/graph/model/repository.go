@@ -21,7 +21,6 @@ type Repository struct {
 	Updated     time.Time `json:"updated"`
 	Name        string    `json:"name"`
 	Description *string   `json:"description"`
-	UpstreamURL *string   `json:"upstreamUrl"`
 	Readme      *string   `json:"readme"`
 
 	Path          string
@@ -96,7 +95,6 @@ func (r *Repository) Fields() *database.ModelFields {
 			{"name", "name", &r.Name},
 			{"description", "description", &r.Description},
 			{"visibility", "visibility", &r.RawVisibility},
-			{"upstream_uri", "upstreamUrl", &r.UpstreamURL},
 			{"readme", "readme", &r.Readme},
 
 			// Always fetch:

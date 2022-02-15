@@ -140,10 +140,10 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 				$1, $2, $3, $4, $5, $6
 			) RETURNING 
 				id, created, updated, name, description, visibility,
-				upstream_uri, path, owner_id;
+				path, owner_id;
 		`, name, description, repoPath, dvis, user.UserID, cloneInProgress)
 		if err := row.Scan(&repo.ID, &repo.Created, &repo.Updated, &repo.Name,
-			&repo.Description, &repo.RawVisibility, &repo.UpstreamURL,
+			&repo.Description, &repo.RawVisibility,
 			&repo.Path, &repo.OwnerID); err != nil {
 			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
 				return valid.Errorf(ctx, "name", "A repository with this name already exists.")
@@ -379,12 +379,12 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 			Set(`updated`, sq.Expr(`now() at time zone 'utc'`)).
 			Suffix(`RETURNING
 				id, created, updated, name, description, visibility,
-				upstream_uri, path, owner_id`)
+				path, owner_id`)
 
 		row := query.RunWith(tx).QueryRowContext(ctx)
 		if err := row.Scan(&repo.ID, &repo.Created, &repo.Updated,
 			&repo.Name, &repo.Description, &repo.RawVisibility,
-			&repo.UpstreamURL, &repo.Path, &repo.OwnerID); err != nil {
+			&repo.Path, &repo.OwnerID); err != nil {
 			if err == sql.ErrNoRows {
 				return fmt.Errorf("No repository by ID %d found for this user", id)
 			}
@@ -452,12 +452,12 @@ func (r *mutationResolver) DeleteRepository(ctx context.Context, id int) (*model
 			WHERE id = $1 AND owner_id = $2
 			RETURNING
 				id, created, updated, name, description, visibility,
-				upstream_uri, path, owner_id;
+				path, owner_id;
 		`, id, auth.ForContext(ctx).UserID)
 
 		if err := row.Scan(&repo.ID, &repo.Created, &repo.Updated,
 			&repo.Name, &repo.Description, &repo.RawVisibility,
-			&repo.UpstreamURL, &repo.Path, &repo.OwnerID); err != nil {
+			&repo.Path, &repo.OwnerID); err != nil {
 			if err == sql.ErrNoRows {
 				return fmt.Errorf("No repository by ID %d found for this user", id)
 			}
