@@ -3,13 +3,18 @@ package repos
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
+	"path"
 	"time"
 
+	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/database"
 	work "git.sr.ht/~sircmpwn/dowork"
 	"github.com/go-git/go-git/v5"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 type contextKey struct {
@@ -68,4 +73,42 @@ func Clone(ctx context.Context, repoID int, repo *git.Repository, cloneURL strin
 	})
 	queue.Enqueue(task)
 	log.Printf("Enqueued clone of %s", cloneURL)
+}
+
+// Schedules deletion of artifacts.
+func DeleteArtifacts(ctx context.Context, username, repoName string, filenames []string) {
+	queue, ok := ctx.Value(ctxKey).(*work.Queue)
+	if !ok {
+		panic("No repos worker for this context")
+	}
+	task := work.NewTask(func(ctx context.Context) error {
+		conf := config.ForContext(ctx)
+		upstream, _ := conf.Get("objects", "s3-upstream")
+		accessKey, _ := conf.Get("objects", "s3-access-key")
+		secretKey, _ := conf.Get("objects", "s3-secret-key")
+		bucket, _ := conf.Get("git.sr.ht", "s3-bucket")
+		prefix, _ := conf.Get("git.sr.ht", "s3-prefix")
+
+		if upstream == "" || accessKey == "" || secretKey == "" || bucket == "" {
+			return fmt.Errorf("Object storage is not enabled for this server")
+		}
+
+		mc, err := minio.New(upstream, &minio.Options{
+			Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
+			Secure: true,
+		})
+		if err != nil {
+			panic(err)
+		}
+
+		for _, filename := range filenames {
+			s3path := path.Join(prefix, "artifacts", "~"+username, repoName, filename)
+			if err := mc.RemoveObject(ctx, bucket, s3path, minio.RemoveObjectOptions{}); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	queue.Enqueue(task)
+	log.Printf("Enqueued deletion of %d artifacts", len(filenames))
 }

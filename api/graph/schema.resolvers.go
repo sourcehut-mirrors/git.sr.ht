@@ -447,6 +447,23 @@ func (r *mutationResolver) DeleteRepository(ctx context.Context, id int) (*model
 	var repo model.Repository
 
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		rows, err := tx.QueryContext(ctx,
+			`DELETE FROM artifacts WHERE repo_id = $1 RETURNING filename;`, id)
+		if err != nil {
+			return err
+		}
+		var artifacts []string
+		for rows.Next() {
+			var filename string
+			if err := rows.Scan(&filename); err != nil {
+				return err
+			}
+			artifacts = append(artifacts, filename)
+		}
+		if err := rows.Err(); err != nil {
+			return err
+		}
+
 		row := tx.QueryRowContext(ctx, `
 			DELETE FROM repository
 			WHERE id = $1 AND owner_id = $2
@@ -467,9 +484,13 @@ func (r *mutationResolver) DeleteRepository(ctx context.Context, id int) (*model
 		webhooks.DeliverRepoEvent(ctx, model.WebhookEventRepoDeleted, &repo)
 		webhooks.DeliverLegacyRepoDeleted(ctx, &repo)
 
-		err := os.RemoveAll(repo.Path)
-		if err != nil {
+		if err := os.RemoveAll(repo.Path); err != nil {
 			return err
+		}
+
+		if len(artifacts) > 0 {
+			username := auth.ForContext(ctx).Username
+			repos.DeleteArtifacts(ctx, username, repo.Name, artifacts)
 		}
 		return nil
 	}); err != nil {
