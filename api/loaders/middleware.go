@@ -25,7 +25,6 @@ type Loaders struct {
 	UsersByID                   UsersByIDLoader
 	UsersByName                 UsersByNameLoader
 	RepositoriesByID            RepositoriesByIDLoader
-	RepositoriesByName          RepositoriesByNameLoader
 	RepositoriesByOwnerRepoName RepositoriesByOwnerRepoNameLoader
 }
 
@@ -167,53 +166,6 @@ func fetchRepositoriesByID(ctx context.Context) func(ids []int) ([]*model.Reposi
 	}
 }
 
-func fetchRepositoriesByName(ctx context.Context) func(names []string) ([]*model.Repository, []error) {
-	return func(names []string) ([]*model.Repository, []error) {
-		repos := make([]*model.Repository, len(names))
-		if err := database.WithTx(ctx, &sql.TxOptions{
-			Isolation: 0,
-			ReadOnly:  true,
-		}, func(tx *sql.Tx) error {
-			var (
-				err  error
-				rows *sql.Rows
-			)
-			query := database.
-				Select(ctx, (&model.Repository{}).As(`repo`)).
-				Distinct().
-				From(`repository repo`).
-				Where(sq.And{
-					sq.Expr(`repo.name = ANY(?)`, pq.Array(names)),
-					sq.Expr(`repo.owner_id = ?`, auth.ForContext(ctx).UserID),
-				})
-			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
-				panic(err)
-			}
-			defer rows.Close()
-
-			reposByName := map[string]*model.Repository{}
-			for rows.Next() {
-				repo := model.Repository{}
-				if err := rows.Scan(database.Scan(ctx, &repo)...); err != nil {
-					panic(err)
-				}
-				reposByName[repo.Name] = &repo
-			}
-			if err = rows.Err(); err != nil {
-				panic(err)
-			}
-
-			for i, name := range names {
-				repos[i] = reposByName[name]
-			}
-			return nil
-		}); err != nil {
-			panic(err)
-		}
-		return repos, nil
-	}
-}
-
 func fetchRepositoriesByOwnerRepoName(ctx context.Context) func(names [][2]string) ([]*model.Repository, []error) {
 	return func(names [][2]string) ([]*model.Repository, []error) {
 		repos := make([]*model.Repository, len(names))
@@ -299,11 +251,6 @@ func Middleware(next http.Handler) http.Handler {
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchRepositoriesByID(r.Context()),
-			},
-			RepositoriesByName: RepositoriesByNameLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchRepositoriesByName(r.Context()),
 			},
 			RepositoriesByOwnerRepoName: RepositoriesByOwnerRepoNameLoader{
 				maxBatch: 100,
