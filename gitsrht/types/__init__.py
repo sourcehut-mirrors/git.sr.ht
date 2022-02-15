@@ -24,33 +24,11 @@ class Repository(Base, BaseRepositoryMixin):
 
     clone_in_progress = sa.Column(sa.Boolean, nullable=False)
 
-    # Must match gitsrht-update-hook/post-update.go#updateRepoVisibility()
-    def update_visibility(self):
-        if not os.path.exists(self.path):
-            # Repo dir not initialized yet
-            return
-        # In order to clone a public repo via http, a git-daemon-export-ok file
-        # must exist inside the repo directory. A private repo shouldn't have
-        # this file to improve security.
-        path = os.path.join(self.path, "git-daemon-export-ok")
-        should_exist = self.visibility in (RepoVisibility.public, RepoVisibility.unlisted)
-        if should_exist:
-            with open(path, 'w'):
-                pass
-        elif not should_exist and os.path.exists(path):
-            os.unlink(path)
-
     @property
     def git_repo(self):
         if not self._git_repo:
             self._git_repo = GitRepository(self.path)
         return self._git_repo
-
-def update_visibility_event(mapper, connection, target):
-    target.update_visibility()
-
-event.listen(Repository, 'after_insert', update_visibility_event)
-event.listen(Repository, 'after_update', update_visibility_event)
 
 from gitsrht.types.artifact import Artifact
 from gitsrht.types.sshkey import SSHKey
