@@ -63,35 +63,33 @@ func fetchInfoForPush(db *sql.DB, username string, repoId int, repoName string,
 		Errors []gqlerror.Error `json:"errors"`
 	}
 
-	if newDescription != nil || newVisibility != nil {
-		input := RepoInput{newDescription, newVisibility}
-		resp := Response{}
+	input := RepoInput{newDescription, newVisibility}
+	resp := Response{}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		ctx = coreconfig.Context(ctx, config, "git.sr.ht")
-		err := client.Execute(ctx, username, "git.sr.ht", client.GraphQLQuery{
-			Query: `
-			mutation UpdateRepository($id: Int!, $input: RepoInput!) {
-				updateRepository(id: $id, input: $input) { id }
-			}`,
-			Variables: map[string]interface{}{
-				"id":    repoId,
-				"input": input,
-			},
-		}, &resp)
-		if err != nil {
-			return dbinfo, err
-		} else if len(resp.Errors) > 0 {
-			for _, err := range resp.Errors {
-				logger.Printf("Error updating repository: %s", err.Error())
-			}
-			return dbinfo, fmt.Errorf("Failed to update repository: %s", resp.Errors[0].Message)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	ctx = coreconfig.Context(ctx, config, "git.sr.ht")
+	err := client.Execute(ctx, username, "git.sr.ht", client.GraphQLQuery{
+		Query: `
+		mutation UpdateRepository($id: Int!, $input: RepoInput!) {
+			updateRepository(id: $id, input: $input) { id }
+		}`,
+		Variables: map[string]interface{}{
+			"id":    repoId,
+			"input": input,
+		},
+	}, &resp)
+	if err != nil {
+		return dbinfo, err
+	} else if len(resp.Errors) > 0 {
+		for _, err := range resp.Errors {
+			logger.Printf("Error updating repository: %s", err.Error())
 		}
+		return dbinfo, fmt.Errorf("Failed to update repository: %s", resp.Errors[0].Message)
+	}
 
-		if newVisibility != nil {
-			dbinfo.Visibility = *newVisibility
-		}
+	if newVisibility != nil {
+		dbinfo.Visibility = *newVisibility
 	}
 
 	// With this query, we:
