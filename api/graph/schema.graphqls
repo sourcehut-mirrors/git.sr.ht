@@ -87,18 +87,10 @@ interface Entity {
   """
   canonicalName: String!
 
-  "Returns a specific repository owned by the user."
+  "Returns a specific repository owned by the entity."
   repository(name: String!): Repository @access(scope: REPOSITORIES, kind: RO)
 
-  """
-  Returns repositories that the user has access to.
-
-  NOTE: in this version of the API, only repositories owned by the
-  authenticated user are returned, but in the future the default behavior
-  will be to return all repositories that the user either (1) has been given
-  explicit access to via ACLs or (2) has implicit access to either by
-  ownership or group membership.
-  """
+  "Returns a list of repositories owned by the entity."
   repositories(cursor: Cursor, filter: Filter): RepositoryCursor! @access(scope: REPOSITORIES, kind: RO)
 }
 
