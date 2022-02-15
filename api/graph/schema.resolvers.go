@@ -128,12 +128,15 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 			panic(fmt.Errorf("Unknown visibility %s", visibility)) // Invariant
 		}
 
-		cloneInProgress := cloneURL != nil
+		cloneStatus := CloneNone
+		if cloneURL != nil {
+			cloneStatus = CloneInProgress
+		}
 
 		row := tx.QueryRowContext(ctx, `
 			INSERT INTO repository (
 				created, updated, name, description, path, visibility, owner_id,
-				clone_in_progress
+				clone_status
 			) VALUES (
 				NOW() at time zone 'utc',
 				NOW() at time zone 'utc',
@@ -141,7 +144,7 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 			) RETURNING 
 				id, created, updated, name, description, visibility,
 				path, owner_id;
-		`, name, description, repoPath, dvis, user.UserID, cloneInProgress)
+		`, name, description, repoPath, dvis, user.UserID, cloneStatus)
 		if err := row.Scan(&repo.ID, &repo.Created, &repo.Updated, &repo.Name,
 			&repo.Description, &repo.RawVisibility,
 			&repo.Path, &repo.OwnerID); err != nil {
@@ -188,7 +191,7 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 			}
 		}
 
-		if cloneInProgress {
+		if cloneURL != nil {
 			u, err := url.Parse(*cloneURL)
 			if err != nil {
 				return valid.Errorf(ctx, "cloneUrl", "Invalid clone URL: %s", err)

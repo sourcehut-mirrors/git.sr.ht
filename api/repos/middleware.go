@@ -33,6 +33,15 @@ func Middleware(queue *work.Queue) func(next http.Handler) http.Handler {
 	}
 }
 
+type CloneStatus string
+
+const (
+	CloneNone       CloneStatus = "NONE"
+	CloneInProgress CloneStatus = "IN_PROGRESS"
+	CloneComplete   CloneStatus = "COMPLETE"
+	CloneError      CloneStatus = "ERROR"
+)
+
 // Schedules a clone.
 func Clone(ctx context.Context, repoID int, repo *git.Repository, cloneURL string) {
 	queue, ok := ctx.Value(ctxKey).(*work.Queue)
@@ -40,33 +49,29 @@ func Clone(ctx context.Context, repoID int, repo *git.Repository, cloneURL strin
 		panic("No repos worker for this context")
 	}
 	task := work.NewTask(func(ctx context.Context) error {
-		defer func() {
-			recovered := recover()
-			err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-				_, err := tx.Exec(
-					`UPDATE repository SET clone_in_progress = false WHERE id = $1;`,
-					repoID,
-				)
-				if err != nil {
-					return err
-				}
-				return nil
-			})
-			if err != nil {
-				panic(err)
-			}
-			if recovered != nil {
-				panic(recovered)
-			}
-		}()
 		cloneCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 		defer cancel()
 		err := repo.Clone(cloneCtx, &git.CloneOptions{
 			URL:               cloneURL,
 			RecurseSubmodules: git.NoRecurseSubmodules,
 		})
+		cloneStatus := CloneComplete
+		var cloneError sql.NullString
 		if err != nil {
-			// TODO: Set repo to error state. Email error to user.
+			cloneStatus = CloneError
+			cloneError.String = err.Error()
+			cloneError.Valid = true
+		}
+		if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+			_, err := tx.Exec(`
+				UPDATE repository
+				SET clone_status = $2, clone_error = $3
+				WHERE id = $1;`, repoID, cloneStatus, cloneError)
+			if err != nil {
+				return err
+			}
+			return nil
+		}); err != nil {
 			panic(err)
 		}
 		return nil

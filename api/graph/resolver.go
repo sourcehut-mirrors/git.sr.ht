@@ -15,3 +15,12 @@ var allowedCloneSchemes = map[string]struct{}{
 	"http":  struct{}{},
 	"git":   struct{}{},
 }
+
+type CloneStatus string
+
+const (
+	CloneNone       CloneStatus = "NONE"
+	CloneInProgress CloneStatus = "IN_PROGRESS"
+	CloneComplete   CloneStatus = "COMPLETE"
+	CloneError      CloneStatus = "ERROR"
+)

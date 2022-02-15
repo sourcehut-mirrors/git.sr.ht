@@ -3,6 +3,7 @@ import sqlalchemy as sa
 from sqlalchemy import event
 import sqlalchemy_utils as sau
 from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.dialects import postgresql
 from srht.database import Base
 from srht.oauth import ExternalUserMixin, ExternalOAuthTokenMixin
 from gitsrht.git import Repository as GitRepository
@@ -45,7 +46,9 @@ class Repository(Base):
             nullable=False,
             default=RepoVisibility.public)
     readme = sa.Column(sa.Unicode)
-    clone_in_progress = sa.Column(sa.Boolean, nullable=False)
+    clone_status = sa.Column(postgresql.ENUM(
+        'NONE', 'IN_PROGRESS', 'COMPLETE', 'ERROR'), nullable=False)
+    clone_error = sa.Column(sa.Unicode)
 
     @declared_attr
     def owner_id(cls):
