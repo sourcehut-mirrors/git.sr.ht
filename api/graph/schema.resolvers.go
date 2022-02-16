@@ -222,7 +222,7 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 					return valid.Errorf(ctx, "cloneUrl", "Invalid username")
 				}
 				repo, err := loaders.ForContext(ctx).
-					RepositoriesByOwnerRepoName.Load([2]string{entity, repoName})
+					RepositoriesByOwnerRepoName.Load(loaders.OwnerRepoName{entity, repoName})
 				if err != nil {
 					panic(err)
 				} else if repo == nil {
@@ -1281,7 +1281,7 @@ func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *cor
 
 func (r *userResolver) Repository(ctx context.Context, obj *model.User, name string) (*model.Repository, error) {
 	// TODO: Load repository with user ID instead of username. Needs a new loader.
-	return loaders.ForContext(ctx).RepositoriesByOwnerRepoName.Load([2]string{obj.Username, name})
+	return loaders.ForContext(ctx).RepositoriesByOwnerRepoName.Load(loaders.OwnerRepoName{obj.Username, name})
 }
 
 func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor *coremodel.Cursor, filter *coremodel.Filter) (*model.RepositoryCursor, error) {

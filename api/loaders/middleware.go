@@ -3,7 +3,9 @@ package loaders
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -166,37 +168,37 @@ func fetchRepositoriesByID(ctx context.Context) func(ids []int) ([]*model.Reposi
 	}
 }
 
-func fetchRepositoriesByOwnerRepoName(ctx context.Context) func(names [][2]string) ([]*model.Repository, []error) {
-	return func(names [][2]string) ([]*model.Repository, []error) {
-		repos := make([]*model.Repository, len(names))
+type OwnerRepoName struct {
+	Owner    string
+	RepoName string
+}
+
+func (or OwnerRepoName) Value() (driver.Value, error) {
+	return fmt.Sprintf("(%q,%q)", or.Owner, or.RepoName), nil
+}
+
+func fetchRepositoriesByOwnerRepoName(ctx context.Context) func([]OwnerRepoName) ([]*model.Repository, []error) {
+	return func(ownerRepoNames []OwnerRepoName) ([]*model.Repository, []error) {
+		repos := make([]*model.Repository, len(ownerRepoNames))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
 			ReadOnly:  true,
 		}, func(tx *sql.Tx) error {
 			var (
-				err    error
-				rows   *sql.Rows
-				_names []string = make([]string, len(names))
+				err  error
+				rows *sql.Rows
 			)
-			for i, name := range names {
-				// This is a hack, but it works around limitations with PostgreSQL
-				// and is guaranteed to work because / is invalid in both usernames
-				// and repo names
-				_names[i] = name[0] + "/" + name[1]
-			}
 			query := database.
 				Select(ctx).
-				Prefix(`WITH user_repo AS (
-					SELECT
-						substring(un for position('/' in un)-1) AS owner,
-						substring(un from position('/' in un)+1) AS repo
-					FROM unnest(?::text[]) un)`, pq.Array(_names)).
+				Prefix(`WITH owner_repo_names AS (
+					SELECT owner, repo_name
+					FROM unnest(?::owner_repo_name[]))`, pq.GenericArray{ownerRepoNames}).
 				Columns(database.Columns(ctx, (&model.Repository{}).As(`repo`))...).
-				Columns(`u.username`).
+				Columns(`o.owner`).
 				Distinct().
-				From(`user_repo ur`).
-				Join(`"user" u on ur.owner = u.username`).
-				Join(`repository repo ON ur.repo = repo.name
+				From(`owner_repo_names o`).
+				Join(`"user" u on o.owner = u.username`).
+				Join(`repository repo ON o.repo_name = repo.name
 					AND u.id = repo.owner_id`).
 				LeftJoin(`access ON repo.id = access.repo_id`).
 				Where(sq.Or{
@@ -209,7 +211,7 @@ func fetchRepositoriesByOwnerRepoName(ctx context.Context) func(names [][2]strin
 			}
 			defer rows.Close()
 
-			reposByOwnerRepoName := map[[2]string]*model.Repository{}
+			reposByOwnerRepoName := map[OwnerRepoName]*model.Repository{}
 			for rows.Next() {
 				var ownerName string
 				repo := model.Repository{}
@@ -217,14 +219,14 @@ func fetchRepositoriesByOwnerRepoName(ctx context.Context) func(names [][2]strin
 					database.Scan(ctx, &repo), &ownerName)...); err != nil {
 					panic(err)
 				}
-				reposByOwnerRepoName[[2]string{ownerName, repo.Name}] = &repo
+				reposByOwnerRepoName[OwnerRepoName{ownerName, repo.Name}] = &repo
 			}
 			if err = rows.Err(); err != nil {
 				panic(err)
 			}
 
-			for i, name := range names {
-				repos[i] = reposByOwnerRepoName[name]
+			for i, or := range ownerRepoNames {
+				repos[i] = reposByOwnerRepoName[or]
 			}
 			return nil
 		}); err != nil {
