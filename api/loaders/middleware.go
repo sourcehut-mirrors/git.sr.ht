@@ -24,10 +24,11 @@ type contextKey struct {
 }
 
 type Loaders struct {
-	UsersByID                   UsersByIDLoader
-	UsersByName                 UsersByNameLoader
-	RepositoriesByID            RepositoriesByIDLoader
-	RepositoriesByOwnerRepoName RepositoriesByOwnerRepoNameLoader
+	UsersByID                     UsersByIDLoader
+	UsersByName                   UsersByNameLoader
+	RepositoriesByID              RepositoriesByIDLoader
+	RepositoriesByOwnerRepoName   RepositoriesByOwnerRepoNameLoader
+	RepositoriesByOwnerIDRepoName RepositoriesByOwnerIDRepoNameLoader
 }
 
 func fetchUsersByID(ctx context.Context) func(ids []int) ([]*model.User, []error) {
@@ -236,6 +237,73 @@ func fetchRepositoriesByOwnerRepoName(ctx context.Context) func([]OwnerRepoName)
 	}
 }
 
+type OwnerIDRepoName struct {
+	OwnerID  int
+	RepoName string
+}
+
+func (or OwnerIDRepoName) Value() (driver.Value, error) {
+	return fmt.Sprintf("(%d,%q)", or.OwnerID, or.RepoName), nil
+}
+
+func fetchRepositoriesByOwnerIDRepoName(ctx context.Context) func([]OwnerIDRepoName) ([]*model.Repository, []error) {
+	return func(ownerIDRepoNames []OwnerIDRepoName) ([]*model.Repository, []error) {
+		repos := make([]*model.Repository, len(ownerIDRepoNames))
+		if err := database.WithTx(ctx, &sql.TxOptions{
+			Isolation: 0,
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
+			var (
+				err  error
+				rows *sql.Rows
+			)
+			query := database.
+				Select(ctx).
+				Prefix(`WITH owner_id_repo_names AS (
+					SELECT owner_id, repo_name
+					FROM unnest(?::owner_id_repo_name[]))`, pq.GenericArray{ownerIDRepoNames}).
+				Columns(database.Columns(ctx, (&model.Repository{}).As(`repo`))...).
+				Columns(`o.owner_id`).
+				Distinct().
+				From(`owner_id_repo_names o`).
+				Join(`repository repo ON o.repo_name = repo.name
+					AND o.owner_id = repo.owner_id`).
+				LeftJoin(`access ON repo.id = access.repo_id`).
+				Where(sq.Or{
+					sq.Expr(`? IN (access.user_id, repo.owner_id)`,
+						auth.ForContext(ctx).UserID),
+					sq.Expr(`repo.visibility != 'private'`),
+				})
+			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
+				panic(err)
+			}
+			defer rows.Close()
+
+			reposByOwnerIDRepoName := map[OwnerIDRepoName]*model.Repository{}
+			for rows.Next() {
+				var ownerID int
+				repo := model.Repository{}
+				if err := rows.Scan(append(
+					database.Scan(ctx, &repo), &ownerID)...); err != nil {
+					panic(err)
+				}
+				reposByOwnerIDRepoName[OwnerIDRepoName{ownerID, repo.Name}] = &repo
+			}
+			if err = rows.Err(); err != nil {
+				panic(err)
+			}
+
+			for i, or := range ownerIDRepoNames {
+				repos[i] = reposByOwnerIDRepoName[or]
+			}
+			return nil
+		}); err != nil {
+			panic(err)
+		}
+		return repos, nil
+	}
+}
+
 func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), loadersCtxKey, &Loaders{
@@ -258,6 +326,11 @@ func Middleware(next http.Handler) http.Handler {
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchRepositoriesByOwnerRepoName(r.Context()),
+			},
+			RepositoriesByOwnerIDRepoName: RepositoriesByOwnerIDRepoNameLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchRepositoriesByOwnerIDRepoName(r.Context()),
 			},
 		})
 		r = r.WithContext(ctx)
