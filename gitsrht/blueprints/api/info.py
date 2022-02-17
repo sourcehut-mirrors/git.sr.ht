@@ -40,6 +40,8 @@ def repos_POST():
     resp = current_app.repo_api.create_repo(valid, user)
     if not valid.ok:
         return valid.response
+    # Convert visibility back to lowercase
+    resp["visibility"] = resp["visibility"].lower()
     return resp, 201
 
 @info.route("/api/repos/<reponame>", defaults={"username": None})

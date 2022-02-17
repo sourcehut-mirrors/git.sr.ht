@@ -91,6 +91,11 @@ class GitRepoApi():
         if not valid.ok:
             return None
 
+        # Convert the visibility to uppercase. This is needed for the REST API
+        # TODO: Remove this when the REST API is phased out
+        if visibility is not None:
+            visibility = visibility.upper()
+
         resp = exec_gql("git.sr.ht", """
             mutation CreateRepository(
                     $name: String!,
