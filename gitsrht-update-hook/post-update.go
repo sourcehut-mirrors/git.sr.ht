@@ -218,7 +218,7 @@ func postUpdate() {
 		logger.Fatalf("Failed to open a database connection: %v", err)
 	}
 
-	dbinfo, err := fetchInfoForPush(db, context.User.Name, context.Repo.Id, context.Repo.Name, context.Repo.Visibility, newDescription, newVisibility)
+	dbinfo, err := fetchInfoForPush(db, context.Repo.OwnerName, context.Repo.Id, context.Repo.Name, context.Repo.Visibility, newDescription, newVisibility)
 	if err != nil {
 		logger.Fatalf("Failed to fetch info from database: %v", err)
 	}
