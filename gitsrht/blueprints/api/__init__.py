@@ -1,7 +1,7 @@
 import pkg_resources
 from flask import abort
-from scmsrht.access import UserAccess, get_access
-from scmsrht.types import Repository, User
+from gitsrht.access import UserAccess, get_access
+from gitsrht.types import Repository, User
 from srht.flask import csrf_bypass
 from srht.oauth import current_token, oauth
 

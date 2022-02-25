@@ -92,7 +92,7 @@
             <input type="hidden" name="cloneUrl" value="{{(repo|clone_urls)[0]}}" />
             <input type="hidden" name="name" value="{{repo.name}}" />
             <input type="hidden" name="description" value="Clone of {{(repo|clone_urls)[0]}}" />
-            <input type="hidden" name="visibility" value="{% if repo.visibility.value == 'private' %}PRIVATE{% else %}UNLISTED{% endif %}" />
+            <input type="hidden" name="visibility" value="{% if repo.visibility.value == 'PRIVATE' %}PRIVATE{% else %}UNLISTED{% endif %}" />
             <button type="submit" class="btn btn-primary btn-block">
               Clone repo to your account {{icon('caret-right')}}
             </button>
@@ -121,7 +121,7 @@
     </div>
   </div>
   {% if current_user == repo.owner and not license
-    and repo.visibility.value == 'public' %}
+    and repo.visibility.value == 'PUBLIC' %}
   <div class="alert alert-danger">
     <strong>Heads up!</strong> We couldn't find a license file for your
     repository, which means that it may not be possible for others to use this

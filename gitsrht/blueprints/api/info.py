@@ -1,7 +1,7 @@
 from flask import Blueprint, Response, current_app, request
-from scmsrht.access import UserAccess
-from scmsrht.repos import RepoVisibility
-from scmsrht.types import Access, Repository, User
+import gitsrht.repos as repos
+from gitsrht.access import UserAccess
+from gitsrht.types import Access, Repository, User, RepoVisibility
 from gitsrht.webhooks import UserWebhook
 from gitsrht.blueprints.api import get_user, get_repo
 from srht.api import paginated_response
@@ -22,12 +22,12 @@ def repos_by_user_GET(username):
             .filter(Repository.owner_id == user.id))
     if user.id != current_token.user_id:
         repos = (repos
-                .outerjoin(Access._get_current_object(),
+                .outerjoin(Access,
                     Access.repo_id == Repository.id)
                 .filter(or_(
                     Access.user_id == current_token.user_id,
                     and_(
-                        Repository.visibility == RepoVisibility.public,
+                        Repository.visibility == RepoVisibility.PUBLIC,
                         Access.id.is_(None))
                 )))
     return paginated_response(Repository.id, repos)
@@ -37,7 +37,7 @@ def repos_by_user_GET(username):
 def repos_POST():
     valid = Validation(request)
     user = current_token.user
-    resp = current_app.repo_api.create_repo(valid, user)
+    resp = repos.create_repo(valid, user)
     if not valid.ok:
         return valid.response
     # Convert visibility back to lowercase
@@ -103,7 +103,7 @@ def repos_by_name_DELETE(reponame):
     user = current_token.user
     repo = get_repo(user, reponame, needs=UserAccess.manage)
     repo_id = repo.id
-    current_app.repo_api.delete_repo(repo, user)
+    repos.delete_repo(repo, user)
     return {}, 204
 
 @info.route("/api/repos/<reponame>/readme", defaults={"username": None})

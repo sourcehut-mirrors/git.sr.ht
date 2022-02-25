@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"time"
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
@@ -35,7 +36,7 @@ func DeliverLegacyRepoCreate(ctx context.Context, repo *model.Repository) {
 		Updated:     repo.Created,
 		Name:        repo.Name,
 		Description: repo.Description,
-		Visibility:  repo.RawVisibility,
+		Visibility:  strings.ToLower(repo.Visibility.String()),
 	}
 
 	// TODO: User groups
@@ -69,7 +70,7 @@ func DeliverLegacyRepoUpdate(ctx context.Context, repo *model.Repository) {
 		Updated:     repo.Created,
 		Name:        repo.Name,
 		Description: repo.Description,
-		Visibility:  repo.RawVisibility,
+		Visibility:  strings.ToLower(repo.Visibility.String()),
 	}
 
 	// TODO: User groups

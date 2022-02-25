@@ -2,7 +2,7 @@
 {% block head %}
 {% block repohead %}
 {% endblock %}
-{% if repo.visibility.value =='unlisted' %}
+{% if repo.visibility.value == 'UNLISTED' %}
 <meta name="robots" content="noindex">
 {% endif %}
 {# VCS meta tags #}
@@ -44,18 +44,18 @@
       >{{owner.canonical_name}}</a>/<wbr>{{repo.name}}
     </h2>
     <ul class="nav nav-tabs">
-      {% if repo.visibility.value != "public" %}
+      {% if repo.visibility.value != "PUBLIC" %}
       <li
         class="nav-item nav-text vis-{{repo.visibility.value.lower()}}"
-        {% if repo.visibility.value == "unlisted" %}
+        {% if repo.visibility.value == "UNLISTED" %}
         title="This repository is only visible to those who know the URL."
-        {% elif repo.visibility.value == "private" %}
+        {% elif repo.visibility.value == "PRIVATE" %}
         title="This repository is only visible to those who were invited to view it."
         {% endif %}
       >
-        {% if repo.visibility.value == "unlisted" %}
+        {% if repo.visibility.value == "UNLISTED" %}
         Unlisted
-        {% elif repo.visibility.value == "private" %}
+        {% elif repo.visibility.value == "PRIVATE" %}
         Private
         {% endif %}
       </li>

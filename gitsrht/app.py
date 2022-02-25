@@ -4,25 +4,24 @@ import stat
 from functools import lru_cache
 from gitsrht import urls
 from gitsrht.git import commit_time, commit_links, trim_commit, signature_time
-from gitsrht.repos import GitRepoApi
 from gitsrht.service import oauth_service, webhooks_notify
-from gitsrht.types import Access, Redirect, Repository, User
-from scmsrht.flask import ScmSrhtFlask
+from gitsrht.types import User
 from srht.config import cfg
-from srht.database import DbSession
-from srht.flask import session
+from srht.database import db, DbSession
+from srht.flask import SrhtFlask, session
+from jinja2 import FileSystemLoader, ChoiceLoader
 from werkzeug.urls import url_quote
 
 db = DbSession(cfg("git.sr.ht", "connection-string"))
 db.init()
 
-class GitApp(ScmSrhtFlask):
+class GitApp(SrhtFlask):
     def __init__(self):
         super().__init__("git.sr.ht", __name__,
-                access_class=Access, redirect_class=Redirect,
-                repository_class=Repository, user_class=User,
-                repo_api=GitRepoApi(), oauth_service=oauth_service)
+                oauth_service=oauth_service)
 
+        from gitsrht.blueprints.auth import auth
+        from gitsrht.blueprints.public import public
         from gitsrht.blueprints.api import register_api
         from gitsrht.blueprints.api.plumbing import plumbing
         from gitsrht.blueprints.api.porcelain import porcelain
@@ -31,6 +30,9 @@ class GitApp(ScmSrhtFlask):
         from gitsrht.blueprints.manage import manage
         from gitsrht.blueprints.repo import repo
         from srht.graphql import gql_blueprint
+
+        self.register_blueprint(auth)
+        self.register_blueprint(public)
 
         register_api(self)
         self.register_blueprint(plumbing)
@@ -68,6 +70,16 @@ class GitApp(ScmSrhtFlask):
                 "path_join": os.path.join,
                 "stat": stat,
                 "trim_commit": trim_commit,
+                "lookup_user": self.lookup_user
             }
+
+        choices = [self.jinja_loader, FileSystemLoader(os.path.join(
+            os.path.dirname(__file__), "templates"))]
+        self.jinja_loader = ChoiceLoader(choices)
+
+        self.url_map.strict_slashes = False
+
+    def lookup_user(self, email):
+        return User.query.filter(User.email == email).one_or_none()
 
 app = GitApp()

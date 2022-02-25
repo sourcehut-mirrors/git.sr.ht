@@ -10,7 +10,7 @@ from gitsrht.repos import upload_artifact
 from gitsrht.webhooks import RepoWebhook
 from io import BytesIO
 from itertools import groupby
-from scmsrht.access import UserAccess
+from gitsrht.access import UserAccess
 from gitsrht.blueprints.api import get_user, get_repo
 from srht.api import paginated_response
 from srht.database import db

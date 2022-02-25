@@ -6,7 +6,6 @@ import shutil
 import subprocess
 from gitsrht.types import Artifact, Repository, Redirect
 from minio import Minio
-from scmsrht.repos.repository import RepoVisibility
 from srht.config import cfg
 from srht.database import db
 from srht.graphql import exec_gql, GraphQLError
@@ -78,85 +77,82 @@ def upload_artifact(valid, repo, commit, f, filename):
     db.session.add(artifact)
     return artifact
 
-# TODO: Remove repo API wrapper class
+def get_repo_path(owner, repo_name):
+    return os.path.join(repos_path, "~" + owner.username, repo_name)
 
-class GitRepoApi():
-    def get_repo_path(self, owner, repo_name):
-        return os.path.join(repos_path, "~" + owner.username, repo_name)
+def create_repo(valid, user=None):
+    repo_name = valid.require("name", friendly_name="Name")
+    description = valid.optional("description")
+    visibility = valid.optional("visibility")
+    if not valid.ok:
+        return None
 
-    def create_repo(self, valid, user=None):
-        repo_name = valid.require("name", friendly_name="Name")
-        description = valid.optional("description")
-        visibility = valid.optional("visibility")
-        if not valid.ok:
-            return None
+    # Convert the visibility to uppercase. This is needed for the REST API
+    # TODO: Remove this when the REST API is phased out
+    if visibility is not None:
+        visibility = visibility.upper()
 
-        # Convert the visibility to uppercase. This is needed for the REST API
-        # TODO: Remove this when the REST API is phased out
-        if visibility is not None:
-            visibility = visibility.upper()
-
-        resp = exec_gql("git.sr.ht", """
-            mutation CreateRepository(
-                    $name: String!,
-                    $visibility: Visibility = PUBLIC,
-                    $description: String) {
-                createRepository(
-                        name: $name,
-                        visibility: $visibility,
-                        description: $description) {
-                    id
-                    created
-                    updated
-                    name
-                    owner {
-                        canonicalName
-                        ... on User {
-                            name: username
-                        }
+    resp = exec_gql("git.sr.ht", """
+        mutation CreateRepository(
+                $name: String!,
+                $visibility: Visibility = PUBLIC,
+                $description: String) {
+            createRepository(
+                    name: $name,
+                    visibility: $visibility,
+                    description: $description) {
+                id
+                created
+                updated
+                name
+                owner {
+                    canonicalName
+                    ... on User {
+                        name: username
                     }
-                    description
-                    visibility
                 }
+                description
+                visibility
             }
-        """, valid=valid, user=user, name=repo_name,
-            description=description, visibility=visibility)
+        }
+    """, valid=valid, user=user, name=repo_name,
+        description=description, visibility=visibility)
 
-        if not valid.ok:
-            return None
-        return resp["createRepository"]
+    if not valid.ok:
+        return None
+    return resp["createRepository"]
 
-    def clone_repo(self, valid):
-        cloneUrl = valid.require("cloneUrl", friendly_name="Clone URL")
-        name = valid.require("name", friendly_name="Name")
-        description = valid.optional("description")
-        visibility = valid.optional("visibility")
-        if not valid.ok:
-            return None
+def clone_repo(valid):
+    cloneUrl = valid.require("cloneUrl", friendly_name="Clone URL")
+    name = valid.require("name", friendly_name="Name")
+    description = valid.optional("description")
+    visibility = valid.optional("visibility")
+    if not valid.ok:
+        return None
 
-        resp = exec_gql("git.sr.ht", """
-            mutation CreateRepository(
-                    $name: String!,
-                    $visibility: Visibility = UNLISTED,
-                    $description: String,
-                    $cloneUrl: String) {
-                createRepository(name: $name,
-                        visibility: $visibility,
-                        description: $description,
-                        cloneUrl: $cloneUrl) {
-                    name
-                }
+    resp = exec_gql("git.sr.ht", """
+        mutation CreateRepository(
+                $name: String!,
+                $visibility: Visibility = UNLISTED,
+                $description: String,
+                $cloneUrl: String) {
+            createRepository(name: $name,
+                    visibility: $visibility,
+                    description: $description,
+                    cloneUrl: $cloneUrl) {
+                name
             }
-        """, valid=valid, name=name, visibility=visibility,
-            description=description, cloneUrl=cloneUrl)
+        }
+    """, valid=valid, name=name, visibility=visibility,
+        description=description, cloneUrl=cloneUrl)
 
-        if not valid.ok:
-            return None
-        return resp["createRepository"]
+    if not valid.ok:
+        return None
+    return resp["createRepository"]
 
-    def delete_repo(self, repo, user=None):
-        exec_gql("git.sr.ht", """
-            mutation DeleteRepository($id: Int!) {
-                deleteRepository(id: $id) { id }
-            }
-        """, user=user, id=repo.id)
+def delete_repo(repo, user=None):
+    exec_gql("git.sr.ht", """
+        mutation DeleteRepository($id: Int!) {
+            deleteRepository(id: $id) { id }
+        }
+    """, user=user, id=repo.id)

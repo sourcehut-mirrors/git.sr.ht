@@ -13,7 +13,7 @@ from flask import Blueprint, render_template, abort, request, url_for, session
 from flask import redirect
 from gitsrht.git import Repository as GitRepository, commit_time, diffstat
 from gitsrht.git import get_log
-from scmsrht.access import get_repo_or_redir
+from gitsrht.access import get_repo_or_redir
 from srht.config import cfg, cfgi, cfgb
 from srht.oauth import loginrequired, current_user
 from srht.validation import Validation

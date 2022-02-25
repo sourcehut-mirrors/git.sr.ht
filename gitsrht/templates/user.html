@@ -62,9 +62,9 @@
             <a href="/~{{user.username}}/{{repo.name}}">
               ~{{user.username}}/{{repo.name}}
             </a>
-            {% if repo.visibility.value != 'public' %}
+            {% if repo.visibility.value != 'PUBLIC' %}
             <small class="pull-right">
-              {{ repo.visibility.value }}
+              {{ repo.visibility.value.lower() }}
             </small>
             {% endif %}
           </h4>

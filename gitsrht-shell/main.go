@@ -152,7 +152,7 @@ func main() {
 
 	// Fetch the necessary info from SQL. This first query fetches:
 	//
-	// 1. Repository information, such as visibility (public|unlisted|private)
+	// 1. Repository information, such as visibility (PUBLIC|UNLISTED|PRIVATE)
 	// 2. Information about the repository owner's account
 	// 3. Information about the pusher's account
 	// 4. Any access control policies for that repo that apply to the pusher
@@ -266,7 +266,7 @@ func main() {
 
 				repoOwnerId = pusherId
 				repoOwnerName = pusherName
-				repoVisibility = "private"
+				repoVisibility = "PRIVATE"
 
 				query := client.GraphQLQuery{
 					Query: `
@@ -339,11 +339,11 @@ func main() {
 	} else {
 		if accessGrant == nil {
 			switch repoVisibility {
-			case "public":
+			case "PUBLIC":
 				fallthrough
-			case "unlisted":
+			case "UNLISTED":
 				hasAccess = ACCESS_READ
-			case "private":
+			case "PRIVATE":
 				fallthrough
 			default:
 				hasAccess = ACCESS_NONE

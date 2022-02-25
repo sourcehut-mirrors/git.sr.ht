@@ -7,7 +7,7 @@ from gitsrht.git import Repository as GitRepository, strip_pgp_signature
 from gitsrht.repos import delete_artifact, upload_artifact
 from gitsrht.types import Artifact
 from minio import Minio
-from scmsrht.access import check_access, get_repo_or_redir, UserAccess
+from gitsrht.access import check_access, UserAccess
 from srht.config import cfg
 from srht.database import db
 from srht.oauth import loginrequired

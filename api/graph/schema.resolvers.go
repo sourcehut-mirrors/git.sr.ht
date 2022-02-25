@@ -115,19 +115,6 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 	}()
 
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-		vismap := map[model.Visibility]string{
-			model.VisibilityPublic:   "public",
-			model.VisibilityUnlisted: "unlisted",
-			model.VisibilityPrivate:  "private",
-		}
-		var (
-			dvis string
-			ok   bool
-		)
-		if dvis, ok = vismap[visibility]; !ok {
-			panic(fmt.Errorf("Unknown visibility %s", visibility)) // Invariant
-		}
-
 		cloneStatus := CloneNone
 		if cloneURL != nil {
 			cloneStatus = CloneInProgress
@@ -144,9 +131,9 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 			) RETURNING 
 				id, created, updated, name, description, visibility,
 				path, owner_id;
-		`, name, description, repoPath, dvis, user.UserID, cloneStatus)
+		`, name, description, repoPath, visibility, user.UserID, cloneStatus)
 		if err := row.Scan(&repo.ID, &repo.Created, &repo.Updated, &repo.Name,
-			&repo.Description, &repo.RawVisibility,
+			&repo.Description, &repo.Visibility,
 			&repo.Path, &repo.OwnerID); err != nil {
 			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
 				return valid.Errorf(ctx, "name", "A repository with this name already exists.")
@@ -184,7 +171,7 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 		}
 
 		export := path.Join(repoPath, "git-daemon-export-ok")
-		if repo.Visibility() != model.VisibilityPrivate {
+		if repo.Visibility != model.VisibilityPrivate {
 			_, err := os.Create(export)
 			if err != nil {
 				return err
@@ -361,7 +348,7 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 		valid.OptionalString("visibility", func(vis string) {
 			valid.Expect(model.Visibility(vis).IsValid(),
 				"Invalid visibility '%s'", vis)
-			query = query.Set(`visibility`, strings.ToLower(vis)) // TODO: Can we use uppercase here?
+			query = query.Set(`visibility`, vis)
 		})
 
 		valid.NullableString("readme", func(readme *string) {
@@ -386,7 +373,7 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 
 		row := query.RunWith(tx).QueryRowContext(ctx)
 		if err := row.Scan(&repo.ID, &repo.Created, &repo.Updated,
-			&repo.Name, &repo.Description, &repo.RawVisibility,
+			&repo.Name, &repo.Description, &repo.Visibility,
 			&repo.Path, &repo.OwnerID); err != nil {
 			if err == sql.ErrNoRows {
 				return fmt.Errorf("No repository by ID %d found for this user", id)
@@ -418,7 +405,7 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 		}
 
 		export := path.Join(repo.Path, "git-daemon-export-ok")
-		if repo.Visibility() == model.VisibilityPrivate {
+		if repo.Visibility == model.VisibilityPrivate {
 			err := os.Remove(export)
 			if err != nil && !errors.Is(err, os.ErrNotExist) {
 				return err
@@ -476,7 +463,7 @@ func (r *mutationResolver) DeleteRepository(ctx context.Context, id int) (*model
 		`, id, auth.ForContext(ctx).UserID)
 
 		if err := row.Scan(&repo.ID, &repo.Created, &repo.Updated,
-			&repo.Name, &repo.Description, &repo.RawVisibility,
+			&repo.Name, &repo.Description, &repo.Visibility,
 			&repo.Path, &repo.OwnerID); err != nil {
 			if err == sql.ErrNoRows {
 				return fmt.Errorf("No repository by ID %d found for this user", id)
@@ -1302,7 +1289,7 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor
 				sq.Or{
 					sq.Expr(`? IN (access.user_id, repo.owner_id)`,
 						auth.ForContext(ctx).UserID),
-					sq.Expr(`repo.visibility = 'public'`),
+					sq.Expr(`repo.visibility = 'PUBLIC'`),
 				},
 				sq.Expr(`repo.owner_id = ?`, obj.ID),
 			})

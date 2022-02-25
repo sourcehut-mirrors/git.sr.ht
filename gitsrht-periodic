@@ -11,13 +11,12 @@ from prometheus_client import CollectorRegistry, Gauge
 from prometheus_client.context_managers import Timer
 from srht.config import cfg
 from srht.database import DbSession
-from gitsrht.types import Artifact, User, Repository, RepoVisibility
+from gitsrht.types import Artifact, User, Repository
 from minio import Minio
 from datetime import datetime, timedelta
 
 db = DbSession(cfg("git.sr.ht", "connection-string"))
 db.init()
-repo_api = gr.GitRepoApi()
 
 registry = CollectorRegistry()
 tg = Gauge("gitsrht_periodic_time",

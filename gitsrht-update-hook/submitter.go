@@ -232,7 +232,7 @@ func (submitter GitBuildSubmitter) GetCommitNote() string {
 }
 
 func (submitter GitBuildSubmitter) GetCloneUrl() string {
-	if submitter.Visibility == "private" {
+	if submitter.Visibility == "PRIVATE" {
 		origin := strings.ReplaceAll(submitter.GitOrigin, "http://", "")
 		origin = strings.ReplaceAll(origin, "https://", "")
 		// Use SSH URL

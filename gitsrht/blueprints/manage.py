@@ -1,6 +1,7 @@
 import pygit2
 from flask import Blueprint, current_app, request, render_template, abort
 from flask import redirect, url_for
+import gitsrht.repos as repos
 from gitsrht.git import Repository as GitRepository
 from srht.config import cfg
 from srht.database import db
@@ -8,11 +9,8 @@ from srht.flask import session
 from srht.graphql import exec_gql, GraphQLError
 from srht.oauth import current_user, loginrequired, UserType
 from srht.validation import Validation
-from scmsrht.access import check_access, UserAccess
-from scmsrht.repos.access import AccessMode
-from scmsrht.repos.redirect import BaseRedirectMixin
-from scmsrht.repos.repository import RepoVisibility
-from scmsrht.types import Access, User
+from gitsrht.access import check_access, UserAccess, AccessMode
+from gitsrht.types import Access, User, Redirect
 import shutil
 import os
 
@@ -28,10 +26,8 @@ def create_GET():
 @manage.route("/create", methods=["POST"])
 @loginrequired
 def create_POST():
-    if not current_app.repo_api:
-        abort(501)
     valid = Validation(request)
-    resp = current_app.repo_api.create_repo(valid)
+    resp = repos.create_repo(valid)
     if not valid.ok:
         return render_template("create.html", **valid.kwargs)
 
@@ -51,10 +47,8 @@ def clone():
 @manage.route("/clone", methods=["POST"])
 @loginrequired
 def clone_POST():
-    if not current_app.repo_api:
-        abort(501)
     valid = Validation(request)
-    resp = current_app.repo_api.clone_repo(valid)
+    resp = repos.clone_repo(valid)
     if not valid.ok:
         return render_template("clone.html", **valid.kwargs)
     return redirect(url_for("repo.summary",
@@ -64,7 +58,7 @@ def clone_POST():
 @loginrequired
 def settings_info(owner_name, repo_name):
     owner, repo = check_access(owner_name, repo_name, UserAccess.manage)
-    if isinstance(repo, BaseRedirectMixin):
+    if isinstance(repo, Redirect):
         return redirect(url_for(".settings_info",
             owner_name=owner_name, repo_name=repo.new_repo.name))
     return render_template("settings_info.html", owner=owner, repo=repo)
@@ -73,7 +67,7 @@ def settings_info(owner_name, repo_name):
 @loginrequired
 def settings_info_POST(owner_name, repo_name):
     owner, repo = check_access(owner_name, repo_name, UserAccess.manage)
-    if isinstance(repo, BaseRedirectMixin):
+    if isinstance(repo, Redirect):
         repo = repo.new_repo
 
     valid = Validation(request)
@@ -101,7 +95,7 @@ def settings_info_POST(owner_name, repo_name):
 @loginrequired
 def settings_rename(owner_name, repo_name):
     owner, repo = check_access(owner_name, repo_name, UserAccess.manage)
-    if isinstance(repo, BaseRedirectMixin):
+    if isinstance(repo, Redirect):
         return redirect(url_for(".settings_rename",
             owner_name=owner_name, repo_name=repo.new_repo.name))
     return render_template("settings_rename.html", owner=owner, repo=repo)
@@ -110,7 +104,7 @@ def settings_rename(owner_name, repo_name):
 @loginrequired
 def settings_rename_POST(owner_name, repo_name):
     owner, repo = check_access(owner_name, repo_name, UserAccess.manage)
-    if isinstance(repo, BaseRedirectMixin):
+    if isinstance(repo, Redirect):
         repo = repo.new_repo
 
     valid = Validation(request)
@@ -138,7 +132,7 @@ def settings_rename_POST(owner_name, repo_name):
 @loginrequired
 def settings_access(owner_name, repo_name):
     owner, repo = check_access(owner_name, repo_name, UserAccess.manage)
-    if isinstance(repo, BaseRedirectMixin):
+    if isinstance(repo, Redirect):
         return redirect(url_for(".settings_manage",
             owner_name=owner_name, repo_name=repo.new_repo.name))
     return render_template("settings_access.html", owner=owner, repo=repo)
@@ -147,7 +141,7 @@ def settings_access(owner_name, repo_name):
 @loginrequired
 def settings_access_POST(owner_name, repo_name):
     owner, repo = check_access(owner_name, repo_name, UserAccess.manage)
-    if isinstance(repo, BaseRedirectMixin):
+    if isinstance(repo, Redirect):
         repo = repo.new_repo
     valid = Validation(request)
     username = valid.require("user", friendly_name="User")
@@ -190,7 +184,7 @@ def settings_access_POST(owner_name, repo_name):
 @loginrequired
 def settings_access_revoke_POST(owner_name, repo_name, grant_id):
     owner, repo = check_access(owner_name, repo_name, UserAccess.manage)
-    if isinstance(repo, BaseRedirectMixin):
+    if isinstance(repo, Redirect):
         repo = repo.new_repo
     grant = (Access.query
         .filter(Access.repo_id == repo.id, Access.id == grant_id)
@@ -206,7 +200,7 @@ def settings_access_revoke_POST(owner_name, repo_name, grant_id):
 @loginrequired
 def settings_delete(owner_name, repo_name):
     owner, repo = check_access(owner_name, repo_name, UserAccess.manage)
-    if isinstance(repo, BaseRedirectMixin):
+    if isinstance(repo, Redirect):
         return redirect(url_for(".settings_delete",
             owner_name=owner_name, repo_name=repo.new_repo.name))
     return render_template("settings_delete.html", owner=owner, repo=repo)
@@ -214,14 +208,12 @@ def settings_delete(owner_name, repo_name):
 @manage.route("/<owner_name>/<repo_name>/settings/delete", methods=["POST"])
 @loginrequired
 def settings_delete_POST(owner_name, repo_name):
-    if not current_app.repo_api:
-        abort(501)
     owner, repo = check_access(owner_name, repo_name, UserAccess.manage)
-    if isinstance(repo, BaseRedirectMixin):
+    if isinstance(repo, Redirect):
         # Normally we'd redirect but we don't want to fuck up some other repo
         abort(404)
     repo_id = repo.id
-    current_app.repo_api.delete_repo(repo)
+    repos.delete_repo(repo)
     session["notice"] = "{}/{} was deleted.".format(
         owner.canonical_name, repo.name)
     return redirect("/" + owner.canonical_name)

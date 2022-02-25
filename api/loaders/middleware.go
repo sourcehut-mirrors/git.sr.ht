@@ -138,7 +138,7 @@ func fetchRepositoriesByID(ctx context.Context) func(ids []int) ([]*model.Reposi
 					sq.Expr(`repo.id = ANY(?)`, pq.Array(ids)),
 					sq.Or{
 						sq.Expr(`? IN (access.user_id, repo.owner_id)`, auser.UserID),
-						sq.Expr(`repo.visibility != 'private'`),
+						sq.Expr(`repo.visibility != 'PRIVATE'`),
 					},
 				})
 			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
@@ -205,7 +205,7 @@ func fetchRepositoriesByOwnerRepoName(ctx context.Context) func([]OwnerRepoName)
 				Where(sq.Or{
 					sq.Expr(`? IN (access.user_id, repo.owner_id)`,
 						auth.ForContext(ctx).UserID),
-					sq.Expr(`repo.visibility != 'private'`),
+					sq.Expr(`repo.visibility != 'PRIVATE'`),
 				})
 			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
 				panic(err)
@@ -272,7 +272,7 @@ func fetchRepositoriesByOwnerIDRepoName(ctx context.Context) func([]OwnerIDRepoN
 				Where(sq.Or{
 					sq.Expr(`? IN (access.user_id, repo.owner_id)`,
 						auth.ForContext(ctx).UserID),
-					sq.Expr(`repo.visibility != 'private'`),
+					sq.Expr(`repo.visibility != 'PRIVATE'`),
 				})
 			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
 				panic(err)
