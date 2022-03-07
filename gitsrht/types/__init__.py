@@ -118,7 +118,7 @@ class Repository(Base):
     visibility = sa.Column(postgresql.ENUM(RepoVisibility), nullable=False)
     readme = sa.Column(sa.Unicode)
     clone_status = sa.Column(postgresql.ENUM(
-        'NONE', 'IN_PROGRESS', 'COMPLETE', 'ERROR'), nullable=False)
+        'NONE', 'IN_PROGRESS', 'COMPLETE', 'ERROR', name='clone_status'), nullable=False)
     clone_error = sa.Column(sa.Unicode)
 
     @declared_attr
