@@ -3,7 +3,6 @@ import email.policy
 import mailbox
 import pygit2
 import re
-import smtplib
 import subprocess
 import sys
 import hashlib
@@ -15,6 +14,7 @@ from gitsrht.git import Repository as GitRepository, commit_time, diffstat
 from gitsrht.git import get_log
 from gitsrht.access import get_repo_or_redir
 from srht.config import cfg, cfgi, cfgb
+from srht.email import start_smtp
 from srht.oauth import loginrequired, current_user
 from srht.validation import Validation
 from tempfile import NamedTemporaryFile
@@ -22,10 +22,6 @@ from textwrap import TextWrapper
 
 mail = Blueprint('mail', __name__)
 
-smtp_host = cfg("mail", "smtp-host", default=None)
-smtp_port = cfgi("mail", "smtp-port", default=None)
-smtp_user = cfg("mail", "smtp-user", default=None)
-smtp_password = cfg("mail", "smtp-password", default=None)
 smtp_from = cfg("mail", "smtp-from", default=None)
 outgoing_domain = cfg("git.sr.ht", "outgoing-domain")
 
@@ -362,11 +358,7 @@ def send_email_send(owner, repo):
             emails[i] = encoded
 
         # TODO: Send emails asyncronously
-        smtp = smtplib.SMTP(smtp_host, smtp_port)
-        smtp.ehlo()
-        if smtp_user and smtp_password:
-            smtp.starttls()
-            smtp.login(smtp_user, smtp_password)
+        smtp = start_smtp()
         print("Sending to recipients", recipients)
         for i, msg in enumerate(emails):
             session.pop("commentary_{i}", None)
