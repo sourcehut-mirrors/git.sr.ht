@@ -67,6 +67,8 @@ type BuildSubmitter interface {
 	GetRepoName() string
 	// Get the name of the repository owner
 	GetOwnerName() string
+	// Get the job tags to use for this commit
+	GetJobTags() []string
 }
 
 // SQL notes
@@ -86,6 +88,7 @@ type GitBuildSubmitter struct {
 	RepoName    string
 	Repository  *git.Repository
 	Visibility  string
+	Ref         string
 }
 
 func (submitter GitBuildSubmitter) FindManifests() (map[string]string, error) {
@@ -231,6 +234,14 @@ func (submitter GitBuildSubmitter) GetCommitNote() string {
 		commitUrl, submitter.Commit.Author.Email)
 }
 
+func (submitter GitBuildSubmitter) GetJobTags() []string {
+	tags := []string{submitter.GetRepoName(), "commits"}
+	if strings.HasPrefix(submitter.Ref, "refs/heads/") {
+		tags = append(tags, strings.TrimPrefix(submitter.Ref, "refs/heads/"))
+	}
+	return tags
+}
+
 func (submitter GitBuildSubmitter) GetCloneUrl() string {
 	if submitter.Visibility == "PRIVATE" {
 		origin := strings.ReplaceAll(submitter.GitOrigin, "http://", "")
@@ -329,7 +340,7 @@ func SubmitBuild(submitter BuildSubmitter) ([]BuildSubmission, error) {
 			Tags     []string `json:"tags"`
 		}{
 			Manifest: yaml,
-			Tags:     []string{submitter.GetRepoName(), "commits", name},
+			Tags:     append(submitter.GetJobTags(), name),
 			Note:     submitter.GetCommitNote(),
 		}
 		bodyBytes, err := json.Marshal(&submission)

@@ -320,6 +320,7 @@ func postUpdate() {
 				RepoName:    dbinfo.RepoName,
 				Repository:  repo,
 				Visibility:  dbinfo.Visibility,
+				Ref:         refname,
 			}
 			results, err := SubmitBuild(submitter)
 			if err != nil {
