@@ -73,7 +73,8 @@ endif %}{% endfor %}
 
 {% macro commit_event(repo, c,
   full_body=False, refs={}, full_id=False, diff=None, href=None,
-  parents=False, skip_body=False, target_blank=False, path=None) %}
+  parents=False, skip_body=False, target_blank=False, path=None,
+  lookup=lookup_user) %}
 <div>
   {% if full_id %}
   {{c.id.hex}}
@@ -92,7 +93,7 @@ endif %}{% endfor %}
   >{{c.id.hex[:8]}}</a>
   {% endif %}
   &mdash;
-  {% set author_user = lookup_user(c.author.email) %}
+  {% set author_user = lookup(c.author.email) %}
   {% if author_user %}
   <a href="{{url_for("public.user_index",
     username=author_user.username)}}">{{c.author.name}}</a>

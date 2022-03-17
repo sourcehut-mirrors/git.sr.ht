@@ -12,7 +12,7 @@ from gitsrht.editorconfig import EditorConfig
 from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
 from gitsrht.git import diffstat, get_log, diff_for_commit, strip_pgp_signature
 from gitsrht.rss import generate_feed
-from gitsrht.types import Artifact
+from gitsrht.types import Artifact, User
 from io import BytesIO
 from jinja2 import Markup
 from jinja2.utils import url_quote, escape
@@ -484,10 +484,13 @@ def log(owner, repo, ref, path):
             entry = commit.tree[path]
 
         has_more = commits and len(commits) == 21
+
+        author_emails = set((commit.author.email for commit in commits[:20]))
+        authors = {user.email:user for user in User.query.filter(User.email.in_(author_emails)).all()}
         return render_template("log.html", view="log",
                 owner=owner, repo=repo, ref=ref, path=path.split("/"),
                 commits=commits[:20], refs=refs, entry=entry, pygit2=pygit2,
-                has_more=has_more)
+                has_more=has_more, authors=authors)
 
 
 @repo.route("/<owner>/<repo>/log/rss.xml", defaults={"ref": None})

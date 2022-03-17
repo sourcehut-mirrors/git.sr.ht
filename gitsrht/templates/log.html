@@ -39,7 +39,7 @@
         {% set full_path = path_join(*path) %}
         {% for c in commits %}
         <div class="event">
-          {{ utils.commit_event(repo, c, True, refs, path=full_path) }}
+          {{ utils.commit_event(repo, c, True, refs, path=full_path, lookup=authors.get) }}
         </div>
         {% else %}
         <div class="event">
