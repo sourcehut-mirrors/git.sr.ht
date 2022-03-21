@@ -136,7 +136,7 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 			&repo.Description, &repo.Visibility,
 			&repo.Path, &repo.OwnerID); err != nil {
 			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
-				return valid.Errorf(ctx, "name", "A repository with this name already exists.")
+				return valid.Error(ctx, "name", "A repository with this name already exists.")
 			}
 			return err
 		}
@@ -183,7 +183,7 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 			if err != nil {
 				return valid.Errorf(ctx, "cloneUrl", "Invalid clone URL: %s", err)
 			} else if u.Host == "" {
-				return valid.Errorf(ctx, "cloneUrl", "Cannot use URL without host")
+				return valid.Error(ctx, "cloneUrl", "Cannot use URL without host")
 			} else if _, ok := allowedCloneSchemes[u.Scheme]; !ok {
 				return valid.Errorf(ctx, "cloneUrl", "Unsupported protocol %q", u.Scheme)
 			}
@@ -199,21 +199,21 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 				u.Path = strings.TrimPrefix(u.Path, "/")
 				split := strings.SplitN(u.Path, "/", 2)
 				if len(split) != 2 {
-					return valid.Errorf(ctx, "cloneUrl", "Invalid clone URL")
+					return valid.Error(ctx, "cloneUrl", "Invalid clone URL")
 				}
 				canonicalName, repoName := split[0], split[1]
 				entity := canonicalName
 				if strings.HasPrefix(entity, "~") {
 					entity = entity[1:]
 				} else {
-					return valid.Errorf(ctx, "cloneUrl", "Invalid username")
+					return valid.Error(ctx, "cloneUrl", "Invalid username")
 				}
 				repo, err := loaders.ForContext(ctx).
 					RepositoriesByOwnerRepoName.Load(loaders.OwnerRepoName{entity, repoName})
 				if err != nil {
 					panic(err)
 				} else if repo == nil {
-					return valid.Errorf(ctx, "cloneUrl", "Repository not found")
+					return valid.Error(ctx, "cloneUrl", "Repository not found")
 				}
 				cloneURL = &repo.Path
 			}
@@ -277,20 +277,20 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 		query := sq.Update(repo.Table()).
 			PlaceholderFormat(sq.Dollar)
 
-		valid := valid.New(ctx).WithInput(input)
+		validation := valid.New(ctx).WithInput(input)
 
-		valid.OptionalString("name", func(name string) {
-			valid.Expect(repoNameRE.MatchString(name),
+		validation.OptionalString("name", func(name string) {
+			validation.Expect(repoNameRE.MatchString(name),
 				"Invalid repository name '%s' (must match %s)",
 				name, repoNameRE.String()).
 				WithField("name")
-			valid.Expect(name != "." && name != "..",
+			validation.Expect(name != "." && name != "..",
 				"Invalid repository name '%s' (must not be . or ..)", name).
 				WithField("name")
-			valid.Expect(name != ".git" && name != ".hg",
+			validation.Expect(name != ".git" && name != ".hg",
 				"Invalid repository name '%s' (must not be .git or .hg)", name).
 				WithField("name")
-			if !valid.Ok() {
+			if !validation.Ok() {
 				return
 			}
 
@@ -307,12 +307,10 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 			`, id, auth.ForContext(ctx).UserID)
 			if err := row.Scan(&origPath); err != nil {
 				if err == sql.ErrNoRows {
-					// TODO: Ability to return errors from OptionalString callback?
-					valid.Error("No repository by ID %d found for this user", id).
-						WithField("id")
+					validation.Error("No repository by ID %d found for this user", id)
 					return
 				}
-				valid.Error(err.Error())
+				validation.Error("%s", err.Error())
 				return
 			}
 
@@ -325,10 +323,11 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 			repoPath := path.Join(repoStore, "~"+user.Username, name)
 			err := os.Rename(origPath, repoPath)
 			if errors.Is(err, os.ErrExist) {
-				valid.Error("A repository with this name already exists.").
+				validation.Error("A repository with this name already exists.").
 					WithField("name")
+				return
 			} else if err != nil {
-				valid.Error(err.Error())
+				validation.Error("%s", err.Error())
 				return
 			}
 			moved = true
@@ -336,22 +335,19 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 			query = query.Set(`path`, repoPath)
 		})
 
-		valid.NullableString("description", func(description *string) {
+		validation.NullableString("description", func(description *string) {
 			if description == nil {
 				query = query.Set(`description`, nil)
 			} else {
-				// XXX: Should we allow an empty description?
 				query = query.Set(`description`, *description)
 			}
 		})
 
-		valid.OptionalString("visibility", func(vis string) {
-			valid.Expect(model.Visibility(vis).IsValid(),
-				"Invalid visibility '%s'", vis)
+		validation.OptionalString("visibility", func(vis string) {
 			query = query.Set(`visibility`, vis)
 		})
 
-		valid.NullableString("readme", func(readme *string) {
+		validation.NullableString("readme", func(readme *string) {
 			if readme == nil {
 				query = query.Set(`readme`, nil)
 			} else {
@@ -359,7 +355,7 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 			}
 		})
 
-		if !valid.Ok() {
+		if !validation.Ok() {
 			return errors.New("placeholder") // TODO: Avoid surfacing placeholder error
 		}
 
@@ -382,7 +378,7 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 		}
 
 		// This must be done after the query so that repo.Path is populated
-		valid.OptionalString("HEAD", func(ref string) {
+		validation.OptionalString("HEAD", func(ref string) {
 			gitRepo := repo.Repo()
 			gitRepo.Lock()
 			defer gitRepo.Unlock()
@@ -390,17 +386,17 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 			// Make sure that the branch exists
 			branch, err := gitRepo.Storer.Reference(branchName)
 			if err != nil {
-				valid.Error("%s", err.Error()).WithField("HEAD")
+				validation.Error("%s", err.Error()).WithField("HEAD")
 				return
 			}
 			head := plumbing.NewSymbolicReference(plumbing.HEAD, branch.Name())
 			if err := gitRepo.Storer.SetReference(head); err != nil {
-				valid.Error("%s", err.Error()).WithField("HEAD")
+				validation.Error("%s", err.Error()).WithField("HEAD")
 				return
 			}
 		})
 
-		if !valid.Ok() {
+		if !validation.Ok() {
 			return errors.New("placeholder") // TODO: Avoid surfacing placeholder error
 		}
 
