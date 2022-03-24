@@ -15,3 +15,4 @@ overrides/
 .pgp
 build
 *_gen.go
+api/api
