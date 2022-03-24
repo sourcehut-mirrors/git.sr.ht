@@ -16,3 +16,4 @@ overrides/
 build
 *_gen.go
 api/api
+api/graph/api/generated.go

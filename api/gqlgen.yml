@@ -4,7 +4,7 @@ schema:
 
 # Where should the generated server code go?
 exec:
-  filename: graph/api/api_gen.go
+  filename: graph/api/generated.go
   package: api
 
 # Uncomment to enable federation
