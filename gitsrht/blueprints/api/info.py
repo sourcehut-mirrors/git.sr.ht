@@ -35,11 +35,48 @@ def repos_by_user_GET(username):
 @info.route("/api/repos", methods=["POST"])
 @oauth("info:write")
 def repos_POST():
-    valid = Validation(request)
     user = current_token.user
-    resp = repos.create_repo(valid, user)
+    valid = Validation(request)
+    name = valid.require("name", friendly_name="Name")
+    description = valid.optional("description")
+    visibility = valid.optional("visibility")
     if not valid.ok:
         return valid.response
+
+    # Visibility must be uppercase
+    if visibility is not None:
+        visibility = visibility.upper()
+
+    resp = exec_gql(current_app.site, """
+        mutation CreateRepository(
+                $name: String!,
+                $visibility: Visibility = PUBLIC,
+                $description: String) {
+            createRepository(
+                    name: $name,
+                    visibility: $visibility,
+                    description: $description) {
+                id
+                created
+                updated
+                name
+                owner {
+                    canonical_name: canonicalName
+                    ... on User {
+                        name: username
+                    }
+                }
+                description
+                visibility
+            }
+        }
+    """, valid=valid, user=user, name=name,
+        description=description, visibility=visibility)
+
+    if not valid.ok:
+        return valid.response
+
+    resp = resp["createRepository"]
     # Convert visibility back to lowercase
     resp["visibility"] = resp["visibility"].lower()
     return resp, 201
@@ -78,7 +115,7 @@ def repos_by_name_PUT(reponame):
                 updated
                 name
                 owner {
-                    canonicalName
+                    canonical_name: canonicalName
                     ... on User {
                         name: username
                     }
@@ -103,7 +140,11 @@ def repos_by_name_DELETE(reponame):
     user = current_token.user
     repo = get_repo(user, reponame, needs=UserAccess.manage)
     repo_id = repo.id
-    repos.delete_repo(repo, user)
+    exec_gql(current_app.site, """
+        mutation DeleteRepository($id: Int!) {
+            deleteRepository(id: $id) { id }
+        }
+    """, user=user, id=repo.id)
     return {}, 204
 
 @info.route("/api/repos/<reponame>/readme", defaults={"username": None})

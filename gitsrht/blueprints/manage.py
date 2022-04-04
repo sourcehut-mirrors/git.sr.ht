@@ -6,7 +6,7 @@ from gitsrht.git import Repository as GitRepository
 from srht.config import cfg
 from srht.database import db
 from srht.flask import session
-from srht.graphql import exec_gql, GraphQLError
+from srht.graphql import exec_gql
 from srht.oauth import current_user, loginrequired, UserType
 from srht.validation import Validation
 from gitsrht.access import check_access, UserAccess, AccessMode
@@ -27,9 +27,30 @@ def create_GET():
 @loginrequired
 def create_POST():
     valid = Validation(request)
-    resp = repos.create_repo(valid)
+    name = valid.require("name", friendly_name="Name")
+    description = valid.optional("description")
+    visibility = valid.require("visibility")
     if not valid.ok:
         return render_template("create.html", **valid.kwargs)
+
+    resp = exec_gql(current_app.site, """
+        mutation CreateRepository(
+                $name: String!,
+                $visibility: Visibility!,
+                $description: String) {
+            createRepository(
+                    name: $name,
+                    visibility: $visibility,
+                    description: $description) {
+                name
+            }
+        }
+    """, valid=valid, name=name, description=description, visibility=visibility)
+
+    if not valid.ok:
+        return render_template("create.html", **valid.kwargs)
+
+    resp = resp["createRepository"]
 
     another = valid.optional("another")
     if another == "on":
@@ -48,9 +69,33 @@ def clone():
 @loginrequired
 def clone_POST():
     valid = Validation(request)
-    resp = repos.clone_repo(valid)
+    cloneUrl = valid.require("cloneUrl", friendly_name="Clone URL")
+    name = valid.require("name", friendly_name="Name")
+    description = valid.optional("description")
+    visibility = valid.require("visibility")
     if not valid.ok:
         return render_template("clone.html", **valid.kwargs)
+
+    resp = exec_gql(current_app.site, """
+        mutation CloneRepository(
+                $name: String!,
+                $visibility: Visibility!,
+                $description: String,
+                $cloneUrl: String!) {
+            createRepository(name: $name,
+                    visibility: $visibility,
+                    description: $description,
+                    cloneUrl: $cloneUrl) {
+                name
+            }
+        }
+    """, valid=valid, name=name, visibility=visibility,
+        description=description, cloneUrl=cloneUrl)
+
+    if not valid.ok:
+        return render_template("clone.html", **valid.kwargs)
+
+    resp = resp["createRepository"]
     return redirect(url_for("repo.summary",
         owner=current_user.canonical_name, repo=resp["name"]))
 
@@ -79,7 +124,7 @@ def settings_info_POST(owner_name, repo_name):
         ] if valid.source.get(key) is not None
     }
 
-    resp = exec_gql("git.sr.ht", """
+    resp = exec_gql(current_app.site, """
         mutation UpdateRepository($id: Int!, $input: RepoInput!) {
             updateRepository(id: $id, input: $input) { id }
         }
@@ -113,7 +158,7 @@ def settings_rename_POST(owner_name, repo_name):
         return render_template("settings_rename.html", owner=owner, repo=repo,
                 **valid.kwargs)
 
-    resp = exec_gql("git.sr.ht", """
+    resp = exec_gql(current_app.site, """
         mutation RenameRepository($id: Int!, $name: String!) {
             updateRepository(id: $id, input: {name: $name}) {
                 name
@@ -213,7 +258,11 @@ def settings_delete_POST(owner_name, repo_name):
         # Normally we'd redirect but we don't want to fuck up some other repo
         abort(404)
     repo_id = repo.id
-    repos.delete_repo(repo)
+    exec_gql(current_app.site, """
+        mutation DeleteRepository($id: Int!) {
+            deleteRepository(id: $id) { id }
+        }
+    """, id=repo.id)
     session["notice"] = "{}/{} was deleted.".format(
         owner.canonical_name, repo.name)
     return redirect("/" + owner.canonical_name)
