@@ -14,8 +14,8 @@ from gitsrht.git import diffstat, get_log, diff_for_commit, strip_pgp_signature
 from gitsrht.rss import generate_feed
 from gitsrht.types import Artifact, User
 from io import BytesIO
-from jinja2 import Markup
-from jinja2.utils import url_quote, escape
+from markupsafe import Markup, escape
+from jinja2.utils import url_quote
 from pygments import highlight
 from pygments.formatters import HtmlFormatter
 from pygments.lexers import guess_lexer, guess_lexer_for_filename, TextLexer
