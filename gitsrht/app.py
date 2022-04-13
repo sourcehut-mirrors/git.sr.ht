@@ -20,6 +20,8 @@ class GitApp(SrhtFlask):
         super().__init__("git.sr.ht", __name__,
                 oauth_service=oauth_service)
 
+        self.url_map.strict_slashes = False
+
         from gitsrht.blueprints.auth import auth
         from gitsrht.blueprints.public import public
         from gitsrht.blueprints.api import register_api
@@ -76,8 +78,6 @@ class GitApp(SrhtFlask):
         choices = [self.jinja_loader, FileSystemLoader(os.path.join(
             os.path.dirname(__file__), "templates"))]
         self.jinja_loader = ChoiceLoader(choices)
-
-        self.url_map.strict_slashes = False
 
     def lookup_user(self, email):
         return User.query.filter(User.email == email).one_or_none()
