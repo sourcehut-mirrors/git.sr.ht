@@ -296,6 +296,18 @@ img {
     li {
       margin-top: 1rem;
     }
+
+    @media(prefers-color-scheme: dark) {
+      color: $gray-500;
+
+      &[open] {
+        color: $gray-100;
+
+        summary {
+          color: $gray-100;
+        }
+      }
+    }
   }
 
   .event-list {
