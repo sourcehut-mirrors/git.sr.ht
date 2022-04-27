@@ -195,8 +195,8 @@ instead.
   target="_blank"
   {% endif %}
  >{{patch.delta.new_file.raw_path.decode('utf-8', 'replace')}}</a>{#
- #} <span class="pull-right"><span class="text-success">+{{patch.line_stats[1]}}</span>{#
- #} <span class="text-danger">-{{patch.line_stats[2]}}</span></span>{%
+ #} <span class="pull-right"><ins class="text-success">+{{patch.line_stats[1]}}</ins>{#
+ #} <del class="text-danger">-{{patch.line_stats[2]}}</del></span>{%
     if patch.delta.old_file.mode != patch.delta.new_file.mode %}{#
   #}{#
   #}{% endif %}</pre>
