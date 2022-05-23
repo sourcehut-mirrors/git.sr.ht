@@ -1317,7 +1317,7 @@ func (r *userWebhookSubscriptionResolver) Deliveries(ctx context.Context, obj *m
 		ReadOnly:  true,
 	}, func(tx *sql.Tx) error {
 		d := (&model.WebhookDelivery{}).
-			WithName(`profile`).
+			WithName(`user`).
 			As(`delivery`)
 		query := database.
 			Select(ctx, d).
