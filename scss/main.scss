@@ -26,6 +26,10 @@ dt {
   overflow-wrap: break-word;
 }
 
+del {
+  text-decoration: underline;
+}
+
 .tree-list {
   display: grid;
   // mode name
