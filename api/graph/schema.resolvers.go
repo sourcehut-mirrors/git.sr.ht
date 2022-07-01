@@ -767,6 +767,8 @@ func (r *mutationResolver) CreateWebhook(ctx context.Context, config model.UserW
 		case model.WebhookEventRepoCreated, model.WebhookEventRepoUpdate,
 			model.WebhookEventRepoDeleted:
 			access = "REPOSITORIES"
+		default:
+			return nil, fmt.Errorf("Unsupported event %s", ev.String())
 		}
 		if !user.Grants.Has(access, auth.RO) {
 			return nil, fmt.Errorf("Insufficient access granted for webhook event %s", ev.String())
