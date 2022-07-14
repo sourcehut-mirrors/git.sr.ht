@@ -4,7 +4,7 @@ from srht.config import cfg
 from srht.flask import paginate_query
 from srht.oauth import current_user
 from srht.search import search_by
-from gitsrht.types import Access, Repository, User, RepoVisibility
+from gitsrht.types import Access, Repository, User, Visibility
 from sqlalchemy import and_, or_
 
 public = Blueprint('public', __name__)
@@ -34,10 +34,10 @@ def user_index(username):
                     Access.repo_id == Repository.id)
                 .filter(or_(
                     Access.user_id == current_user.id,
-                    Repository.visibility == RepoVisibility.PUBLIC,
+                    Repository.visibility == Visibility.PUBLIC,
                 )))
     elif not current_user:
-        repos = repos.filter(Repository.visibility == RepoVisibility.PUBLIC)
+        repos = repos.filter(Repository.visibility == Visibility.PUBLIC)
 
     search_error = None
     try:

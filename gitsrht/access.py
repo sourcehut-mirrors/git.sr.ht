@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import IntFlag
 from flask import abort, current_app, request, redirect, url_for
-from gitsrht.types import Access, AccessMode, Repository, Redirect, User, RepoVisibility
+from gitsrht.types import Access, AccessMode, Repository, Redirect, User, Visibility
 from srht.database import db
 from srht.oauth import current_user
 import sqlalchemy as sa
@@ -60,8 +60,8 @@ def get_access(repo, user=None):
         # Just pretend they have full access for long enough to do the redirect
         return UserAccess.read | UserAccess.write | UserAccess.manage
     if not user:
-        if repo.visibility == RepoVisibility.PUBLIC or \
-                repo.visibility == RepoVisibility.UNLISTED:
+        if repo.visibility == Visibility.PUBLIC or \
+                repo.visibility == Visibility.UNLISTED:
             return UserAccess.read
         return UserAccess.none
     if repo.owner_id == user.id:
@@ -76,7 +76,7 @@ def get_access(repo, user=None):
             return UserAccess.read
         else:
             return UserAccess.read | UserAccess.write
-    if repo.visibility == RepoVisibility.PRIVATE:
+    if repo.visibility == Visibility.PRIVATE:
         return UserAccess.none
     return UserAccess.read
 

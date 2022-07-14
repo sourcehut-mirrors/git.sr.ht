@@ -89,7 +89,7 @@ class Redirect(Base):
     def new_repo(cls):
         return sa.orm.relationship('Repository')
 
-class RepoVisibility(Enum):
+class Visibility(Enum):
     # NOTE: SQLAlchemy uses the enum member names, not the values.
     # The values are used by templates. Therfore, we capitalize both.
     PUBLIC = 'PUBLIC'
@@ -115,7 +115,7 @@ class Repository(Base):
     name = sa.Column(sa.Unicode(256), nullable=False)
     description = sa.Column(sa.Unicode(1024))
     path = sa.Column(sa.Unicode(1024))
-    visibility = sa.Column(postgresql.ENUM(RepoVisibility), nullable=False)
+    visibility = sa.Column(postgresql.ENUM(Visibility), nullable=False)
     readme = sa.Column(sa.Unicode)
     clone_status = sa.Column(postgresql.ENUM(
         'NONE', 'IN_PROGRESS', 'COMPLETE', 'ERROR', name='clone_status'), nullable=False)

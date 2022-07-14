@@ -1,7 +1,7 @@
 from flask import Blueprint, Response, current_app, request
 import gitsrht.repos as repos
 from gitsrht.access import UserAccess
-from gitsrht.types import Access, Repository, User, RepoVisibility
+from gitsrht.types import Access, Repository, User, Visibility
 from gitsrht.webhooks import UserWebhook
 from gitsrht.blueprints.api import get_user, get_repo
 from srht.api import paginated_response
@@ -27,7 +27,7 @@ def repos_by_user_GET(username):
                 .filter(or_(
                     Access.user_id == current_token.user_id,
                     and_(
-                        Repository.visibility == RepoVisibility.PUBLIC,
+                        Repository.visibility == Visibility.PUBLIC,
                         Access.id.is_(None))
                 )))
     return paginated_response(Repository.id, repos)
