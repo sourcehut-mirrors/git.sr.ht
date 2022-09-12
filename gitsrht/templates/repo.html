@@ -80,6 +80,13 @@
           owner=repo.owner.canonical_name,
           repo=repo.name), "refs")}}
       </li>
+      {% if len(licenses) > 0 %}
+      <li class="nav-item">
+        {{link(url_for("repo.licenses",
+          owner=repo.owner.canonical_name,
+          repo=repo.name), "licenses")}}
+      </li>
+      {% endif %}
       {% if current_user.id == repo.owner_id %}
       <li class="nav-item">
         {{link(url_for("manage.settings_info",

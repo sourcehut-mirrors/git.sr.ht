@@ -12,6 +12,7 @@ from gitsrht.editorconfig import EditorConfig
 from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
 from gitsrht.git import diffstat, get_log, diff_for_commit, strip_pgp_signature
 from gitsrht.rss import generate_feed
+from gitsrht.spdx import SPDX_LICENSES
 from gitsrht.types import Artifact, User
 from io import BytesIO
 from markupsafe import Markup, escape
@@ -27,6 +28,38 @@ from srht.markdown import markdown, sanitize
 from urllib.parse import urlparse
 
 repo = Blueprint('repo', __name__)
+
+def get_license_info_for_tip(tip):
+        license_exists = False
+        for path in [
+                "LICENSE", "LICENCE", "COPYING",
+                "LICENSE.txt", "license.txt",
+                "LICENCE.txt", "licence.txt",
+                "COPYING.txt", "copying.txt",
+                "COPYRIGHT.txt", "copyright.txt",
+                "LICENSE.md", "license.md",
+                "LICENCE.md", "licence.md",
+                "COPYING.md", "copying.md",
+                "COPYRIGHT.md", "copyright.md",
+                "COPYRIGHT", "copyright",
+                "LICENSES", "licenses",
+                "LICENCES", "licences",
+        ]:
+            if path in tip.tree:
+                license_exists = True
+                break
+
+        licenses = []
+        if 'LICENSES' in tip.tree:
+            for o in tip.tree['LICENSES']:
+                license_id = os.path.splitext(o.name)[0]
+                if license_id in SPDX_LICENSES:
+                    licenses.append({
+                        'id': license_id,
+                        'name': SPDX_LICENSES[license_id],
+                    })
+
+        return license_exists, licenses
 
 def get_readme(repo, git_repo, tip, link_prefix=None):
     if repo.readme is not None:
@@ -112,26 +145,10 @@ def summary(owner, repo):
         tags = sorted(tags, key=lambda c: commit_time(c[1]), reverse=True)
         latest_tag = tags[0] if len(tags) else None
 
-        license = False
-        for path in [
-                "LICENSE", "LICENCE", "COPYING",
-                "LICENSE.txt", "license.txt",
-                "LICENCE.txt", "licence.txt",
-                "COPYING.txt", "copying.txt",
-                "COPYRIGHT.txt", "copyright.txt",
-                "LICENSE.md", "license.md",
-                "LICENCE.md", "licence.md",
-                "COPYING.md", "copying.md",
-                "COPYRIGHT.md", "copyright.md",
-                "COPYRIGHT", "copyright",
-                "LICENSES", "licenses",
-                "LICENCES", "licences",
-        ]:
-            if path in tip.tree:
-                license = True
-                break
-
         message = session.pop("message", None)
+
+        license_exists, licenses = get_license_info_for_tip(tip)
+
         if latest_tag:
             sig = lookup_signature(git_repo, latest_tag[0].decode('utf-8'))[1]
         else:
@@ -141,7 +158,8 @@ def summary(owner, repo):
                 signature=sig,
                 latest_tag=latest_tag, default_branch=default_branch,
                 is_annotated=lambda t: isinstance(t, pygit2.Tag),
-                message=message, license=license)
+                message=message, license_exists=license_exists,
+                licenses=licenses)
 
 @repo.route("/<owner>/<repo>/<path:path>")
 def go_get(owner, repo, path):
@@ -614,6 +632,31 @@ def refs(owner, repo):
                 page=page + 1, total_pages=total_pages,
                 default_branch=default_branch,
                 strip_pgp_signature=strip_pgp_signature)
+
+@repo.route("/<owner>/<repo>/licenses")
+def licenses(owner, repo):
+    owner, repo = get_repo_or_redir(owner, repo)
+
+    with GitRepository(repo.path) as git_repo:
+        if git_repo.is_empty:
+            return render_empty_repo(owner, repo, "licenses")
+
+        default_branch = git_repo.default_branch()
+        if not default_branch:
+            return render_empty_repo(owner, repo, "licenses")
+
+        default_branch_name = default_branch.raw_name \
+            .decode("utf-8", "replace")[len("refs/heads/"):]
+        tip = git_repo.get(default_branch.raw_target)
+
+        license_exists, licenses = get_license_info_for_tip(tip)
+
+        message = session.pop("message", None)
+
+        return render_template("licenses.html", view="licenses",
+                owner=owner, repo=repo,
+                message=message, license_exists=license_exists,
+                licenses=licenses)
 
 
 @repo.route("/<owner>/<repo>/refs/rss.xml")

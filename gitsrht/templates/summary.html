@@ -6,7 +6,24 @@
 {% block content %}
 {% if repo.description %}
 <div class="header-extension">
-  <div class="container">{{ repo.description }}</div>
+  <div class="container">
+    <div class="row">
+      <div class="col-md-6">
+        {{ repo.description }}
+      </div>
+      <div class="col-md-6 licenses">
+      {% if len(licenses) > 0 %}
+      <a href="{{url_for("repo.licenses",
+        owner=repo.owner.canonical_name, repo=repo.name)}}">
+      Licensed under
+      {% for l in licenses %}
+      {{ l['id'] }}{% if loop.index != len(licenses) %}, {% endif %}
+      {% endfor %}
+      {% endif %}
+      </a>
+      </div>
+    </div>
+  </div>
 </div>
 {% endif %}
 <div class="container">
@@ -120,7 +137,7 @@
       </div>
     </div>
   </div>
-  {% if current_user == repo.owner and not license
+  {% if current_user == repo.owner and not license_exists
     and repo.visibility.value == 'PUBLIC' %}
   <div class="alert alert-danger">
     <strong>Heads up!</strong> We couldn't find a license file for your
@@ -139,4 +156,15 @@
   </div>
   {% endif %}
 </div>
+{% if len(licenses) > 0 %}
+<div class="container license-footer">
+  <a href="{{url_for("repo.licenses",
+    owner=repo.owner.canonical_name, repo=repo.name)}}">
+  {{repo.owner.canonical_name}}/{{repo.name}} license{% if len(licenses) > 1 %}s{% endif %}:
+  {% for l in licenses %}
+  {{ l['id'] }}{% if loop.index != len(licenses) %}, {% endif %}
+  {% endfor %}
+  </a>
+</div>
+{% endif %}
 {% endblock %}

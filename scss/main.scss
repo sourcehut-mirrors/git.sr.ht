@@ -30,6 +30,45 @@ del {
   text-decoration: underline;
 }
 
+.licenses {
+  text-align: right;
+  a {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.license-footer {
+  display: none;
+  margin-bottom: -1rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  background: #ddd;
+}
+
+@media(prefers-color-scheme: dark) {
+  .license-footer {
+    background: darken($gray-900, 6);
+  }
+}
+
+@include media-breakpoint-down(sm) {
+  .licenses {
+    display: none;
+  }
+  .license-footer {
+    display: block;
+  }
+}
+
+.license-list {
+  h2 {
+    font-size: 1.1rem;
+  }
+}
+
 .tree-list {
   display: grid;
   // mode name
