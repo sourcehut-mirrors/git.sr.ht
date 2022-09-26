@@ -322,7 +322,7 @@ def raw_blob(owner, repo, ref, path):
 
         return send_file(BytesIO(blob.data),
                 as_attachment=blob.is_binary,
-                attachment_filename=entry.name,
+                download_name=entry.name,
                 mimetype="text/plain" if not blob.is_binary else None)
 
 def _lookup_user(email, cache):
@@ -410,7 +410,7 @@ def archive(owner, repo, ref):
         subp = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=sys.stderr)
 
         return send_file(subp.stdout, mimetype="application/tar+gzip",
-                as_attachment=True, attachment_filename=f"{repo.name}-{refname}.tar.gz")
+                as_attachment=True, download_name=f"{repo.name}-{refname}.tar.gz")
 
 @repo.route("/<owner>/<repo>/archive/<path:ref>.<any('tar.gz','tar'):fmt>.asc")
 def archivesig(owner, repo, ref, fmt):
@@ -421,7 +421,7 @@ def archivesig(owner, repo, ref, fmt):
             abort(404)
 
         return send_file(BytesIO(sigdata.encode('utf-8')), mimetype="application/pgp-signature",
-                as_attachment=True, attachment_filename=f"{repo.name}-{ref}.{fmt}.asc")
+                as_attachment=True, download_name=f"{repo.name}-{ref}.{fmt}.asc")
 
 class _AnnotatedRef:
     def __init__(self, repo, ref):

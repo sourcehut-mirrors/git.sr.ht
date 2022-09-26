@@ -253,7 +253,7 @@ def repo_blob_GET(username, reponame, ref, path):
 
         return send_file(BytesIO(blob.data),
                 as_attachment=blob.is_binary,
-                attachment_filename=attachment_filename,
+                download_name=attachment_filename,
                 mimetype="text/plain" if not blob.is_binary
                     else "application/x-octet-stream")
 
