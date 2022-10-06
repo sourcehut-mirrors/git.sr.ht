@@ -25,6 +25,16 @@ CREATE TYPE webhook_event AS ENUM (
 	'REPO_DELETED'
 );
 
+CREATE TYPE owner_repo_name AS (
+	owner text,
+	repo_name text
+);
+
+CREATE TYPE owner_id_repo_name AS (
+	owner_id integer,
+	repo_name text
+);
+
 CREATE TABLE "user" (
 	id serial PRIMARY KEY,
 	username character varying(256) UNIQUE,
