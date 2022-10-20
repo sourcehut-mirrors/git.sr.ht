@@ -44,14 +44,17 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
+// Repository is the resolver for the repository field.
 func (r *aCLResolver) Repository(ctx context.Context, obj *model.ACL) (*model.Repository, error) {
 	return loaders.ForContext(ctx).RepositoriesByID.Load(obj.RepoID)
 }
 
+// Entity is the resolver for the entity field.
 func (r *aCLResolver) Entity(ctx context.Context, obj *model.ACL) (model.Entity, error) {
 	return loaders.ForContext(ctx).UsersByID.Load(obj.UserID)
 }
 
+// URL is the resolver for the url field.
 func (r *artifactResolver) URL(ctx context.Context, obj *model.Artifact) (string, error) {
 	conf := config.ForContext(ctx)
 	upstream, ok := conf.Get("objects", "s3-upstream")
@@ -69,10 +72,12 @@ func (r *artifactResolver) URL(ctx context.Context, obj *model.Artifact) (string
 	return fmt.Sprintf("https://%s/%s/%s/%s", upstream, bucket, prefix, obj.Filename), nil
 }
 
+// Diff is the resolver for the diff field.
 func (r *commitResolver) Diff(ctx context.Context, obj *model.Commit) (string, error) {
 	return obj.DiffContext(ctx), nil
 }
 
+// CreateRepository is the resolver for the createRepository field.
 func (r *mutationResolver) CreateRepository(ctx context.Context, name string, visibility model.Visibility, description *string, cloneURL *string) (*model.Repository, error) {
 	if !repoNameRE.MatchString(name) {
 		return nil, valid.Errorf(ctx, "name", "Invalid repository name '%s' (must match %s)",
@@ -237,6 +242,7 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 	return &repo, nil
 }
 
+// UpdateRepository is the resolver for the updateRepository field.
 func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input map[string]interface{}) (*model.Repository, error) {
 	// This function is somewhat involved, because it has to address repository
 	// renames. The process is the following:
@@ -429,6 +435,7 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 	return &repo, nil
 }
 
+// DeleteRepository is the resolver for the deleteRepository field.
 func (r *mutationResolver) DeleteRepository(ctx context.Context, id int) (*model.Repository, error) {
 	var repo model.Repository
 
@@ -486,6 +493,7 @@ func (r *mutationResolver) DeleteRepository(ctx context.Context, id int) (*model
 	return &repo, nil
 }
 
+// UpdateACL is the resolver for the updateACL field.
 func (r *mutationResolver) UpdateACL(ctx context.Context, repoID int, mode model.AccessMode, entity string) (*model.ACL, error) {
 	if len(entity) == 0 || entity[0] != '~' {
 		return nil, fmt.Errorf("Unknown entity '%s'", entity)
@@ -530,6 +538,7 @@ func (r *mutationResolver) UpdateACL(ctx context.Context, repoID int, mode model
 	return &acl, nil
 }
 
+// DeleteACL is the resolver for the deleteACL field.
 func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.ACL, error) {
 	var acl model.ACL
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
@@ -553,6 +562,7 @@ func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.ACL, e
 	return &acl, nil
 }
 
+// UploadArtifact is the resolver for the uploadArtifact field.
 func (r *mutationResolver) UploadArtifact(ctx context.Context, repoID int, revspec string, file graphql.Upload) (*model.Artifact, error) {
 	conf := config.ForContext(ctx)
 	upstream, _ := conf.Get("objects", "s3-upstream")
@@ -689,6 +699,7 @@ func (r *mutationResolver) UploadArtifact(ctx context.Context, repoID int, revsp
 	return &artifact, nil
 }
 
+// DeleteArtifact is the resolver for the deleteArtifact field.
 func (r *mutationResolver) DeleteArtifact(ctx context.Context, id int) (*model.Artifact, error) {
 	conf := config.ForContext(ctx)
 	upstream, _ := conf.Get("objects", "s3-upstream")
@@ -740,6 +751,7 @@ func (r *mutationResolver) DeleteArtifact(ctx context.Context, id int) (*model.A
 	return &artifact, nil
 }
 
+// CreateWebhook is the resolver for the createWebhook field.
 func (r *mutationResolver) CreateWebhook(ctx context.Context, config model.UserWebhookInput) (model.WebhookSubscription, error) {
 	schema := server.ForContext(ctx).Schema
 	if err := corewebhooks.Validate(schema, config.Query); err != nil {
@@ -814,6 +826,7 @@ func (r *mutationResolver) CreateWebhook(ctx context.Context, config model.UserW
 	return &sub, nil
 }
 
+// DeleteWebhook is the resolver for the deleteWebhook field.
 func (r *mutationResolver) DeleteWebhook(ctx context.Context, id int) (model.WebhookSubscription, error) {
 	var sub model.UserWebhookSubscription
 
@@ -844,6 +857,7 @@ func (r *mutationResolver) DeleteWebhook(ctx context.Context, id int) (model.Web
 	return &sub, nil
 }
 
+// Version is the resolver for the version field.
 func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 	conf := config.ForContext(ctx)
 	upstream, _ := conf.Get("objects", "s3-upstream")
@@ -871,6 +885,7 @@ func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 	}, nil
 }
 
+// Me is the resolver for the me field.
 func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	user := auth.ForContext(ctx)
 	return &model.User{
@@ -885,10 +900,12 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	}, nil
 }
 
+// User is the resolver for the user field.
 func (r *queryResolver) User(ctx context.Context, username string) (*model.User, error) {
 	return loaders.ForContext(ctx).UsersByName.Load(username)
 }
 
+// Repositories is the resolver for the repositories field.
 func (r *queryResolver) Repositories(ctx context.Context, cursor *coremodel.Cursor, filter *coremodel.Filter) (*model.RepositoryCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(filter)
@@ -913,6 +930,7 @@ func (r *queryResolver) Repositories(ctx context.Context, cursor *coremodel.Curs
 	return &model.RepositoryCursor{repos, cursor}, nil
 }
 
+// UserWebhooks is the resolver for the userWebhooks field.
 func (r *queryResolver) UserWebhooks(ctx context.Context, cursor *coremodel.Cursor) (*model.WebhookSubscriptionCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -942,6 +960,7 @@ func (r *queryResolver) UserWebhooks(ctx context.Context, cursor *coremodel.Curs
 	return &model.WebhookSubscriptionCursor{subs, cursor}, nil
 }
 
+// UserWebhook is the resolver for the userWebhook field.
 func (r *queryResolver) UserWebhook(ctx context.Context, id int) (model.WebhookSubscription, error) {
 	var sub model.UserWebhookSubscription
 
@@ -974,6 +993,7 @@ func (r *queryResolver) UserWebhook(ctx context.Context, id int) (model.WebhookS
 	return &sub, nil
 }
 
+// Webhook is the resolver for the webhook field.
 func (r *queryResolver) Webhook(ctx context.Context) (model.WebhookPayload, error) {
 	raw, err := corewebhooks.Payload(ctx)
 	if err != nil {
@@ -986,6 +1006,7 @@ func (r *queryResolver) Webhook(ctx context.Context) (model.WebhookPayload, erro
 	return payload, nil
 }
 
+// Artifacts is the resolver for the artifacts field.
 func (r *referenceResolver) Artifacts(ctx context.Context, obj *model.Reference, cursor *coremodel.Cursor) (*model.ArtifactCursor, error) {
 	// XXX: This could utilize a loader if it ever becomes a bottleneck
 	if cursor == nil {
@@ -1030,10 +1051,12 @@ func (r *referenceResolver) Artifacts(ctx context.Context, obj *model.Reference,
 	return &model.ArtifactCursor{arts, cursor}, nil
 }
 
+// Owner is the resolver for the owner field.
 func (r *repositoryResolver) Owner(ctx context.Context, obj *model.Repository) (model.Entity, error) {
 	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
 }
 
+// AccessControlList is the resolver for the accessControlList field.
 func (r *repositoryResolver) AccessControlList(ctx context.Context, obj *model.Repository, cursor *coremodel.Cursor) (*model.ACLCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -1060,6 +1083,7 @@ func (r *repositoryResolver) AccessControlList(ctx context.Context, obj *model.R
 	return &model.ACLCursor{acls, cursor}, nil
 }
 
+// Objects is the resolver for the objects field.
 func (r *repositoryResolver) Objects(ctx context.Context, obj *model.Repository, ids []string) ([]model.Object, error) {
 	var objects []model.Object
 	for _, id := range ids {
@@ -1073,6 +1097,7 @@ func (r *repositoryResolver) Objects(ctx context.Context, obj *model.Repository,
 	return objects, nil
 }
 
+// References is the resolver for the references field.
 func (r *repositoryResolver) References(ctx context.Context, obj *model.Repository, cursor *coremodel.Cursor) (*model.ReferenceCursor, error) {
 	repo := obj.Repo()
 	repo.Lock()
@@ -1122,6 +1147,7 @@ func (r *repositoryResolver) References(ctx context.Context, obj *model.Reposito
 	return &model.ReferenceCursor{refs, cursor}, nil
 }
 
+// Log is the resolver for the log field.
 func (r *repositoryResolver) Log(ctx context.Context, obj *model.Repository, cursor *coremodel.Cursor, from *string) (*model.CommitCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -1177,6 +1203,7 @@ func (r *repositoryResolver) Log(ctx context.Context, obj *model.Repository, cur
 	return &model.CommitCursor{commits, cursor}, nil
 }
 
+// Path is the resolver for the path field.
 func (r *repositoryResolver) Path(ctx context.Context, obj *model.Repository, revspec *string, path string) (*model.TreeEntry, error) {
 	rev := plumbing.Revision("HEAD")
 	if revspec != nil {
@@ -1211,6 +1238,7 @@ func (r *repositoryResolver) Path(ctx context.Context, obj *model.Repository, re
 	return tree.Entry(path), nil
 }
 
+// RevparseSingle is the resolver for the revparse_single field.
 func (r *repositoryResolver) RevparseSingle(ctx context.Context, obj *model.Repository, revspec string) (*model.Commit, error) {
 	rev := plumbing.Revision(revspec)
 	repo := obj.Repo()
@@ -1231,6 +1259,7 @@ func (r *repositoryResolver) RevparseSingle(ctx context.Context, obj *model.Repo
 	return commit, nil
 }
 
+// Entries is the resolver for the entries field.
 func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *coremodel.Cursor) (*model.TreeEntryCursor, error) {
 	if cursor == nil {
 		// TODO: Filter?
@@ -1264,10 +1293,12 @@ func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *cor
 	return &model.TreeEntryCursor{entries, cursor}, nil
 }
 
+// Repository is the resolver for the repository field.
 func (r *userResolver) Repository(ctx context.Context, obj *model.User, name string) (*model.Repository, error) {
 	return loaders.ForContext(ctx).RepositoriesByOwnerIDRepoName.Load(loaders.OwnerIDRepoName{obj.ID, name})
 }
 
+// Repositories is the resolver for the repositories field.
 func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor *coremodel.Cursor, filter *coremodel.Filter) (*model.RepositoryCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(filter)
@@ -1299,6 +1330,7 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor
 	return &model.RepositoryCursor{repos, cursor}, nil
 }
 
+// Client is the resolver for the client field.
 func (r *userWebhookSubscriptionResolver) Client(ctx context.Context, obj *model.UserWebhookSubscription) (*model.OAuthClient, error) {
 	if obj.ClientID == nil {
 		return nil, nil
@@ -1308,6 +1340,7 @@ func (r *userWebhookSubscriptionResolver) Client(ctx context.Context, obj *model
 	}, nil
 }
 
+// Deliveries is the resolver for the deliveries field.
 func (r *userWebhookSubscriptionResolver) Deliveries(ctx context.Context, obj *model.UserWebhookSubscription, cursor *coremodel.Cursor) (*model.WebhookDeliveryCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -1334,11 +1367,13 @@ func (r *userWebhookSubscriptionResolver) Deliveries(ctx context.Context, obj *m
 	return &model.WebhookDeliveryCursor{deliveries, cursor}, nil
 }
 
+// Sample is the resolver for the sample field.
 func (r *userWebhookSubscriptionResolver) Sample(ctx context.Context, obj *model.UserWebhookSubscription, event *model.WebhookEvent) (string, error) {
 	// TODO
 	panic(fmt.Errorf("not implemented"))
 }
 
+// Subscription is the resolver for the subscription field.
 func (r *webhookDeliveryResolver) Subscription(ctx context.Context, obj *model.WebhookDelivery) (model.WebhookSubscription, error) {
 	if obj.Name == "" {
 		panic("WebhookDelivery without name")
