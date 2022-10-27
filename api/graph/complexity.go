@@ -21,7 +21,7 @@ func ApplyComplexity(conf *api.Config) {
 		}
 		return c
 	}
-	conf.Complexity.Repository.AccessControlList = func(c int, cursor *model.Cursor) int {
+	conf.Complexity.Repository.Acls = func(c int, cursor *model.Cursor) int {
 		return cursorComplexity(c, cursor)
 	}
 	conf.Complexity.Repository.Log = func(c int, cursor *model.Cursor, from *string) int {

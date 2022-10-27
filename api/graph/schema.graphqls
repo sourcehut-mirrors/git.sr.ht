@@ -136,7 +136,7 @@ type Repository {
   access: AccessMode! @access(scope: ACLS, kind: RO)
 
   # Only available to the repository owner
-  accessControlList(cursor: Cursor): ACLCursor! @access(scope: ACLS, kind: RO)
+  acls(cursor: Cursor): ACLCursor! @access(scope: ACLS, kind: RO)
 
   ## Plumbing API:
 

@@ -1104,8 +1104,8 @@ func (r *repositoryResolver) Access(ctx context.Context, obj *model.Repository) 
 	return mode, nil
 }
 
-// AccessControlList is the resolver for the accessControlList field.
-func (r *repositoryResolver) AccessControlList(ctx context.Context, obj *model.Repository, cursor *coremodel.Cursor) (*model.ACLCursor, error) {
+// Acls is the resolver for the acls field.
+func (r *repositoryResolver) Acls(ctx context.Context, obj *model.Repository, cursor *coremodel.Cursor) (*model.ACLCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
 	}
