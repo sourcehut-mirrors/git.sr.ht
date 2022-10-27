@@ -1064,6 +1064,46 @@ func (r *repositoryResolver) Owner(ctx context.Context, obj *model.Repository) (
 	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
 }
 
+// Access is the resolver for the access field.
+func (r *repositoryResolver) Access(ctx context.Context, obj *model.Repository) (model.AccessMode, error) {
+	currentUser := auth.ForContext(ctx)
+	if obj.OwnerID == currentUser.UserID {
+		return model.AccessModeRw, nil
+	}
+
+	mode := model.AccessModeRo
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		var rawAccessMode string
+		row := tx.QueryRowContext(ctx, `
+			SELECT mode
+			FROM access
+			WHERE
+				access.repo_id = $1 AND
+				access.user_id = $2;
+		`, obj.ID, currentUser.UserID)
+
+		if err := row.Scan(&rawAccessMode); err != nil {
+			if err == sql.ErrNoRows {
+				return nil
+			}
+			return err
+		}
+
+		mode = model.AccessMode(strings.ToUpper(rawAccessMode))
+		if !mode.IsValid() {
+			panic(fmt.Errorf("Invalid access mode '%s'", rawAccessMode))
+		}
+		return nil
+	}); err != nil {
+		return mode, err
+	}
+
+	return mode, nil
+}
+
 // AccessControlList is the resolver for the accessControlList field.
 func (r *repositoryResolver) AccessControlList(ctx context.Context, obj *model.Repository, cursor *coremodel.Cursor) (*model.ACLCursor, error) {
 	if cursor == nil {

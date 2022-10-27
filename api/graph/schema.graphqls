@@ -132,6 +132,10 @@ type Repository {
   """
   readme: String
 
+  "The access that applies to this user for this repository"
+  access: AccessMode! @access(scope: ACLS, kind: RO)
+
+  # Only available to the repository owner
   accessControlList(cursor: Cursor): ACLCursor! @access(scope: ACLS, kind: RO)
 
   ## Plumbing API:
