@@ -50,7 +50,7 @@ def get_license_info_for_tip(tip):
                 break
 
         licenses = []
-        if 'LICENSES' in tip.tree:
+        if 'LICENSES' in tip.tree and isinstance(tip.tree['LICENSES'], pygit2.Tree):
             for o in tip.tree['LICENSES']:
                 license_id = os.path.splitext(o.name)[0]
                 if license_id in SPDX_LICENSES:
