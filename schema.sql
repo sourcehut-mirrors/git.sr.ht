@@ -61,7 +61,7 @@ CREATE TABLE repository (
 	updated timestamp without time zone NOT NULL,
 	name character varying(256) NOT NULL,
 	description character varying(1024),
-	owner_id integer NOT NULL REFERENCES "user"(id),
+	owner_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
 	path character varying(1024),
 	visibility visibility NOT NULL,
 	readme character varying,
@@ -77,7 +77,7 @@ CREATE TABLE access (
 	created timestamp without time zone NOT NULL,
 	updated timestamp without time zone NOT NULL,
 	repo_id integer NOT NULL REFERENCES repository(id) ON DELETE CASCADE,
-	user_id integer NOT NULL REFERENCES "user"(id),
+	user_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
 	mode character varying NOT NULL,
 	CONSTRAINT uq_access_user_id_repo_id UNIQUE (user_id, repo_id)
 );
@@ -85,8 +85,8 @@ CREATE TABLE access (
 CREATE TABLE artifacts (
 	id serial PRIMARY KEY,
 	created timestamp without time zone NOT NULL,
-	user_id integer NOT NULL REFERENCES "user"(id),
-	repo_id integer NOT NULL REFERENCES repository(id),
+	user_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+	repo_id integer NOT NULL REFERENCES repository(id) ON DELETE CASCADE,
 	commit character varying NOT NULL,
 	filename character varying NOT NULL,
 	checksum character varying NOT NULL,
@@ -98,7 +98,7 @@ CREATE TABLE redirect (
 	id serial PRIMARY KEY,
 	created timestamp without time zone NOT NULL,
 	name character varying(256) NOT NULL,
-	owner_id integer NOT NULL REFERENCES "user"(id),
+	owner_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
 	path character varying(1024),
 	new_repo_id integer NOT NULL REFERENCES repository(id) ON DELETE CASCADE
 );
@@ -116,7 +116,7 @@ CREATE TABLE gql_user_wh_sub (
 	client_id uuid,
 	expires timestamp without time zone,
 	node_id character varying,
-	user_id integer NOT NULL REFERENCES "user"(id),
+	user_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
 	CONSTRAINT gql_user_wh_sub_auth_method_check
 		CHECK ((auth_method = ANY (ARRAY['OAUTH2'::auth_method, 'INTERNAL'::auth_method]))),
 	CONSTRAINT gql_user_wh_sub_check
@@ -149,7 +149,7 @@ CREATE TABLE gql_user_wh_delivery (
 -- Legacy SSH key table, to be fetched from meta.sr.ht instead (TODO: Remove)
 CREATE TABLE sshkey (
 	id serial PRIMARY KEY,
-	user_id integer NOT NULL REFERENCES "user"(id),
+	user_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
 	meta_id integer NOT NULL,
 	key character varying(4096) NOT NULL,
 	fingerprint character varying(512) NOT NULL
@@ -169,7 +169,7 @@ CREATE TABLE oauthtoken (
 	created timestamp without time zone NOT NULL,
 	updated timestamp without time zone NOT NULL,
 	expires timestamp without time zone NOT NULL,
-	user_id integer REFERENCES "user"(id),
+	user_id integer REFERENCES "user"(id) ON DELETE CASCADE,
 	token_hash character varying(128) NOT NULL,
 	token_partial character varying(8) NOT NULL,
 	scopes character varying(512) NOT NULL
@@ -181,8 +181,8 @@ CREATE TABLE user_webhook_subscription (
 	created timestamp without time zone NOT NULL,
 	url character varying(2048) NOT NULL,
 	events character varying NOT NULL,
-	user_id integer REFERENCES "user"(id),
-	token_id integer REFERENCES oauthtoken(id)
+	user_id integer REFERENCES "user"(id) ON DELETE CASCADE,
+	token_id integer REFERENCES oauthtoken(id) ON DELETE CASCADE
 );
 
 CREATE TABLE user_webhook_delivery (

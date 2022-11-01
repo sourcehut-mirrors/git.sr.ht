@@ -5,9 +5,9 @@ import (
 	"os"
 	"path"
 
+	"git.sr.ht/~sircmpwn/scm.sr.ht/srht-keys"
 	goredis "github.com/go-redis/redis/v8"
 	"github.com/vaughan0/go-ini"
-	"git.sr.ht/~sircmpwn/scm.sr.ht/srht-keys"
 )
 
 func main() {

@@ -49,7 +49,8 @@ func Clone(ctx context.Context, repoID int, repo *git.Repository, cloneURL strin
 		panic("No repos worker for this context")
 	}
 	task := work.NewTask(func(ctx context.Context) error {
-		cloneCtx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+		log.Printf("Processing clone of %s", cloneURL)
+		cloneCtx, cancel := context.WithTimeout(ctx, 30*time.Minute)
 		defer cancel()
 		err := repo.Clone(cloneCtx, &git.CloneOptions{
 			URL:               cloneURL,
@@ -74,6 +75,7 @@ func Clone(ctx context.Context, repoID int, repo *git.Repository, cloneURL strin
 		}); err != nil {
 			panic(err)
 		}
+		log.Printf("Clone %s complete", cloneURL)
 		return nil
 	})
 	queue.Enqueue(task)
@@ -87,33 +89,42 @@ func DeleteArtifacts(ctx context.Context, username, repoName string, filenames [
 		panic("No repos worker for this context")
 	}
 	task := work.NewTask(func(ctx context.Context) error {
-		conf := config.ForContext(ctx)
-		upstream, _ := conf.Get("objects", "s3-upstream")
-		accessKey, _ := conf.Get("objects", "s3-access-key")
-		secretKey, _ := conf.Get("objects", "s3-secret-key")
-		bucket, _ := conf.Get("git.sr.ht", "s3-bucket")
-		prefix, _ := conf.Get("git.sr.ht", "s3-prefix")
-
-		if upstream == "" || accessKey == "" || secretKey == "" || bucket == "" {
-			return fmt.Errorf("Object storage is not enabled for this server")
-		}
-
-		mc, err := minio.New(upstream, &minio.Options{
-			Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
-			Secure: true,
-		})
-		if err != nil {
-			panic(err)
-		}
-
-		for _, filename := range filenames {
-			s3path := path.Join(prefix, "artifacts", "~"+username, repoName, filename)
-			if err := mc.RemoveObject(ctx, bucket, s3path, minio.RemoveObjectOptions{}); err != nil {
-				return err
-			}
-		}
-		return nil
+		return DeleteArtifactsBlocking(ctx, username, repoName, filenames)
 	})
 	queue.Enqueue(task)
 	log.Printf("Enqueued deletion of %d artifacts", len(filenames))
+}
+
+func DeleteArtifactsBlocking(
+	ctx context.Context,
+	username,
+	repoName string,
+	filenames []string,
+) error {
+	conf := config.ForContext(ctx)
+	upstream, _ := conf.Get("objects", "s3-upstream")
+	accessKey, _ := conf.Get("objects", "s3-access-key")
+	secretKey, _ := conf.Get("objects", "s3-secret-key")
+	bucket, _ := conf.Get("git.sr.ht", "s3-bucket")
+	prefix, _ := conf.Get("git.sr.ht", "s3-prefix")
+
+	if upstream == "" || accessKey == "" || secretKey == "" || bucket == "" {
+		return fmt.Errorf("Object storage is not enabled for this server")
+	}
+
+	mc, err := minio.New(upstream, &minio.Options{
+		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
+		Secure: true,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	for _, filename := range filenames {
+		s3path := path.Join(prefix, "artifacts", "~"+username, repoName, filename)
+		if err := mc.RemoveObject(ctx, bucket, s3path, minio.RemoveObjectOptions{}); err != nil {
+			return err
+		}
+	}
+	return nil
 }

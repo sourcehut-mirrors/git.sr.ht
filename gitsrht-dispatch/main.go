@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"io"
+	"log"
 	"os"
 	osuser "os/user"
 	"strconv"
@@ -14,9 +14,9 @@ import (
 )
 
 type Dispatcher struct {
-	cmd string
-	uid int
-	gid int
+	cmd  string
+	uid  int
+	gid  int
 	gids []int
 }
 
@@ -30,7 +30,7 @@ func main() {
 	logf, err := os.OpenFile("/var/log/gitsrht-dispatch",
 		os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
-		log.Printf("Warning: unable to open log file: %v " +
+		log.Printf("Warning: unable to open log file: %v "+
 			"(using stderr instead)", err)
 		logger = log.New(os.Stderr, "", log.LstdFlags)
 	} else {
