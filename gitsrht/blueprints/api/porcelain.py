@@ -20,17 +20,19 @@ from srht.validation import Validation
 porcelain = Blueprint("api_porcelain", __name__)
 
 # See also gitsrht-update-hook/types.go
-def commit_to_dict(c):
+def commit_to_dict(c, repo):
+    author = repo.author(c)
+    committer = repo.committer(c)
     return {
         "id": str(c.id),
         "short_id": c.short_id,
         "author": {
-            "email": c.author.email,
-            "name": c.author.name,
+            "email": author.email,
+            "name": author.name,
         },
         "committer": {
-            "email": c.committer.email,
-            "name": c.committer.name,
+            "email": committer.email,
+            "name": committer.name,
         },
         "timestamp": commit_time(c),
         "message": c.message,
@@ -153,7 +155,7 @@ def repo_commits_GET(username, reponame, ref, path):
             next_id = str(commits[-1].id)
         return {
             "next": next_id,
-            "results": [commit_to_dict(c) for c in commits],
+            "results": [commit_to_dict(c, repo) for c in commits],
             # TODO: Track total commits per repo per branch
             "total": -1,
             "results_per_page": commits_per_page

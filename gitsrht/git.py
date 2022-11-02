@@ -1,6 +1,6 @@
 from collections import deque
 from datetime import datetime, timedelta, timezone
-from pygit2 import Repository as GitRepository, Tag
+from pygit2 import Repository as GitRepository, Mailmap, Tag
 from markupsafe import Markup, escape
 from stat import filemode
 import pygit2
@@ -98,6 +98,7 @@ def get_log(git_repo, commit, path="", commits_per_page=20, until=None):
 class Repository(GitRepository):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._mailmap = Mailmap.from_repository(self)
 
     def __enter__(self):
         return self
@@ -121,6 +122,18 @@ class Repository(GitRepository):
             return branch.raw_name.decode("utf-8", "replace")[len("refs/heads/"):]
         else:
             return None
+
+    def author(self, obj):
+        sig = obj.author if hasattr(obj, "author") else obj.get_object().author
+        return self._mailmap.resolve_signature(sig)
+
+    def committer(self, obj):
+        sig = obj.committer if hasattr(obj, "committer") else obj.get_object().committer
+        return self._mailmap.resolve_signature(sig)
+
+    def tagger(self, obj):
+        sig = obj.tagger if hasattr(obj, "tagger") else obj.get_object().tagger
+        return self._mailmap.resolve_signature(sig)
 
     @property
     def is_empty(self):
