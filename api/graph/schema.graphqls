@@ -562,7 +562,7 @@ type Mutation {
   may be used to access details of the event which trigged the webhook. The
   query may not make any mutations.
   """
-  createWebhook(config: UserWebhookInput!): WebhookSubscription!
+  createUserWebhook(config: UserWebhookInput!): WebhookSubscription!
 
   """
   Deletes a user webhook. Any events already queued may still be
@@ -572,7 +572,7 @@ type Mutation {
   Manually deleting a webhook configured by a third-party client may cause
   unexpected behavior with the third-party integration.
   """
-  deleteWebhook(id: Int!): WebhookSubscription
+  deleteUserWebhook(id: Int!): WebhookSubscription!
 
   """
   Deletes the authenticated user's account. Internal use only.

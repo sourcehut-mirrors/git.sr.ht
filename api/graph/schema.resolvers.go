@@ -752,8 +752,8 @@ func (r *mutationResolver) DeleteArtifact(ctx context.Context, id int) (*model.A
 	return &artifact, nil
 }
 
-// CreateWebhook is the resolver for the createWebhook field.
-func (r *mutationResolver) CreateWebhook(ctx context.Context, config model.UserWebhookInput) (model.WebhookSubscription, error) {
+// CreateUserWebhook is the resolver for the createUserWebhook field.
+func (r *mutationResolver) CreateUserWebhook(ctx context.Context, config model.UserWebhookInput) (model.WebhookSubscription, error) {
 	schema := server.ForContext(ctx).Schema
 	if err := corewebhooks.Validate(schema, config.Query); err != nil {
 		return nil, err
@@ -827,8 +827,8 @@ func (r *mutationResolver) CreateWebhook(ctx context.Context, config model.UserW
 	return &sub, nil
 }
 
-// DeleteWebhook is the resolver for the deleteWebhook field.
-func (r *mutationResolver) DeleteWebhook(ctx context.Context, id int) (model.WebhookSubscription, error) {
+// DeleteUserWebhook is the resolver for the deleteUserWebhook field.
+func (r *mutationResolver) DeleteUserWebhook(ctx context.Context, id int) (model.WebhookSubscription, error) {
 	var sub model.UserWebhookSubscription
 
 	filter, err := corewebhooks.FilterWebhooks(ctx)
@@ -850,7 +850,7 @@ func (r *mutationResolver) DeleteWebhook(ctx context.Context, id int) (model.Web
 		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return nil, fmt.Errorf("No user webhook by ID %d found for this user", id)
 		}
 		return nil, err
 	}
