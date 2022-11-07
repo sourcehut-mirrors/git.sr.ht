@@ -45,7 +45,7 @@ def ref_to_item(repo, reference):
     with GitRepository(repo.path) as git_repo:
         target = git_repo.get(reference.target)
 
-    author = repo.author(target)
+    author = target.author if hasattr(target, 'author') else target.get_object().author
     time = aware_time(author).strftime(RFC_822_FORMAT)
     url = ref_url(repo, reference)
     description = target.message.strip().replace("\n", "<br />")
@@ -64,8 +64,7 @@ def commit_to_item(repo, commit):
     time = aware_time(commit.author).strftime(RFC_822_FORMAT)
     url = commit_url(repo, commit)
     title, description = commit_title_description(commit)
-    author = repo.author(commit)
-    author = f"{author.email} ({author.name})"
+    author = f"{commit.author.email} ({commit.author.name})"
 
     element = ET.Element("item")
     ET.SubElement(element, "title").text = title

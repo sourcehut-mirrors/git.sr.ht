@@ -38,11 +38,11 @@
           <h4 style="margin-bottom: 0.5rem">
             {% if isinstance(tag, pygit2.Commit) %}
             {% set refname = commit.id.hex %}
-            {% set author = repo.author(commit) %}
+            {% set author = commit.author %}
             {{ref[len("refs/tags/"):]}}
             {% else %}
             {% set refname = tag.raw_name %}
-            {% set author = repo.tagger(tag) %}
+            {% set author = tag.tagger %}
             <a href="{{url_for("repo.ref",
                 owner=repo.owner.canonical_name,
                 repo=repo.name,

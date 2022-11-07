@@ -93,13 +93,12 @@ endif %}{% endfor %}
   >{{c.id.hex[:8]}}</a>
   {% endif %}
   &mdash;
-  {% set author = repo.author(c) %}
-  {% set author_user = lookup(author.email) %}
+  {% set author_user = lookup(c.author.email) %}
   {% if author_user %}
   <a href="{{url_for("public.user_index",
-    username=author_user.username)}}">{{author.name}}</a>
+    username=author_user.username)}}">{{c.author.name}}</a>
   {% else %}
-  {{author.name}}
+  {{c.author.name}}
   {% endif %}
   <small class="pull-right">
     <a

@@ -148,14 +148,5 @@ class Repository(Base):
             self._git_repo = GitRepository(self.path)
         return self._git_repo
 
-    def author(self, obj):
-        return self.git_repo.author(obj)
-
-    def committer(self, obj):
-        return self.git_repo.committer(obj)
-
-    def tagger(self, obj):
-        return self.git_repo.tagger(obj)
-
 from gitsrht.types.artifact import Artifact
 from gitsrht.types.sshkey import SSHKey

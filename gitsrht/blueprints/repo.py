@@ -503,7 +503,7 @@ def log(owner, repo, ref, path):
 
         has_more = commits and len(commits) == 21
 
-        author_emails = set((repo.author(commit).email for commit in commits[:20]))
+        author_emails = set((commit.author.email for commit in commits[:20]))
         authors = {user.email:user for user in User.query.filter(User.email.in_(author_emails)).all()}
         return render_template("log.html", view="log",
                 owner=owner, repo=repo, ref=ref, path=path.split("/"),
@@ -671,7 +671,7 @@ def refs_rss(owner, repo):
 
     def _ref_sort_key(ref):
         target = git_repo.get(ref.target)
-        author = repo.author(target)
+        author = target.author if hasattr(target, 'author') else target.get_object().author
         return author.time + author.offset
 
     references = sorted(references, key=_ref_sort_key, reverse=True)[:20]
