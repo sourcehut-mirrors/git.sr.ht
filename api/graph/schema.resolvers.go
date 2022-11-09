@@ -107,6 +107,7 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 	var (
 		repoCreated bool
 		repo        model.Repository
+		gitrepo     *git.Repository
 	)
 	defer func() {
 		if err := recover(); err != nil {
@@ -147,7 +148,8 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 			return err
 		}
 
-		gitrepo, err := git.PlainInit(repoPath, true)
+		var err error
+		gitrepo, err = git.PlainInit(repoPath, true)
 		if err != nil {
 			return err
 		}
@@ -224,8 +226,6 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 				}
 				cloneURL = &repo.Path
 			}
-
-			repos.Clone(ctx, repo.ID, gitrepo, *cloneURL)
 		}
 
 		webhooks.DeliverRepoEvent(ctx, model.WebhookEventRepoCreated, &repo)
@@ -239,6 +239,12 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 			}
 		}
 		return nil, err
+	}
+
+	// Schedule the clone after the transaction has committed to avoid race
+	// conditions for repository.clone_status.
+	if cloneURL != nil {
+		repos.Clone(ctx, repo.ID, gitrepo, *cloneURL)
 	}
 
 	return &repo, nil
