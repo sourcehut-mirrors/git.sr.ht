@@ -178,10 +178,11 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 
 		export := path.Join(repoPath, "git-daemon-export-ok")
 		if repo.Visibility != model.VisibilityPrivate {
-			_, err := os.Create(export)
+			f, err := os.Create(export)
 			if err != nil {
 				return err
 			}
+			defer f.Close()
 		}
 
 		if cloneURL != nil {
@@ -414,10 +415,11 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 				return err
 			}
 		} else {
-			_, err := os.Create(export)
+			f, err := os.Create(export)
 			if err != nil {
 				return err
 			}
+			defer f.Close()
 		}
 
 		webhooks.DeliverRepoEvent(ctx, model.WebhookEventRepoUpdate, &repo)
