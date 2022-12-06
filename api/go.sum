@@ -39,8 +39,8 @@ git.sr.ht/~sircmpwn/getopt v0.0.0-20191230200459-23622cc906b3 h1:4wDp4BKF7NQqoh7
 git.sr.ht/~sircmpwn/getopt v0.0.0-20191230200459-23622cc906b3/go.mod h1:wMEGFFFNuPos7vHmWXfszqImLppbc0wEhh6JBfJIUgw=
 git.sr.ht/~sircmpwn/go-bare v0.0.0-20210227202403-5dae5c48f917 h1:/pfEvB399XDXksu4vyjfNTytWn/nbbKiNhvjtpgc4pY=
 git.sr.ht/~sircmpwn/go-bare v0.0.0-20210227202403-5dae5c48f917/go.mod h1:BVJwbDfVjCjoFiKrhkei6NdGcZYpkDkdyCdg1ukytRA=
-git.sr.ht/~sircmpwn/go-git/v5 v5.0.0-20220207102101-70373b908e0a h1:s6T1+oHZ/mAPcWMOSHr2opkrf0U2W9t9IPGbSkoOt+k=
-git.sr.ht/~sircmpwn/go-git/v5 v5.0.0-20220207102101-70373b908e0a/go.mod h1:gQ1kArt6d+n+BGd+/B/I74HwRTLhth2+zti4ihgckDc=
+git.sr.ht/~sircmpwn/go-git/v5 v5.0.0-20221206091532-7155ffca4d7a h1:q8m/o43r+putz/5SY812BBAhihGzTcu7IFsaDRF+VZg=
+git.sr.ht/~sircmpwn/go-git/v5 v5.0.0-20221206091532-7155ffca4d7a/go.mod h1:gQ1kArt6d+n+BGd+/B/I74HwRTLhth2+zti4ihgckDc=
 github.com/99designs/gqlgen v0.14.0/go.mod h1:S7z4boV+Nx4VvzMUpVrY/YuHjFX4n7rDyuTqvAkuoRE=
 github.com/99designs/gqlgen v0.17.20 h1:O7WzccIhKB1dm+7g6dhQcULINftfiLSBg2l/mwbpJMw=
 github.com/99designs/gqlgen v0.17.20/go.mod h1:Mja2HI23kWT1VRH09hvWshFgOzKswpO20o4ScpJIES4=

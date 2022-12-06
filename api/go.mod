@@ -20,4 +20,4 @@ require (
 	golang.org/x/mod v0.6.0 // indirect
 )
 
-replace github.com/go-git/go-git/v5 => git.sr.ht/~sircmpwn/go-git/v5 v5.0.0-20220207102101-70373b908e0a
+replace github.com/go-git/go-git/v5 => git.sr.ht/~sircmpwn/go-git/v5 v5.0.0-20221206091532-7155ffca4d7a
