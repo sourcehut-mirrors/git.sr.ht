@@ -298,9 +298,13 @@ def tree(owner, repo, ref, path):
         tree = annotate_tree(git_repo, tree, commit)
         tree = sorted(tree, key=lambda e: e.name)
 
+        default_branch = git_repo.default_branch()
+        tip = git_repo.get(default_branch.raw_target)
+        license_exists, licenses = get_license_info_for_tip(tip)
+
         return render_template("tree.html", view="tree", owner=owner, repo=repo,
                 ref=ref, commit=commit, entry=entry, tree=tree, path=path,
-                pygit2=pygit2)
+                pygit2=pygit2, license_exists=license_exists, licenses=licenses)
 
 def resolve_blob(git_repo, ref, path):
     commit, ref, path = lookup_ref(git_repo, ref, path)
@@ -505,10 +509,16 @@ def log(owner, repo, ref, path):
 
         author_emails = set((commit.author.email for commit in commits[:20]))
         authors = {user.email:user for user in User.query.filter(User.email.in_(author_emails)).all()}
+
+        default_branch = git_repo.default_branch()
+        tip = git_repo.get(default_branch.raw_target)
+        license_exists, licenses = get_license_info_for_tip(tip)
+
         return render_template("log.html", view="log",
                 owner=owner, repo=repo, ref=ref, path=path.split("/"),
                 commits=commits[:20], refs=refs, entry=entry, pygit2=pygit2,
-                has_more=has_more, authors=authors)
+                has_more=has_more, authors=authors,
+                license_exists=license_exists, licenses=licenses)
 
 
 @repo.route("/<owner>/<repo>/log/rss.xml", defaults={"ref": None})
@@ -626,12 +636,16 @@ def refs(owner, repo):
             page = 0
             tags = tags[:results_per_page]
 
+        tip = git_repo.get(default_branch.raw_target)
+        license_exists, licenses = get_license_info_for_tip(tip)
+
         return render_template("refs.html", view="refs",
                 owner=owner, repo=repo, tags=tags, branches=branches,
                 git_repo=git_repo, isinstance=isinstance, pygit2=pygit2,
                 page=page + 1, total_pages=total_pages,
                 default_branch=default_branch,
-                strip_pgp_signature=strip_pgp_signature)
+                strip_pgp_signature=strip_pgp_signature,
+                license_exists=license_exists, licenses=licenses)
 
 @repo.route("/<owner>/<repo>/licenses")
 def licenses(owner, repo):
