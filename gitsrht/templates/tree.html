@@ -7,7 +7,7 @@
 <div class="header-extension">
   <div class="container tree-header">
     <div class="breadcrumb">
-      {{ utils.breadcrumb(ref, repo, path, entry, view, path_join, stat, pygit2, humanize) }}
+      {{ utils.breadcrumb(ref, commit.id, repo, path, entry, view, path_join, stat, pygit2, humanize) }}
     </div>
     <div class="commit-info">
       <a

@@ -1,4 +1,4 @@
-{% macro breadcrumb(ref, repo, path, entry, view, path_join, stat, pygit2, humanize) %}
+{% macro breadcrumb(ref, permaref, repo, path, entry, view, path_join, stat, pygit2, humanize) %}
 {% set ref_s = ref.decode("utf-8", "replace") %}
 {% if ref_s != repo.git_repo.default_branch_name() %}
 <span style="margin-right: 1rem">
@@ -67,6 +67,12 @@ endif %}{% endfor %}
                 repo=repo.name, ref=ref, path=path)}}">View raw</a>
       </li>
     {% endif %}
+    <li class="nav-item">
+      <a class="nav-link"
+         {%- set args = request.view_args.copy() -%}
+         {%- do args.update(dict(ref=permaref)) -%}
+         href="{{url_for(request.endpoint, **args)}}">Permalink</a>
+    </li>
   </ul>
 </div>
 {% endmacro %}
