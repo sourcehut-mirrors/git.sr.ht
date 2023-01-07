@@ -1,7 +1,13 @@
 {% extends "repo.html" %}
 {% import "utils.html" as utils with context %}
 {% block title %}
-<title>{{repo.owner.canonical_name}}/{{repo.name}} - {{cfg("sr.ht", "site-name")}} git</title>
+<title>
+{{repo.owner.canonical_name}}/{{repo.name}} -
+{% if repo.description %}
+{{repo.description}} -
+{% endif %}
+{{cfg("sr.ht", "site-name")}} git
+</title>
 {% endblock %}
 {% block content %}
 {% if repo.description %}
