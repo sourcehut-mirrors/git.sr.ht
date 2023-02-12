@@ -30,7 +30,7 @@ query {
 
   # On this page, you have been automatically authorized to make API requests
   # with your sr.ht login cookie. If you wish to make GraphQL requests outside
-  # of the browser, create a personal access token at https://meta.sr.ht/oauth
+  # of the browser, create a personal access token at https://meta.sr.ht/oauth2
   #
   # curl \
   #     -H Authorization:"Bearer <your oauth token>" \
