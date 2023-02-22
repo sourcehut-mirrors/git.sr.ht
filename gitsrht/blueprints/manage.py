@@ -178,7 +178,7 @@ def settings_rename_POST(owner_name, repo_name):
 def settings_access(owner_name, repo_name):
     owner, repo = check_access(owner_name, repo_name, UserAccess.manage)
     if isinstance(repo, Redirect):
-        return redirect(url_for(".settings_manage",
+        return redirect(url_for(".settings_access",
             owner_name=owner_name, repo_name=repo.new_repo.name))
     return render_template("settings_access.html", owner=owner, repo=repo)
 
