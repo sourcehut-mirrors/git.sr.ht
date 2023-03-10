@@ -1369,7 +1369,10 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor
 		query := database.
 			Select(ctx, repo).
 			From(`repository repo`).
-			LeftJoin(`access ON repo.id = access.repo_id`).
+			LeftJoin(`access ON (
+				repo.visibility != 'PUBLIC' AND
+				repo.id = access.repo_id
+			)`).
 			Where(sq.And{
 				sq.Or{
 					sq.Expr(`? IN (access.user_id, repo.owner_id)`,
