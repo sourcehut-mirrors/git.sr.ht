@@ -65,7 +65,7 @@ def gc_s3():
     if not gr.object_storage_enabled:
         return
     # Once a weekish
-    if random.randrange(0, 7 * 24 * 60 / 20) != 0:
+    if random.randrange(0, int(math.ceil(7 * 24 * 60 / 20))) != 0:
        return
     prefix = os.path.join(gr.s3_prefix, "artifacts")
     minio = Minio(gr.s3_upstream, access_key=gr.s3_access_key,
