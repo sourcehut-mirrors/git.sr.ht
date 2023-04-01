@@ -427,6 +427,7 @@ def archive(owner, repo, ref):
             "archive",
             "--format=tar.gz",
             "--prefix", f"{repo.name}-{refname}/",
+            "--",
             ref
         ]
         subp = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=sys.stderr)
