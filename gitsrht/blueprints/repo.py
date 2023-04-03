@@ -577,6 +577,7 @@ def patch(owner, repo, ref):
                 "--git-dir", repo.path,
                 "format-patch",
                 "--stdout", "-1",
+                "--",
                 ref
             ], timeout=10, stdout=subprocess.PIPE, stderr=sys.stderr)
         except subprocess.TimeoutExpired:
