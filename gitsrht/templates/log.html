@@ -21,7 +21,7 @@
 {% endblock %}
 
 {% block content %}
-{% if path != [''] %}
+{% if path != [''] and len(commits) != 0 %}
 <div class="header-extension">
   <div class="container">
     <span style="padding-left: 1rem">
