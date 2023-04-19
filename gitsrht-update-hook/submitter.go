@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -13,6 +14,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"git.sr.ht/~sircmpwn/core-go/client"
 	"git.sr.ht/~turminal/go-fnmatch"
 	"github.com/fernet/fernet-go"
 	"github.com/go-git/go-git/v5"
@@ -20,6 +22,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/pkg/errors"
+	"github.com/vektah/gqlparser/gqlerror"
 )
 
 var (
@@ -69,6 +72,8 @@ type BuildSubmitter interface {
 	GetOwnerName() string
 	// Get the job tags to use for this commit
 	GetJobTags() []string
+	// Get the build visibility
+	GetVisibility() string
 }
 
 // SQL notes
@@ -202,6 +207,10 @@ func (submitter GitBuildSubmitter) GetCommitId() string {
 	return submitter.Commit.Hash.String()
 }
 
+func (submitter GitBuildSubmitter) GetVisibility() string {
+	return submitter.Visibility
+}
+
 func firstLine(text string) string {
 	buf := bytes.NewBufferString(text)
 	scanner := bufio.NewScanner(buf)
@@ -272,9 +281,8 @@ func (submitter GitBuildSubmitter) GetOwnerName() string {
 type BuildSubmission struct {
 	// TODO: Move errors into this struct and set up per-submission error
 	// tracking
-	Name     string
-	Response string
-	Url      string
+	Name string
+	Url  string
 }
 
 func configureRequestAuthorization(submitter BuildSubmitter,
@@ -299,7 +307,7 @@ func configureRequestAuthorization(submitter BuildSubmitter,
 // TODO: Move this to scm.sr.ht
 var submitBuildSkipCiPrinted bool
 
-func SubmitBuild(submitter BuildSubmitter) ([]BuildSubmission, error) {
+func SubmitBuild(ctx context.Context, submitter BuildSubmitter) ([]BuildSubmission, error) {
 	manifests, err := submitter.FindManifests()
 	if err != nil || manifests == nil {
 		return nil, err
@@ -332,59 +340,52 @@ func SubmitBuild(submitter BuildSubmitter) ([]BuildSubmission, error) {
 			return nil, errors.Wrap(err, name)
 		}
 
-		client := &http.Client{}
-
-		submission := struct {
-			Manifest string   `json:"manifest"`
-			Note     string   `json:"note"`
-			Tags     []string `json:"tags"`
-		}{
-			Manifest: yaml,
-			Tags:     append(submitter.GetJobTags(), name),
-			Note:     submitter.GetCommitNote(),
+		query := client.GraphQLQuery{
+			Query: `
+			mutation SubmitBuild(
+				$manifest: String!,
+				$note: String,
+				$tags: [String!],
+				$secrets: Boolean,
+				$execute: Boolean,
+				$visibility: Visibility,
+			) {
+				submit(
+					manifest: $manifest,
+					note: $note,
+					tags: $tags,
+					secrets: $secrets,
+					execute: $execute,
+					visibility: $visibility,
+				) {
+					id
+				}
+			}`,
+			Variables: map[string]interface{}{
+				"manifest":   yaml,
+				"tags":       append(submitter.GetJobTags(), name),
+				"note":       submitter.GetCommitNote(),
+				"visibility": submitter.GetVisibility(),
+			},
 		}
-		bodyBytes, err := json.Marshal(&submission)
+
+		resp := struct {
+			Data struct {
+				Submit struct {
+					ID int `json:"id"`
+				} `json:"submit"`
+			} `json:"data"`
+			Errors gqlerror.List `json:"errors"`
+		}{}
+
+		err = client.Execute(ctx, submitter.GetOwnerName(), "builds.sr.ht", query, &resp)
 		if err != nil {
-			return nil, errors.Wrap(err, "preparing job")
-		}
-		body := bytes.NewBuffer(bodyBytes)
-
-		req, err := http.NewRequest("POST", fmt.Sprintf("%s/api/jobs",
-			submitter.GetBuildsOrigin()), body)
-		configureRequestAuthorization(submitter, req)
-		req.Header.Add("Content-Type", "application/json")
-		resp, err := client.Do(req)
-		if err != nil {
-			return nil, errors.Wrap(err, "job submission")
-		}
-
-		if resp.StatusCode == 403 {
-			return nil, errors.New("builds.sr.ht returned 403\n" +
-				"Log out and back into the website to authorize " +
-				"builds integration.")
-		}
-
-		defer resp.Body.Close()
-		respBytes, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, errors.Wrap(err, "read response")
-		}
-
-		if resp.StatusCode == 400 {
-			return nil, errors.New(fmt.Sprintf(
-				"builds.sr.ht returned %d\n", resp.StatusCode) +
-				string(respBytes))
-		}
-		if resp.StatusCode == 402 {
-			return nil, errors.New("Payment is required. Set up billing at https://meta.sr.ht/billing/initial")
-		}
-
-		var job struct {
-			Id int `json:"id"`
-		}
-		err = json.Unmarshal(respBytes, &job)
-		if err != nil {
-			return nil, errors.Wrap(err, "interpret response")
+			return nil, err
+		} else if len(resp.Errors) > 0 {
+			for _, err := range resp.Errors {
+				logger.Printf("Error submitting build: %s", err.Error())
+			}
+			return nil, fmt.Errorf("%s", resp.Errors[0].Message)
 		}
 
 		results = append(results, BuildSubmission{
@@ -392,8 +393,7 @@ func SubmitBuild(submitter BuildSubmitter) ([]BuildSubmission, error) {
 			Url: fmt.Sprintf("%s/~%s/job/%d",
 				submitter.GetBuildsOrigin(),
 				submitter.GetOwnerName(),
-				job.Id),
-			Response: string(respBytes),
+				resp.Data.Submit.ID),
 		})
 	}
 

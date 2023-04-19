@@ -176,7 +176,7 @@ func parseUpdatables() (*string, *string) {
 }
 
 func postUpdate() {
-	var context PushContext
+	var pcontext PushContext
 	refs := os.Args[1:]
 
 	contextJson, ctxOk := os.LookupEnv("SRHT_PUSH_CTX")
@@ -188,29 +188,29 @@ func postUpdate() {
 
 	logger.Printf("Running post-update for push %s", pushUuid)
 
-	if err := json.Unmarshal([]byte(contextJson), &context); err != nil {
+	if err := json.Unmarshal([]byte(contextJson), &pcontext); err != nil {
 		logger.Fatalf("unmarshal SRHT_PUSH_CTX: %v", err)
 	}
 
 	initSubmitter()
 
 	newDescription, newVisibility := parseUpdatables()
-	if context.Repo.Autocreated && newVisibility == nil {
-		printAutocreateInfo(context)
+	if pcontext.Repo.Autocreated && newVisibility == nil {
+		printAutocreateInfo(pcontext)
 	}
 
 	loadOptions()
 	payload := WebhookPayload{
 		Push:     pushUuid,
 		PushOpts: options,
-		Pusher:   context.User,
+		Pusher:   pcontext.User,
 		Refs:     make([]UpdatedRef, len(refs)),
 	}
 
 	oids := make(map[string]interface{})
-	repo, err := git.PlainOpen(context.Repo.AbsolutePath)
+	repo, err := git.PlainOpen(pcontext.Repo.AbsolutePath)
 	if err != nil {
-		logger.Fatalf("git.PlainOpen(%q): %v", context.Repo.AbsolutePath, err)
+		logger.Fatalf("git.PlainOpen(%q): %v", pcontext.Repo.AbsolutePath, err)
 	}
 
 	db, err := sql.Open("postgres", pgcs)
@@ -218,7 +218,7 @@ func postUpdate() {
 		logger.Fatalf("Failed to open a database connection: %v", err)
 	}
 
-	dbinfo, err := fetchInfoForPush(db, context.Repo.OwnerName, context.Repo.Id, context.Repo.Name, context.Repo.Visibility, newDescription, newVisibility)
+	dbinfo, err := fetchInfoForPush(db, pcontext.Repo.OwnerName, pcontext.Repo.Id, pcontext.Repo.Name, pcontext.Repo.Visibility, newDescription, newVisibility)
 	if err != nil {
 		logger.Fatalf("Failed to fetch info from database: %v", err)
 	}
@@ -322,7 +322,11 @@ func postUpdate() {
 				Visibility:  dbinfo.Visibility,
 				Ref:         refname,
 			}
-			results, err := SubmitBuild(submitter)
+
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			ctx = coreconfig.Context(ctx, config, "git.sr.ht")
+			results, err := SubmitBuild(ctx, submitter)
 			if err != nil {
 				logger.Printf("Error submitting build job: %v", err)
 				log.Fatalf("Error submitting build job: %v", err)
@@ -337,9 +341,6 @@ func postUpdate() {
 			logger.Printf("Submitted %d builds for %s",
 				len(results), refname)
 			for _, result := range results {
-				if _, ok := options["debug"]; ok {
-					log.Printf("[debug] builds.sr.ht response: \n%s", result.Response)
-				}
 				log.Printf("\033[94m%s\033[0m [%s]", result.Url, result.Name)
 			}
 			nbuilds += len(results)
