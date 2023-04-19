@@ -40,7 +40,7 @@ tasks:
       echo "StrictHostKeyChecking=no" >> ~/.ssh/config
       ./pkgkit upload "$remote" "$remote_path" "$project"
   - deploy: |
-      ssh $master doas apk upgrade -U
-      ssh $master doas service $project restart
-      ssh $master doas service $project-api restart
-      ssh $master doas service $project-webhooks restart
+      ssh $master doas /sbin/apk upgrade -U
+      ssh $master doas /sbin/service $project restart
+      ssh $master doas /sbin/service $project-api restart
+      ssh $master doas /sbin/service $project-webhooks restart
