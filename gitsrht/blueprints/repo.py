@@ -6,7 +6,7 @@ import pygments
 import subprocess
 import sys
 from datetime import datetime, timedelta
-from flask import Blueprint, render_template, abort, current_app, send_file, request
+from flask import Blueprint, render_template, abort, current_app, send_file, make_response, request
 from flask import Response, url_for, session, redirect
 from gitsrht.editorconfig import EditorConfig
 from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
@@ -361,10 +361,15 @@ def raw_blob(owner, repo, ref, path):
     with GitRepository(repo.path) as git_repo:
         orig_commit, ref, path, blob, entry = resolve_blob(git_repo, ref, path)
 
-        return send_file(BytesIO(blob.data),
+        response = send_file(BytesIO(blob.data),
                 as_attachment=blob.is_binary,
                 download_name=entry.name,
                 mimetype=resolve_mimetype(path, blob))
+        response = make_response(response)
+        # Do not allow any other resources, including scripts, to be loaded from this resourse
+        # This prevents XSS attacks in SVG files!
+        response.headers['Content-Security-Policy'] = "upgrade-insecure-requests; sandbox; frame-src 'none'; media-src 'none'; script-src 'none'; object-src 'none'; worker-src 'none';"
+        return response
 
 def _lookup_user(email, cache):
     if email not in cache:
