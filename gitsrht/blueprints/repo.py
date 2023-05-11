@@ -336,6 +336,25 @@ def resolve_blob(git_repo, ref, path):
 
     return orig_commit, ref, path, blob, entry
 
+MIME_TYPES = {
+    "avif": "image/avif",
+    "gif": "image/gif",
+    "jpeg": "image/jpeg",
+    "jpg": "image/jpeg",
+    "png": "image/png",
+    "svg": "image/svg+xml",
+    "webp": "image/webp",
+}
+
+def resolve_mimetype(path, blob):
+    filename = path[-1]
+    for ext, mimetype in MIME_TYPES.items():
+        if filename.endswith('.' + ext):
+            return mimetype
+    if not blob.is_binary:
+        return "text/plain"
+    return None
+
 @repo.route("/<owner>/<repo>/blob/<path:ref>/<path:path>")
 def raw_blob(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
@@ -345,7 +364,7 @@ def raw_blob(owner, repo, ref, path):
         return send_file(BytesIO(blob.data),
                 as_attachment=blob.is_binary,
                 download_name=entry.name,
-                mimetype="text/plain" if not blob.is_binary else None)
+                mimetype=resolve_mimetype(path, blob))
 
 def _lookup_user(email, cache):
     if email not in cache:
