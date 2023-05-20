@@ -115,7 +115,7 @@ class Repository(Base):
     name = sa.Column(sa.Unicode(256), nullable=False)
     description = sa.Column(sa.Unicode(1024))
     path = sa.Column(sa.Unicode(1024))
-    visibility = sa.Column(postgresql.ENUM(Visibility), nullable=False)
+    visibility = sa.Column(postgresql.ENUM(Visibility, name='visibility'), nullable=False)
     readme = sa.Column(sa.Unicode)
     clone_status = sa.Column(postgresql.ENUM(
         'NONE', 'IN_PROGRESS', 'COMPLETE', 'ERROR', name='clone_status'), nullable=False)
