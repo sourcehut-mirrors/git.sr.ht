@@ -106,5 +106,5 @@ all()
 
 pg_endpoint = cfg("sr.ht", "pushgateway", default=None)
 if pg_endpoint:
-    prometheus_client.push_to_gateway(pg_endpoint,
+    prometheus_client.pushadd_to_gateway(pg_endpoint,
             job="git.sr.ht", registry=registry)
