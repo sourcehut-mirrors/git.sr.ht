@@ -32,6 +32,8 @@ def create_POST():
     visibility = valid.require("visibility")
     if not valid.ok:
         return render_template("create.html", **valid.kwargs)
+    if description == "":
+        description = None
 
     resp = exec_gql(current_app.site, """
         mutation CreateRepository(
