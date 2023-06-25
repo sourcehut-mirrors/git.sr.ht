@@ -1114,6 +1114,10 @@ func (r *repositoryResolver) Access(ctx context.Context, obj *model.Repository) 
 
 // Acls is the resolver for the acls field.
 func (r *repositoryResolver) Acls(ctx context.Context, obj *model.Repository, cursor *coremodel.Cursor) (*model.ACLCursor, error) {
+	if obj.OwnerID != auth.ForContext(ctx).UserID {
+		return nil, errors.New("Access denied")
+	}
+
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
 	}
@@ -1127,9 +1131,7 @@ func (r *repositoryResolver) Acls(ctx context.Context, obj *model.Repository, cu
 		query := database.
 			Select(ctx, acl).
 			From(`access acl`).
-			Join(`repository repo ON acl.repo_id = repo.id`).
-			Where(`acl.repo_id = ?`, obj.ID).
-			Where(`repo.owner_id = ?`, auth.ForContext(ctx).UserID)
+			Where(`acl.repo_id = ?`, obj.ID)
 		acls, cursor = acl.QueryWithCursor(ctx, tx, query, cursor)
 		return nil
 	}); err != nil {
