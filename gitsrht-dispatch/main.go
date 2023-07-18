@@ -53,7 +53,7 @@ func main() {
 		logger.Fatalf(`Error: This command should be run by sshd's AuthorizedKeysCommand:
 
 AuthorizedKeysCommand=%s "%%u" "%%h" "%%t" "%%k"
-AuthorizedKeysUser=root`, os.Args[0])
+AuthorizedKeysCommandUser=root`, os.Args[0])
 	}
 
 	// Map uid -> dispatcher
