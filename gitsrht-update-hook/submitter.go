@@ -72,6 +72,8 @@ type BuildSubmitter interface {
 	GetOwnerName() string
 	// Get the job tags to use for this commit
 	GetJobTags() []string
+	// Get the job env
+	GetEnv() map[string]string
 	// Get the build visibility
 	GetVisibility() string
 }
@@ -251,6 +253,12 @@ func (submitter GitBuildSubmitter) GetJobTags() []string {
 	return tags
 }
 
+func (submitter GitBuildSubmitter) GetEnv() map[string]string {
+	return map[string]string{
+		"GIT_REF": submitter.Ref,
+	}
+}
+
 func (submitter GitBuildSubmitter) GetCloneUrl() string {
 	if submitter.Visibility == "PRIVATE" {
 		origin := strings.ReplaceAll(submitter.GitOrigin, "http://", "")
@@ -417,6 +425,9 @@ func autoSetupManifest(submitter BuildSubmitter, manifest *Manifest) {
 		manifest.Environment = make(map[string]interface{})
 	}
 	manifest.Environment["BUILD_SUBMITTER"] = "git.sr.ht"
+	for k, v := range submitter.GetEnv() {
+		manifest.Environment[k] = v
+	}
 
 	if manifest.Shell {
 		manifest.Shell = false
