@@ -103,7 +103,7 @@ func (r *Repository) QueryWithCursor(ctx context.Context,
 
 	if cur.Next != "" {
 		ts, _ := strconv.ParseInt(cur.Next, 10, 64)
-		updated := time.Unix(ts, 0)
+		updated := time.UnixMicro(ts)
 		q = q.Where(database.WithAlias(r.alias, "updated")+"<= ?", updated)
 	}
 	q = q.
@@ -127,7 +127,7 @@ func (r *Repository) QueryWithCursor(ctx context.Context,
 	if len(repos) > cur.Count {
 		cur = &model.Cursor{
 			Count:  cur.Count,
-			Next:   strconv.FormatInt(repos[len(repos)-1].Updated.Unix(), 10),
+			Next:   strconv.FormatInt(repos[len(repos)-1].Updated.UnixMicro(), 10),
 			Search: cur.Search,
 		}
 		repos = repos[:cur.Count]
