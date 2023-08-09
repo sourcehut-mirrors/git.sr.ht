@@ -103,7 +103,7 @@ func (r *Repository) QueryWithCursor(ctx context.Context,
 
 	if cur.Next != "" {
 		ts, _ := strconv.ParseInt(cur.Next, 10, 64)
-		updated := time.UnixMicro(ts)
+		updated := time.UnixMicro(ts).UTC()
 		q = q.Where(database.WithAlias(r.alias, "updated")+"<= ?", updated)
 	}
 	q = q.
