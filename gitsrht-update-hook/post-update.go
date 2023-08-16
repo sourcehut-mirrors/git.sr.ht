@@ -311,7 +311,7 @@ func postUpdate() {
 		oids[commit.Hash.String()] = nil
 
 		if buildOrigin != "" && nbuilds < 4 {
-			submitter := GitBuildSubmitter{
+			submitter := &GitBuildSubmitter{
 				BuildOrigin: buildOrigin,
 				Commit:      commit,
 				GitOrigin:   origin,

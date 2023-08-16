@@ -53,31 +53,6 @@ type InternalRequestAuthorization struct {
 	Username string `json:"name"`
 }
 
-type BuildSubmitter interface {
-	// Return a list of build manifests and their names
-	FindManifests() (map[string]string, error)
-	// Get builds.sr.ht origin
-	GetBuildsOrigin() string
-	// Get builds.sr.ht OAuth token
-	GetOauthToken() *string
-	// Get a checkout-able string to append to matching source URLs
-	GetCommitId() string
-	// Get the build note which corresponds to this commit
-	GetCommitNote() string
-	// Get the clone URL for this repository
-	GetCloneUrl() string
-	// Get the name of the repository
-	GetRepoName() string
-	// Get the name of the repository owner
-	GetOwnerName() string
-	// Get the job tags to use for this commit
-	GetJobTags() []string
-	// Get the job env
-	GetEnv() map[string]string
-	// Get the build visibility
-	GetVisibility() string
-}
-
 // SQL notes
 //
 // We need:
@@ -293,7 +268,7 @@ type BuildSubmission struct {
 	Url  string
 }
 
-func configureRequestAuthorization(submitter BuildSubmitter,
+func configureRequestAuthorization(submitter *GitBuildSubmitter,
 	req *http.Request) {
 
 	auth := InternalRequestAuthorization{
@@ -315,7 +290,7 @@ func configureRequestAuthorization(submitter BuildSubmitter,
 // TODO: Move this to scm.sr.ht
 var submitBuildSkipCiPrinted bool
 
-func SubmitBuild(ctx context.Context, submitter BuildSubmitter) ([]BuildSubmission, error) {
+func SubmitBuild(ctx context.Context, submitter *GitBuildSubmitter) ([]BuildSubmission, error) {
 	manifests, err := submitter.FindManifests()
 	if err != nil || manifests == nil {
 		return nil, err
@@ -408,7 +383,7 @@ func SubmitBuild(ctx context.Context, submitter BuildSubmitter) ([]BuildSubmissi
 	return results, nil
 }
 
-func autoSetupManifest(submitter BuildSubmitter, manifest *Manifest) {
+func autoSetupManifest(submitter *GitBuildSubmitter, manifest *Manifest) {
 	var hasSelf bool
 	cloneUrl := submitter.GetCloneUrl() + "#" + submitter.GetCommitId()
 	for i, src := range manifest.Sources {
