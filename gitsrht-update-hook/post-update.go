@@ -317,6 +317,7 @@ func postUpdate() {
 				GitOrigin:   origin,
 				OwnerName:   dbinfo.OwnerUsername,
 				OwnerToken:  dbinfo.OwnerToken,
+				PusherName:  pcontext.User.Name,
 				RepoName:    dbinfo.RepoName,
 				Repository:  repo,
 				Visibility:  dbinfo.Visibility,

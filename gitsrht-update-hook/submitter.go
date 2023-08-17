@@ -67,6 +67,7 @@ type GitBuildSubmitter struct {
 	GitOrigin   string
 	OwnerName   string
 	OwnerToken  *string
+	PusherName  string
 	RepoName    string
 	Repository  *git.Repository
 	Visibility  string
@@ -261,6 +262,10 @@ func (submitter GitBuildSubmitter) GetOwnerName() string {
 	return submitter.OwnerName
 }
 
+func (submitter GitBuildSubmitter) GetPusherName() string {
+	return submitter.PusherName
+}
+
 type BuildSubmission struct {
 	// TODO: Move errors into this struct and set up per-submission error
 	// tracking
@@ -361,7 +366,7 @@ func SubmitBuild(ctx context.Context, submitter *GitBuildSubmitter) ([]BuildSubm
 			Errors gqlerror.List `json:"errors"`
 		}{}
 
-		err = client.Execute(ctx, submitter.GetOwnerName(), "builds.sr.ht", query, &resp)
+		err = client.Execute(ctx, submitter.GetPusherName(), "builds.sr.ht", query, &resp)
 		if err != nil {
 			return nil, err
 		} else if len(resp.Errors) > 0 {
@@ -375,7 +380,7 @@ func SubmitBuild(ctx context.Context, submitter *GitBuildSubmitter) ([]BuildSubm
 			Name: name,
 			Url: fmt.Sprintf("%s/~%s/job/%d",
 				submitter.GetBuildsOrigin(),
-				submitter.GetOwnerName(),
+				submitter.GetPusherName(),
 				resp.Data.Submit.ID),
 		})
 	}
