@@ -47,7 +47,7 @@
         </div>
         {% endfor %}
       </div>
-      {% if commits and has_more %}
+      {% if next_commit %}
       <a
         class="pull-right btn btn-primary"
         href="{{url_for("repo.log",
@@ -55,7 +55,7 @@
           repo=repo.name,
           ref=ref,
           path=full_path,
-        )}}?from={{commits[-1].id}}"
+        )}}?from={{next_commit.id}}"
       >Next {{icon("caret-right")}}</a>
       {% endif %}
     </div>

@@ -528,13 +528,15 @@ def log(owner, repo, ref, path):
         if not commit:
             abort(404)
 
-        commits = get_log(git_repo, commit, path, 21)
+        num_commits = 20
+        commits = get_log(git_repo, commit, path, num_commits + 1)
 
         entry = None
         if path and commit.tree and path in commit.tree:
             entry = commit.tree[path]
 
-        has_more = commits and len(commits) == 21
+        has_more = commits and len(commits) == num_commits + 1
+        next_commit = commits[-1] if has_more else None
 
         author_emails = set((commit.author.email for commit in commits[:20]))
         authors = {user.email:user for user in User.query.filter(User.email.in_(author_emails)).all()}
@@ -545,8 +547,8 @@ def log(owner, repo, ref, path):
 
         return render_template("log.html", view="log",
                 owner=owner, repo=repo, ref=ref, path=path.split("/"),
-                commits=commits[:20], refs=refs, entry=entry, pygit2=pygit2,
-                has_more=has_more, authors=authors,
+                commits=commits[:num_commits], refs=refs, entry=entry, pygit2=pygit2,
+                next_commit=next_commit, authors=authors,
                 license_exists=license_exists, licenses=licenses)
 
 
