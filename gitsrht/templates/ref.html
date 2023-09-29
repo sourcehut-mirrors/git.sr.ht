@@ -18,15 +18,15 @@
           class="btn btn-primary btn-block"
           href="{{url_for("repo.archive",
             owner=repo.owner.canonical_name,
-            repo=repo.name, ref=tag.name)}}"
-        >.tar.gz {{icon("caret-right")}}</a>
+            repo=repo.name, ref=tag.name, fmt=signature or "tar.gz")}}"
+        >.{{ signature or "tar.gz" }} {{icon("caret-right")}}</a>
         {% if signature %}
         <a
           class="btn btn-default btn-block"
           href="{{url_for("repo.archivesig",
             owner=repo.owner.canonical_name,
             repo=repo.name, ref=tag.name, fmt=signature)}}"
-        >.tar.gz.asc {{icon("caret-right")}}</a>
+        >.{{ signature }}.asc {{icon("caret-right")}}</a>
         {% endif %}
         <a
           class="btn btn-default btn-block"

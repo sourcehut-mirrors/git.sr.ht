@@ -75,9 +75,15 @@
                     repo=repo.name, ref=latest_tag[0][len("refs/tags/"):])}}"
                 >browse&nbsp;{{icon("caret-right")}}</a>
                 <a href="{{url_for("repo.archive", owner=repo.owner.canonical_name,
-                    repo=repo.name, ref=latest_tag[0][len("refs/tags/"):])}}"
+                    repo=repo.name, ref=latest_tag[0][len("refs/tags/"):], fmt=signature or "tar.gz")}}"
                    rel="nofollow"
-                >.tar.gz&nbsp;{{icon("caret-right")}}</a>
+                >.{{ signature or "tar.gz" }}&nbsp;{{icon("caret-right")}}</a>
+                {% if signature %}
+                  <a href="{{url_for("repo.archivesig", owner=repo.owner.canonical_name,
+                      repo=repo.name, ref=latest_tag[0][len("refs/tags/"):], fmt=signature)}}"
+                     rel="nofollow"
+                  >.asc&nbsp;{{icon("caret-right")}}</a>
+                {% endif %}
               {% endif %}
             </dd>
             {% endif %}

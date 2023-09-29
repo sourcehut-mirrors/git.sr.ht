@@ -436,8 +436,9 @@ def blame(owner, repo, ref, path):
                 editorconfig=EditorConfig(git_repo, orig_commit.tree, path),
                 lookup_user=lookup_user(), pygit2=pygit2)
 
-@repo.route("/<owner>/<repo>/archive/<path:ref>.tar.gz")
-def archive(owner, repo, ref):
+@repo.route("/<owner>/<repo>/archive/<path:ref>.tar.gz", defaults = {"fmt": "tar.gz"})
+@repo.route("/<owner>/<repo>/archive/<path:ref>.<any('tar.gz','tar'):fmt>")
+def archive(owner, repo, ref, fmt):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
         commit, ref, _ = lookup_ref(git_repo, ref, None)
@@ -449,7 +450,7 @@ def archive(owner, repo, ref):
             "git",
             "--git-dir", repo.path,
             "archive",
-            "--format=tar.gz",
+            "--format", fmt,
             "--prefix", f"{repo.name}-{refname}/",
             "--",
             ref
@@ -457,7 +458,7 @@ def archive(owner, repo, ref):
         subp = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=sys.stderr)
 
         return send_file(subp.stdout, mimetype="application/tar+gzip",
-                as_attachment=True, download_name=f"{repo.name}-{refname}.tar.gz")
+                as_attachment=True, download_name=f"{repo.name}-{refname}.{fmt}")
 
 @repo.route("/<owner>/<repo>/archive/<path:ref>.<any('tar.gz','tar'):fmt>.asc")
 def archivesig(owner, repo, ref, fmt):
