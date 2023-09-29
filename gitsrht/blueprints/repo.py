@@ -31,6 +31,7 @@ repo = Blueprint('repo', __name__)
 
 def get_license_info_for_tip(tip):
         license_exists = False
+        licences_names = ["LICENSES", "licenses", "LICENCES", "licences"]
         for path in [
                 "LICENSE", "LICENCE", "COPYING",
                 "LICENSE.txt", "license.txt",
@@ -42,24 +43,24 @@ def get_license_info_for_tip(tip):
                 "COPYING.md", "copying.md",
                 "COPYRIGHT.md", "copyright.md",
                 "COPYRIGHT", "copyright",
-                "LICENSES", "licenses",
-                "LICENCES", "licences",
-        ]:
+        ] + licences_names:
             if path in tip.tree:
                 license_exists = True
                 break
 
         licenses = []
-        if 'LICENSES' in tip.tree and isinstance(tip.tree['LICENSES'], pygit2.Tree):
-            for o in tip.tree['LICENSES']:
-                license_id = o.name
-                if license_id not in SPDX_LICENSES:
-                    license_id = os.path.splitext(o.name)[0]
-                if license_id in SPDX_LICENSES:
-                    licenses.append({
-                        'id': license_id,
-                        'name': SPDX_LICENSES[license_id],
-                    })
+        for lic in licences_names:
+            if lic in tip.tree and isinstance(tip.tree[lic], pygit2.Tree):
+                for o in tip.tree[lic]:
+                    license_id = o.name
+                    if license_id not in SPDX_LICENSES:
+                        license_id = os.path.splitext(o.name)[0]
+                    if license_id in SPDX_LICENSES:
+                        licenses.append({
+                            'id': license_id,
+                            'name': SPDX_LICENSES[license_id],
+                        })
+                break
 
         return license_exists, licenses
 
