@@ -4,12 +4,10 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"path"
 	"strings"
 	"unicode/utf8"
@@ -258,10 +256,6 @@ func (submitter GitBuildSubmitter) GetRepoName() string {
 	return submitter.RepoName
 }
 
-func (submitter GitBuildSubmitter) GetOwnerName() string {
-	return submitter.OwnerName
-}
-
 func (submitter GitBuildSubmitter) GetPusherName() string {
 	return submitter.PusherName
 }
@@ -271,25 +265,6 @@ type BuildSubmission struct {
 	// tracking
 	Name string
 	Url  string
-}
-
-func configureRequestAuthorization(submitter *GitBuildSubmitter,
-	req *http.Request) {
-
-	auth := InternalRequestAuthorization{
-		ClientID: clientId,
-		NodeID:   "git.sr.ht::update-hook",
-		Username: submitter.GetOwnerName(),
-	}
-	authPayload, err := json.Marshal(&auth)
-	if err != nil {
-		logger.Fatalf("Failed to marshal internal authorization: %v", err)
-	}
-	enc, err := fernet.EncryptAndSign(authPayload, fernetKey)
-	if err != nil {
-		logger.Fatalf("Failed to encrypt internal authorization: %v", err)
-	}
-	req.Header.Add("X-Srht-Authorization", string(enc))
 }
 
 // TODO: Move this to scm.sr.ht
