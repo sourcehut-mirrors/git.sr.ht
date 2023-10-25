@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	ctx "context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -238,7 +237,7 @@ func postUpdate() {
 		var oldref, newref string
 		var oldobj, newobj object.Object
 		updateKey := fmt.Sprintf("update.%s.%s", pushUuid, refname)
-		update, err := redis.Get(ctx.Background(), updateKey).Result()
+		update, err := redis.Get(context.Background(), updateKey).Result()
 		if update == "" || err != nil {
 			logger.Println("redis.Get: missing key")
 			continue
