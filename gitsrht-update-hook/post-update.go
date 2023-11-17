@@ -330,7 +330,8 @@ func postUpdate() {
 			results, err := SubmitBuild(ctx, submitter)
 			if err != nil {
 				logger.Printf("Error submitting build job: %v", err)
-				log.Fatalf("Error submitting build job: %v", err)
+				log.Printf("Error submitting build job: %v", err)
+				continue
 			}
 			if len(results) == 0 {
 				continue
