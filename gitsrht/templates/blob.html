@@ -73,17 +73,37 @@ pre {
       {{ markdown }}
     </div>
     {% else %}
-    {% if not blob.is_binary %}
+    {% if not blob.is_binary and blob.size < 512000 %}
     <div class="col-md-12 code-view">
+      {% autoescape off %}
       <pre class="ruler"><span>{% for i in range(
         editorconfig.max_line_length()) %} {% endfor %}</span></pre>
-      <pre class="lines">{% for line in data.splitlines() %}<a
-        href="#L{{loop.index}}"
-        id="L{{loop.index}}"
-        >{{loop.index}}</a>{% if not loop.last %}
-{% endif %}{% endfor %}</pre>
+      {% set lines = data.splitlines()|length %}
+      <pre class="lines">{{ linecounter(lines) }}</pre>
+      {% endautoescape %}
       {{ highlight_file(repo, ref, entry,
         data, blob.id.hex, commit.id.hex) }}
+    </div>
+    {% elif blob.is_binary %}
+    <div class="col-md-12">
+      <div style="padding: 1rem">
+        <p>
+          <span title="{{ blob.size }} bytes">
+            {{humanize.naturalsize(blob.size,
+              binary=True).replace("Byte", "byte")}}
+          </span>
+          binary file not shown.
+        </p>
+        <p>
+          <a href="{{url_for("repo.raw_blob",
+              owner=repo.owner.canonical_name,
+              repo=repo.name, ref=ref,
+              path=path_join(*path))}}"
+              class="btn btn-primary"
+              rel="nofollow"
+          >Download {{icon("caret-right")}}</a>
+        </p>
+      </div>
     </div>
     {% else %}
     <div class="col-md-12">
@@ -93,7 +113,7 @@ pre {
             {{humanize.naturalsize(blob.size,
               binary=True).replace("Byte", "byte")}}
           </span>
-          binary file not shown.
+          large file not shown.
         </p>
         <p>
           <a href="{{url_for("repo.raw_blob",

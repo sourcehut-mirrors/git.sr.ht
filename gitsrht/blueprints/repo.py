@@ -100,6 +100,12 @@ def _highlight_file(repo, ref, entry, data, blob_id, commit_id):
     else:
         return get_highlighted_file("git.sr.ht:git", entry.name, blob_id, data)
 
+def linecounter(count):
+    out = []
+    for i in range(1, count + 1):
+        out.append('<a href="#L{}" id="L{}">{}\n</a>'.format(i, i, i))
+    return "".join(out)
+
 def render_empty_repo(owner, repo, view):
     origin = cfg("git.sr.ht", "origin")
     git_user = cfg("git.sr.ht::dispatch", "/usr/bin/gitsrht-keys", "git:git").split(":")[0]
@@ -292,6 +298,7 @@ def tree(owner, repo, ref, path):
                         owner=owner, repo=repo, ref=ref, path=path, entry=entry,
                         blob=blob, data=data, commit=orig_commit,
                         highlight_file=_highlight_file,
+                        linecounter=linecounter,
                         editorconfig=editorconfig,
                         markdown=md, force_source=force_source, pygit2=pygit2)
             tree = git_repo.get(entry.id)
