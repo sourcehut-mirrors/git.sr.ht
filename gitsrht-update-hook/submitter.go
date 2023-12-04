@@ -171,20 +171,8 @@ func (submitter GitBuildSubmitter) FindManifests() (map[string]string, error) {
 	return manifests, nil
 }
 
-func (submitter GitBuildSubmitter) GetBuildsOrigin() string {
-	return submitter.BuildOrigin
-}
-
-func (submitter GitBuildSubmitter) GetOauthToken() *string {
-	return submitter.OwnerToken
-}
-
 func (submitter GitBuildSubmitter) GetCommitId() string {
 	return submitter.Commit.Hash.String()
-}
-
-func (submitter GitBuildSubmitter) GetVisibility() string {
-	return submitter.Visibility
 }
 
 func firstLine(text string) string {
@@ -220,7 +208,7 @@ func (submitter GitBuildSubmitter) GetCommitNote() string {
 }
 
 func (submitter GitBuildSubmitter) GetJobTags() []string {
-	tags := []string{submitter.GetRepoName(), "commits"}
+	tags := []string{submitter.RepoName, "commits"}
 	if strings.HasPrefix(submitter.Ref, "refs/heads/") {
 		tags = append(tags, strings.TrimPrefix(submitter.Ref, "refs/heads/"))
 	}
@@ -250,14 +238,6 @@ func (submitter GitBuildSubmitter) GetCloneUrl() string {
 		return fmt.Sprintf("%s/~%s/%s", submitter.GitOrigin,
 			submitter.OwnerName, submitter.RepoName)
 	}
-}
-
-func (submitter GitBuildSubmitter) GetRepoName() string {
-	return submitter.RepoName
-}
-
-func (submitter GitBuildSubmitter) GetPusherName() string {
-	return submitter.PusherName
 }
 
 type BuildSubmission struct {
@@ -328,7 +308,7 @@ func SubmitBuild(ctx context.Context, submitter *GitBuildSubmitter) ([]BuildSubm
 				"manifest":   yaml,
 				"tags":       append(submitter.GetJobTags(), name),
 				"note":       submitter.GetCommitNote(),
-				"visibility": submitter.GetVisibility(),
+				"visibility": submitter.Visibility,
 			},
 		}
 
@@ -341,7 +321,7 @@ func SubmitBuild(ctx context.Context, submitter *GitBuildSubmitter) ([]BuildSubm
 			Errors gqlerror.List `json:"errors"`
 		}{}
 
-		err = client.Execute(ctx, submitter.GetPusherName(), "builds.sr.ht", query, &resp)
+		err = client.Execute(ctx, submitter.PusherName, "builds.sr.ht", query, &resp)
 		if err != nil {
 			return nil, err
 		} else if len(resp.Errors) > 0 {
@@ -354,8 +334,8 @@ func SubmitBuild(ctx context.Context, submitter *GitBuildSubmitter) ([]BuildSubm
 		results = append(results, BuildSubmission{
 			Name: name,
 			Url: fmt.Sprintf("%s/~%s/job/%d",
-				submitter.GetBuildsOrigin(),
-				submitter.GetPusherName(),
+				submitter.BuildOrigin,
+				submitter.PusherName,
 				resp.Data.Submit.ID),
 		})
 	}
@@ -367,7 +347,7 @@ func autoSetupManifest(submitter *GitBuildSubmitter, manifest *Manifest) {
 	var hasSelf bool
 	cloneUrl := submitter.GetCloneUrl() + "#" + submitter.GetCommitId()
 	for i, src := range manifest.Sources {
-		if path.Base(src) == submitter.GetRepoName() {
+		if path.Base(src) == submitter.RepoName {
 			manifest.Sources[i] = cloneUrl
 			hasSelf = true
 		}
