@@ -307,7 +307,7 @@ func main() {
 			}
 		} else if err != nil {
 			log.Println("A temporary error has occured. Please try again.")
-			logger.Fatal("Error occured looking up repo: %v", err)
+			logger.Fatalf("Error occured looking up repo: %v", err)
 		} else {
 			log.Printf("\033[93mNOTICE\033[0m: This repository has moved.")
 			log.Printf("Please update your remote to:")
