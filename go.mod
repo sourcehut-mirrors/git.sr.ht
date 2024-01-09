@@ -3,7 +3,7 @@ module git.sr.ht/~sircmpwn/git.sr.ht
 go 1.16
 
 require (
-	git.sr.ht/~sircmpwn/core-go v0.0.0-20231024101834-7f5f70710c33
+	git.sr.ht/~sircmpwn/core-go v0.0.0-20240109104919-453dcaefd647
 	git.sr.ht/~sircmpwn/dowork v0.0.0-20221010085743-46c4299d76a1
 	git.sr.ht/~sircmpwn/scm.sr.ht/srht-keys v0.0.0-20211208105818-48011a5e6b35
 	git.sr.ht/~turminal/go-fnmatch v0.0.0-20211021204744-1a55764af6de
