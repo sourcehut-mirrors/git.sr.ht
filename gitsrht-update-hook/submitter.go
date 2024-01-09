@@ -20,7 +20,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/pkg/errors"
-	"github.com/vektah/gqlparser/gqlerror"
+	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
 var (

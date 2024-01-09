@@ -20,7 +20,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	goredis "github.com/go-redis/redis/v8"
 	_ "github.com/lib/pq"
-	"github.com/vektah/gqlparser/gqlerror"
+	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
 func printAutocreateInfo(context PushContext) {

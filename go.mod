@@ -38,7 +38,6 @@ require (
 	github.com/urfave/cli/v2 v2.27.1 // indirect
 	github.com/vaughan0/go-ini v0.0.0-20130923145212-a98ad7ee00ec
 	github.com/vektah/dataloaden v0.3.0
-	github.com/vektah/gqlparser v1.3.1
 	github.com/vektah/gqlparser/v2 v2.5.10
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xrash/smetrics v0.0.0-20231213231151-1d8dd44e695e // indirect

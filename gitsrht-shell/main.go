@@ -20,7 +20,7 @@ import (
 	"github.com/google/shlex"
 	_ "github.com/lib/pq"
 	"github.com/vaughan0/go-ini"
-	"github.com/vektah/gqlparser/gqlerror"
+	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
 const (
