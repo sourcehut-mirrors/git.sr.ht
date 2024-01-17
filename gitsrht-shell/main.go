@@ -424,6 +424,7 @@ func main() {
 	if err != nil {
 		logger.Fatalf("exec.LookPath: %v", err)
 	}
+	db.Close()
 	if err := syscall.Exec(bin, cmd, append(os.Environ(), fmt.Sprintf(
 		"SRHT_PUSH_CTX=%s", string(pushContext)))); err != nil {
 
