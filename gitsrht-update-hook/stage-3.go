@@ -32,6 +32,7 @@ func stage3() {
 	if err != nil {
 		logger.Fatalf("Failed to open a database connection: %v", err)
 	}
+	defer db.Close()
 
 	var subscriptions []WebhookSubscription
 	var deliveries []WebhookDelivery

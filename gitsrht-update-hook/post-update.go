@@ -216,6 +216,7 @@ func postUpdate() {
 	if err != nil {
 		logger.Fatalf("Failed to open a database connection: %v", err)
 	}
+	defer db.Close()
 
 	dbinfo, err := fetchInfoForPush(db, pcontext.Repo.OwnerName, pcontext.Repo.Id, pcontext.Repo.Name, pcontext.Repo.Visibility, newDescription, newVisibility)
 	if err != nil {
