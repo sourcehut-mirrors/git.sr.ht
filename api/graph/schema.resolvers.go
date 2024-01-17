@@ -107,11 +107,12 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 
 	var (
 		repoCreated bool
+		success     bool
 		repo        model.Repository
 		gitrepo     *git.Repository
 	)
 	defer func() {
-		if repoCreated {
+		if repoCreated && !success {
 			err := os.RemoveAll(repoPath)
 			if err != nil {
 				panic(err)
@@ -230,12 +231,6 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 		webhooks.DeliverLegacyRepoCreate(ctx, &repo)
 		return nil
 	}); err != nil {
-		if repoCreated {
-			err := os.RemoveAll(repoPath)
-			if err != nil {
-				panic(err)
-			}
-		}
 		return nil, err
 	}
 
@@ -245,6 +240,7 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 		repos.Clone(ctx, repo.ID, gitrepo, *cloneURL)
 	}
 
+	success = true
 	return &repo, nil
 }
 
@@ -269,10 +265,11 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 		origPath string
 		repoPath string
 		moved    bool
+		success  bool
 	)
 
 	defer func() {
-		if moved {
+		if moved && !success {
 			err := os.Rename(repoPath, origPath)
 			if err != nil {
 				panic(err)
@@ -427,15 +424,10 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 		webhooks.DeliverLegacyRepoUpdate(ctx, &repo)
 		return nil
 	}); err != nil {
-		if moved && err != nil {
-			err := os.Rename(repoPath, origPath)
-			if err != nil {
-				panic(err)
-			}
-		}
 		return nil, err
 	}
 
+	success = true
 	return &repo, nil
 }
 
@@ -620,7 +612,12 @@ func (r *mutationResolver) UploadArtifact(ctx context.Context, repoID int, revsp
 		return nil, err
 	}
 
-	defer core.AbortMultipartUpload(context.Background(), bucket, s3path, uid)
+	var success bool
+	defer func() {
+		if !success {
+			core.AbortMultipartUpload(context.Background(), bucket, s3path, uid)
+		}
+	}()
 
 	var artifact model.Artifact
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
@@ -694,12 +691,10 @@ func (r *mutationResolver) UploadArtifact(ctx context.Context, repoID int, revsp
 			minio.PutObjectOptions{})
 		return err
 	}); err != nil {
-		if err != nil {
-			core.AbortMultipartUpload(context.Background(), bucket, s3path, uid)
-		}
 		return nil, err
 	}
 
+	success = true
 	return &artifact, nil
 }
 
