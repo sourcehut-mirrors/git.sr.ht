@@ -134,7 +134,7 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 				NOW() at time zone 'utc',
 				NOW() at time zone 'utc',
 				$1, $2, $3, $4, $5, $6
-			) RETURNING 
+			) RETURNING
 				id, created, updated, name, description, visibility,
 				path, owner_id;
 		`, name, description, repoPath, visibility, user.UserID, cloneStatus)
@@ -304,7 +304,7 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 			row := tx.QueryRowContext(ctx, `
 				INSERT INTO redirect (
 					created, name, path, owner_id, new_repo_id
-				) SELECT 
+				) SELECT
 					NOW() at time zone 'utc',
 					orig.name, orig.path, orig.owner_id, orig.id
 				FROM repository orig
@@ -349,7 +349,7 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 			}
 		})
 
-		validation.OptionalString("visibility", func(vis string) {
+		validation.Optional("visibility", func(vis interface{}) {
 			query = query.Set(`visibility`, vis)
 		})
 
@@ -362,7 +362,7 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 		})
 
 		if !validation.Ok() {
-			return errors.New("placeholder") // TODO: Avoid surfacing placeholder error
+			return errors.New("validation failed") // TODO: Avoid surfacing placeholder error
 		}
 
 		query = query.
@@ -403,7 +403,7 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 		})
 
 		if !validation.Ok() {
-			return errors.New("placeholder") // TODO: Avoid surfacing placeholder error
+			return errors.New("validation failed") // TODO: Avoid surfacing placeholder error
 		}
 
 		export := path.Join(repo.Path, "git-daemon-export-ok")
