@@ -20,7 +20,6 @@ import (
 	"github.com/google/shlex"
 	_ "github.com/lib/pq"
 	"github.com/vaughan0/go-ini"
-	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
 const (
@@ -282,27 +281,18 @@ func main() {
 					},
 				}
 				resp := struct {
-					Data struct {
-						CreateRepository struct {
-							ID int `json:"id"`
-						} `json:"createRepository"`
-					} `json:"data"`
-					Errors []gqlerror.Error `json:"errors"`
+					CreateRepository struct {
+						ID int `json:"id"`
+					} `json:"createRepository"`
 				}{}
 
 				crypto.InitCrypto(config)
 				ctx := coreconfig.Context(context.Background(), config, "git.sr.ht")
-				err := client.Execute(ctx, pusherName, "git.sr.ht", query, &resp)
+				err := client.Do(ctx, pusherName, "git.sr.ht", query, &resp)
 				if err != nil {
 					notFound("create repository", err)
-				} else if len(resp.Errors) > 0 {
-					errs := []error{}
-					for i := range resp.Errors {
-						errs = append(errs, &resp.Errors[i])
-					}
-					notFound("create repository", errs...)
 				}
-				repoId = resp.Data.CreateRepository.ID
+				repoId = resp.CreateRepository.ID
 				autocreated = true
 				logger.Printf("Autocreated repo %s", path)
 			}

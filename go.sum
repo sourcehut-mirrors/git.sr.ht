@@ -598,8 +598,8 @@ dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7
 gioui.org v0.0.0-20210308172011-57750fc8a0a6/go.mod h1:RSH6KIUZ0p2xy5zHDxgAM4zumjgTw83q2ge/PI+yyw8=
 git.sr.ht/~sbinet/gg v0.3.1/go.mod h1:KGYtlADtqsqANL9ueOFkWymvzUvLMQllU5Ixo+8v3pc=
 git.sr.ht/~sircmpwn/core-go v0.0.0-20201005173246-a9e49d17a1e6/go.mod h1:HpPX22ilJUWKOA4NDhrOcIyblQhdiKHPg4oMJFYdh0Y=
-git.sr.ht/~sircmpwn/core-go v0.0.0-20240109104919-453dcaefd647 h1:exqOwBLkH3ZzYBL4PbMNx/SWyXA6VscuYk3x8Wedr1E=
-git.sr.ht/~sircmpwn/core-go v0.0.0-20240109104919-453dcaefd647/go.mod h1:OovCpg5LsbYJjmDTpk5wUgHM4tUor736Pmxekm9BUcQ=
+git.sr.ht/~sircmpwn/core-go v0.0.0-20240124105042-864816cfbc0c h1:o5jKIK7BJBEGSuY9ux4FREZry4aJV3DgI41iP6uf5xY=
+git.sr.ht/~sircmpwn/core-go v0.0.0-20240124105042-864816cfbc0c/go.mod h1:OovCpg5LsbYJjmDTpk5wUgHM4tUor736Pmxekm9BUcQ=
 git.sr.ht/~sircmpwn/dowork v0.0.0-20221010085743-46c4299d76a1 h1:EvPKkneKkF/f7zEgKPqIZVyj3jWO8zSmsBOvMhAGqMA=
 git.sr.ht/~sircmpwn/dowork v0.0.0-20221010085743-46c4299d76a1/go.mod h1:8neHEO3503w/rNtttnR0JFpQgM/GFhaafVwvkPsFIDw=
 git.sr.ht/~sircmpwn/getopt v0.0.0-20191230200459-23622cc906b3/go.mod h1:wMEGFFFNuPos7vHmWXfszqImLppbc0wEhh6JBfJIUgw=

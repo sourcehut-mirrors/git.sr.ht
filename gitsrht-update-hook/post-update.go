@@ -20,7 +20,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	goredis "github.com/go-redis/redis/v8"
 	_ "github.com/lib/pq"
-	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
 func printAutocreateInfo(context PushContext) {
@@ -58,17 +57,12 @@ func fetchInfoForPush(db *sql.DB, username string, repoId int, repoName string,
 		Visibility  *string `json:"visibility,omitempty"`
 	}
 
-	type Response struct {
-		Errors []gqlerror.Error `json:"errors"`
-	}
-
 	input := RepoInput{newDescription, newVisibility}
-	resp := Response{}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	ctx = coreconfig.Context(ctx, config, "git.sr.ht")
-	err := client.Execute(ctx, username, "git.sr.ht", client.GraphQLQuery{
+	err := client.Do(ctx, username, "git.sr.ht", client.GraphQLQuery{
 		Query: `
 		mutation UpdateRepository($id: Int!, $input: RepoInput!) {
 			updateRepository(id: $id, input: $input) { id }
@@ -77,14 +71,10 @@ func fetchInfoForPush(db *sql.DB, username string, repoId int, repoName string,
 			"id":    repoId,
 			"input": input,
 		},
-	}, &resp)
+	}, struct{}{})
 	if err != nil {
-		return dbinfo, err
-	} else if len(resp.Errors) > 0 {
-		for _, err := range resp.Errors {
-			logger.Printf("Error updating repository: %s", err.Error())
-		}
-		return dbinfo, fmt.Errorf("Failed to update repository: %s", resp.Errors[0].Message)
+		logger.Printf("Error updating repository: %v", err)
+		return dbinfo, fmt.Errorf("failed to update repository: %v", err)
 	}
 
 	if newVisibility != nil {

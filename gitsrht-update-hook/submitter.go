@@ -20,7 +20,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/pkg/errors"
-	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
 var (
@@ -312,23 +311,16 @@ func SubmitBuild(ctx context.Context, submitter *GitBuildSubmitter) ([]BuildSubm
 			},
 		}
 
-		resp := struct {
-			Data struct {
-				Submit struct {
-					ID int `json:"id"`
-				} `json:"submit"`
-			} `json:"data"`
-			Errors gqlerror.List `json:"errors"`
-		}{}
+		var resp struct {
+			Submit struct {
+				ID int `json:"id"`
+			} `json:"submit"`
+		}
 
-		err = client.Execute(ctx, submitter.PusherName, "builds.sr.ht", query, &resp)
+		err = client.Do(ctx, submitter.PusherName, "builds.sr.ht", query, &resp)
 		if err != nil {
+			logger.Printf("Error submitting build: %v", err)
 			return nil, err
-		} else if len(resp.Errors) > 0 {
-			for _, err := range resp.Errors {
-				logger.Printf("Error submitting build: %s", err.Error())
-			}
-			return nil, fmt.Errorf("%s", resp.Errors[0].Message)
 		}
 
 		results = append(results, BuildSubmission{
@@ -336,7 +328,7 @@ func SubmitBuild(ctx context.Context, submitter *GitBuildSubmitter) ([]BuildSubm
 			Url: fmt.Sprintf("%s/~%s/job/%d",
 				submitter.BuildOrigin,
 				submitter.PusherName,
-				resp.Data.Submit.ID),
+				resp.Submit.ID),
 		})
 	}
 
