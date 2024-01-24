@@ -3,7 +3,6 @@ package repos
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"log"
 	"net/http"
 	"path"
@@ -11,10 +10,10 @@ import (
 
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/database"
+	"git.sr.ht/~sircmpwn/core-go/s3"
 	work "git.sr.ht/~sircmpwn/dowork"
 	"github.com/go-git/go-git/v5"
 	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 type contextKey struct {
@@ -102,22 +101,16 @@ func DeleteArtifactsBlocking(
 	filenames []string,
 ) error {
 	conf := config.ForContext(ctx)
-	upstream, _ := conf.Get("objects", "s3-upstream")
-	accessKey, _ := conf.Get("objects", "s3-access-key")
-	secretKey, _ := conf.Get("objects", "s3-secret-key")
-	bucket, _ := conf.Get("git.sr.ht", "s3-bucket")
-	prefix, _ := conf.Get("git.sr.ht", "s3-prefix")
 
-	if upstream == "" || accessKey == "" || secretKey == "" || bucket == "" {
-		return fmt.Errorf("Object storage is not enabled for this server")
+	mc, err := s3.NewClient(conf)
+	if err != nil {
+		return err
 	}
 
-	mc, err := minio.New(upstream, &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
-		Secure: true,
-	})
-	if err != nil {
-		panic(err)
+	bucket, _ := conf.Get("git.sr.ht", "s3-bucket")
+	prefix, _ := conf.Get("git.sr.ht", "s3-prefix")
+	if bucket == "" {
+		return s3.ErrDisabled
 	}
 
 	for _, filename := range filenames {

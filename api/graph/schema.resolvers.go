@@ -26,6 +26,7 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/database"
 	coremodel "git.sr.ht/~sircmpwn/core-go/model"
+	"git.sr.ht/~sircmpwn/core-go/s3"
 	"git.sr.ht/~sircmpwn/core-go/server"
 	"git.sr.ht/~sircmpwn/core-go/valid"
 	corewebhooks "git.sr.ht/~sircmpwn/core-go/webhooks"
@@ -43,7 +44,6 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/lib/pq"
 	minio "github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 // Repository is the resolver for the repository field.
@@ -59,10 +59,7 @@ func (r *aCLResolver) Entity(ctx context.Context, obj *model.ACL) (model.Entity,
 // URL is the resolver for the url field.
 func (r *artifactResolver) URL(ctx context.Context, obj *model.Artifact) (string, error) {
 	conf := config.ForContext(ctx)
-	upstream, ok := conf.Get("objects", "s3-upstream")
-	if !ok {
-		return "", fmt.Errorf("S3 upstream not configured for this server")
-	}
+
 	bucket, ok := conf.Get("git.sr.ht", "s3-bucket")
 	if !ok {
 		return "", fmt.Errorf("S3 bucket not configured for this server")
@@ -71,7 +68,13 @@ func (r *artifactResolver) URL(ctx context.Context, obj *model.Artifact) (string
 	if !ok {
 		return "", fmt.Errorf("S3 prefix not configured for this server")
 	}
-	return fmt.Sprintf("https://%s/%s/%s/%s", upstream, bucket, prefix, obj.Filename), nil
+
+	base := s3.URL(conf, bucket)
+	if base == "" {
+		return "", s3.ErrDisabled
+	}
+
+	return fmt.Sprintf("%s/%s/%s/%s", base, bucket, prefix, obj.Filename), nil
 }
 
 // Diff is the resolver for the diff field.
@@ -561,21 +564,16 @@ func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.ACL, e
 // UploadArtifact is the resolver for the uploadArtifact field.
 func (r *mutationResolver) UploadArtifact(ctx context.Context, repoID int, revspec string, file graphql.Upload) (*model.Artifact, error) {
 	conf := config.ForContext(ctx)
-	upstream, _ := conf.Get("objects", "s3-upstream")
-	accessKey, _ := conf.Get("objects", "s3-access-key")
-	secretKey, _ := conf.Get("objects", "s3-secret-key")
-	bucket, _ := conf.Get("git.sr.ht", "s3-bucket")
-	prefix, _ := conf.Get("git.sr.ht", "s3-prefix")
-	if upstream == "" || accessKey == "" || secretKey == "" || bucket == "" {
-		return nil, fmt.Errorf("Object storage is not enabled for this server")
+
+	mc, err := s3.NewClient(conf)
+	if err != nil {
+		return nil, err
 	}
 
-	mc, err := minio.New(upstream, &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
-		Secure: true,
-	})
-	if err != nil {
-		panic(err)
+	bucket, _ := conf.Get("git.sr.ht", "s3-bucket")
+	prefix, _ := conf.Get("git.sr.ht", "s3-prefix")
+	if bucket == "" {
+		return nil, s3.ErrDisabled
 	}
 
 	repo, err := loaders.ForContext(ctx).RepositoriesByID.Load(repoID)
@@ -701,21 +699,16 @@ func (r *mutationResolver) UploadArtifact(ctx context.Context, repoID int, revsp
 // DeleteArtifact is the resolver for the deleteArtifact field.
 func (r *mutationResolver) DeleteArtifact(ctx context.Context, id int) (*model.Artifact, error) {
 	conf := config.ForContext(ctx)
-	upstream, _ := conf.Get("objects", "s3-upstream")
-	accessKey, _ := conf.Get("objects", "s3-access-key")
-	secretKey, _ := conf.Get("objects", "s3-secret-key")
-	bucket, _ := conf.Get("git.sr.ht", "s3-bucket")
-	prefix, _ := conf.Get("git.sr.ht", "s3-prefix")
-	if upstream == "" || accessKey == "" || secretKey == "" || bucket == "" {
-		return nil, fmt.Errorf("Object storage is not enabled for this server")
+
+	mc, err := s3.NewClient(conf)
+	if err != nil {
+		return nil, err
 	}
 
-	mc, err := minio.New(upstream, &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
-		Secure: true,
-	})
-	if err != nil {
-		panic(err)
+	bucket, _ := conf.Get("git.sr.ht", "s3-bucket")
+	prefix, _ := conf.Get("git.sr.ht", "s3-prefix")
+	if bucket == "" {
+		return nil, s3.ErrDisabled
 	}
 
 	var artifact model.Artifact

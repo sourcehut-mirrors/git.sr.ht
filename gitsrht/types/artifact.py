@@ -31,7 +31,10 @@ class Artifact(Base):
         s3_prefix = cfg("git.sr.ht", "s3-prefix")
         prefix = os.path.join(s3_prefix, "artifacts",
                 self.repo.owner.canonical_name, self.repo.name)
-        url = f"https://{s3_upstream}/{s3_bucket}/{prefix}/{self.filename}"
+        proto = "https"
+        if cfg("objects", "s3-insecure", default="no") == "yes":
+            proto = "http"
+        url = f"{proto}://{s3_upstream}/{s3_bucket}/{prefix}/{self.filename}"
         return {
             "created": self.created,
             "checksum": self.checksum,

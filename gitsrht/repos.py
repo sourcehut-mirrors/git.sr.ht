@@ -16,6 +16,7 @@ post_update = cfg("git.sr.ht", "post-update-script")
 s3_upstream = cfg("objects", "s3-upstream", default=None)
 s3_access_key = cfg("objects", "s3-access-key", default=None)
 s3_secret_key = cfg("objects", "s3-secret-key", default=None)
+s3_secure = cfg("objects", "s3-insecure", default="no") != "yes"
 s3_bucket = cfg("git.sr.ht", "s3-bucket", default=None)
 s3_prefix = cfg("git.sr.ht", "s3-prefix", default=None)
 
@@ -28,7 +29,7 @@ object_storage_enabled = all([
 
 def delete_artifact(artifact):
     minio = Minio(s3_upstream, access_key=s3_access_key,
-            secret_key=s3_secret_key, secure=True)
+            secret_key=s3_secret_key, secure=s3_secure)
     repo = artifact.repo
     prefix = os.path.join(s3_prefix, "artifacts",
             repo.owner.canonical_name, repo.name)
@@ -49,7 +50,7 @@ def upload_artifact(valid, repo, commit, f, filename):
     if not valid.ok:
         return None
     minio = Minio(s3_upstream, access_key=s3_access_key,
-            secret_key=s3_secret_key, secure=True)
+            secret_key=s3_secret_key, secure=s3_secure)
     prefix = os.path.join(s3_prefix, "artifacts",
             repo.owner.canonical_name, repo.name)
     try:

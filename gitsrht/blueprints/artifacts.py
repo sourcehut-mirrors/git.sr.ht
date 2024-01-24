@@ -19,6 +19,7 @@ artifacts = Blueprint('artifacts', __name__)
 s3_upstream = cfg("objects", "s3-upstream", default=None)
 s3_access_key = cfg("objects", "s3-access-key", default=None)
 s3_secret_key = cfg("objects", "s3-secret-key", default=None)
+s3_secure = cfg("objects", "s3-insecure", default="no") != "yes"
 s3_bucket = cfg("git.sr.ht", "s3-bucket", default=None)
 s3_prefix = cfg("git.sr.ht", "s3-prefix", default=None)
 
@@ -83,7 +84,7 @@ def ref_download(owner, repo, ref, filename):
     prefix = os.path.join(s3_prefix, "artifacts",
             repo.owner.canonical_name, repo.name)
     minio = Minio(s3_upstream, access_key=s3_access_key,
-            secret_key=s3_secret_key, secure=True)
+            secret_key=s3_secret_key, secure=s3_secure)
     f = minio.get_object(s3_bucket, os.path.join(prefix, filename))
     return send_file(f, as_attachment=True, download_name=filename)
 

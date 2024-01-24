@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strconv"
 
+	"git.sr.ht/~sircmpwn/core-go/s3"
 	_ "github.com/lib/pq"
 	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 func stage3() {
@@ -122,16 +122,10 @@ func stage3() {
 }
 
 func deleteArtifacts(ctx *PushContext, db *sql.DB, payload *WebhookPayload) {
-	s3upstream, _ := config.Get("objects", "s3-upstream")
-	s3accessKey, _ := config.Get("objects", "s3-access-key")
-	s3secretKey, _ := config.Get("objects", "s3-secret-key")
 	s3bucket, _ := config.Get("git.sr.ht", "s3-bucket")
 	s3prefix, _ := config.Get("git.sr.ht", "s3-prefix")
 
-	minioClient, err := minio.New(s3upstream, &minio.Options{
-		Creds:  credentials.NewStaticV4(s3accessKey, s3secretKey, ""),
-		Secure: true,
-	})
+	minioClient, err := s3.NewClient(config)
 	if err != nil {
 		logger.Fatalf("Error connecting to S3: %e", err)
 	}
