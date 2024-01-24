@@ -596,9 +596,11 @@ func (r *mutationResolver) UploadArtifact(ctx context.Context, repoID int, revsp
 		"~"+auth.ForContext(ctx).Username, repo.Name, file.Filename)
 
 	err = mc.MakeBucket(ctx, bucket, minio.MakeBucketOptions{})
-	if s3err, ok := err.(minio.ErrorResponse); !ok ||
-		(s3err.Code != "BucketAlreadyExists" && s3err.Code != "BucketAlreadyOwnedByYou") {
-		panic(err)
+	if err != nil {
+		if s3err, ok := err.(minio.ErrorResponse); !ok ||
+			(s3err.Code != "BucketAlreadyExists" && s3err.Code != "BucketAlreadyOwnedByYou") {
+			panic(err)
+		}
 	}
 
 	core := minio.Core{mc}
