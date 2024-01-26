@@ -24,7 +24,7 @@
 {% if path != [''] and len(commits) != 0 %}
 <div class="header-extension">
   <div class="container">
-    <span style="padding-left: 1rem">
+    <span class="pl-3">
       {{ utils.breadcrumb(ref, commits[0].id, repo, path, entry, view, path_join, stat, pygit2, humanize) }}
     </span>
     <div class="clearfix"></div>

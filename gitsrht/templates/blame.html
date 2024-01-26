@@ -15,7 +15,7 @@ pre, body {
 </style>
 {% endblock %}
 {% block content %}
-<div class="header-extension" style="margin-bottom: 0;">
+<div class="header-extension mb-0">
   <div class="blob container-fluid">
     <span>
       {{ utils.breadcrumb(ref, commit.id, repo, path, entry, view, path_join, stat, pygit2, humanize) }}
@@ -47,7 +47,7 @@ pre, body {
     This row has some weird styles going on. This prevents the page from
     scrolling horizontally
   #}
-  <div class="row" style="margin-right: 0;">
+  <div class="row mr-0">
     <div class="col-md-12 code-view">
       <pre class="ruler"><span>{% for i in range(
         editorconfig.max_line_length()) %} {% endfor %}</span></pre>

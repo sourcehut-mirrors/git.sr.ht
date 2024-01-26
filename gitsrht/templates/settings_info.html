@@ -7,7 +7,7 @@
         owner_name=owner.canonical_name, repo_name=repo.name)}}">
       {{csrf_token()}}
       <div class="form-group">
-        <label for="name" style="display: block">
+        <label for="name" class="d-block">
           Repository name
           <a
             href="/{{ owner.canonical_name }}/{{ repo.name }}/settings/rename"

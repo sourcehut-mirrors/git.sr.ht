@@ -11,7 +11,7 @@ pre {
 </style>
 {% endblock %}
 {% block content %}
-<div class="header-extension" style="margin-bottom: 0;">
+<div class="header-extension mb-0">
   <div class="blob container-fluid">
     <span>
       {{ utils.breadcrumb(ref, commit.id, repo, path, entry, view, path_join, stat, pygit2, humanize) }}
@@ -67,9 +67,9 @@ pre {
     This row has some weird styles going on. This prevents the page from
     scrolling horizontally
   #}
-  <div class="row" style="margin-right: 0;">
+  <div class="row mr-0">
     {% if markdown and not force_source %}
-    <div class="col-md-10 offset-md-1" style="margin-top: 1rem">
+    <div class="col-md-10 offset-md-1 mt-3">
       {{ markdown }}
     </div>
     {% else %}
@@ -86,7 +86,7 @@ pre {
     </div>
     {% elif blob.is_binary %}
     <div class="col-md-12">
-      <div style="padding: 1rem">
+      <div class="p-3">
         <p>
           <span title="{{ blob.size }} bytes">
             {{humanize.naturalsize(blob.size,
@@ -107,7 +107,7 @@ pre {
     </div>
     {% else %}
     <div class="col-md-12">
-      <div style="padding: 1rem">
+      <div class="p-3">
         <p>
           <span title="{{ blob.size }} bytes">
             {{humanize.naturalsize(blob.size,

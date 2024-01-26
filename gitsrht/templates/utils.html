@@ -1,7 +1,7 @@
 {% macro breadcrumb(ref, permaref, repo, path, entry, view, path_join, stat, pygit2, humanize) %}
 {% set ref_s = ref.decode("utf-8", "replace") %}
 {% if ref_s != repo.git_repo.default_branch_name() %}
-<span style="margin-right: 1rem">
+<span class="mr-3">
   <span class="text-muted">ref:</span> {{ ref_s }}
 </span>
 {% endif %}
@@ -20,14 +20,14 @@ endif %}{% endfor %}
 {% if entry %}
   {# Root tree has no filemode #}
   {% set filemode = entry.filemode or stat.S_IFDIR %}
-  <span class="text-muted" style="margin-left: 1rem">
+  <span class="text-muted ml-3">
     <span title="{{"{0:0o}".format(filemode)}}">
       {{stat.filemode(filemode)}}
     </span>
   </span>
 
   {% if is_blob %}
-    <span class="text-muted" style="margin-left: 1rem">
+    <span class="text-muted ml-3">
       <span title="{{ entry.size }} bytes">
         {{humanize.naturalsize(entry.size,
           binary=True).replace("Byte", "byte")}}
@@ -37,7 +37,7 @@ endif %}{% endfor %}
 {% endif %}
 
 {% set path = path_join(*path) %}
-<div class="blob-nav" style="margin-left: 1rem">
+<div class="blob-nav ml-3">
   <ul class="nav nav-tabs">
     <li class="nav-item">
       <a class="nav-link {% if view in ["blob", "tree"] %}active{% endif %}"
@@ -115,7 +115,7 @@ endif %}{% endfor %}
   </small>
 
   {% if parents and any(c.parents) %}
-  <span style="margin-left: 0.5rem">
+  <span class="ml-2">
     {{icon('code-branch', cls="sm")}}
     {% for parent in c.parents %}
     <a href="{{url_for("repo.commit",
@@ -131,7 +131,7 @@ endif %}{% endfor %}
   {% endif %}
 
   {% if c.id.hex in refs %}
-  <span style="margin-left: 0.5rem">
+  <span class="ml-2">
     {% for ref in refs[c.id.hex] %}
     <a
       class="ref {{ref.type}}
@@ -176,7 +176,7 @@ instead.
 </div>
 {% else %}
 {% for patch in diff %}
-<pre style="margin-bottom: 0; background: transparent; padding: 0;"
+<pre class="mb-0 bg-transparent p-0"
 >{#
   #}{{patch.delta.status_char()}} {% if parent %}<a
    href="{{url_for("repo.tree",
