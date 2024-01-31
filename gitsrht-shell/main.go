@@ -165,17 +165,18 @@ func main() {
 	}
 	defer db.Close()
 
+	crypto.InitCrypto(config)
+	ctx := coreconfig.Context(context.Background(), config, "git.sr.ht")
+
 	// Note: when updating push access logic, also update scm.sr.ht/access.py
 	var (
-		repoId              int
-		repoName            string
-		repoOwnerId         int
-		repoOwnerName       string
-		repoVisibility      string
-		pusherType          string
-		pusherSuspendNotice *string
-		accessGrant         *string
-		autocreated         bool
+		repoId         int
+		repoName       string
+		repoOwnerId    int
+		repoOwnerName  string
+		repoVisibility string
+		accessGrant    *string
+		autocreated    bool
 	)
 	logger.Printf("Looking up repo: pusher ID %d, repo path %s", pusherId, path)
 	row := db.QueryRow(`
@@ -185,19 +186,16 @@ func main() {
 			repo.owner_id,
 			owner.username,
 			repo.visibility,
-			pusher.user_type,
-			pusher.suspension_notice,
 			access.mode
 		FROM repository repo
-		JOIN "user" owner  ON owner.id  = repo.owner_id
-		JOIN "user" pusher ON pusher.id = $1
+		JOIN "user" owner ON owner.id  = repo.owner_id
 		LEFT JOIN access
 			ON (access.repo_id = repo.id AND access.user_id = $1)
 		WHERE
 			repo.path = $2;
 	`, pusherId, path)
 	if err := row.Scan(&repoId, &repoName, &repoOwnerId, &repoOwnerName,
-		&repoVisibility, &pusherType, &pusherSuspendNotice, &accessGrant); err != nil {
+		&repoVisibility, &accessGrant); err != nil {
 
 		logger.Printf("Lookup failed: %v", err)
 		logger.Println("Looking up redirect")
@@ -212,12 +210,9 @@ func main() {
 				repo.owner_id,
 				owner.username,
 				repo.visibility,
-				pusher.user_type,
-				pusher.suspension_notice,
 				access.mode
 			FROM repository repo
 			JOIN "user" owner  ON owner.id  = repo.owner_id
-			JOIN "user" pusher ON pusher.id = $1
 			JOIN redirect      ON redirect.new_repo_id = repo.id
 			LEFT JOIN access
 				ON (access.repo_id = repo.id AND access.user_id = $1)
@@ -226,8 +221,7 @@ func main() {
 		`, pusherId, path)
 
 		if err := row.Scan(&repoId, &repoName, &repoOwnerId, &repoOwnerName,
-			&repoVisibility, &pusherType, &pusherSuspendNotice,
-			&accessGrant); err == sql.ErrNoRows {
+			&repoVisibility, &accessGrant); err == sql.ErrNoRows {
 
 			logger.Printf("Lookup failed: %v", err)
 
@@ -286,8 +280,6 @@ func main() {
 					} `json:"createRepository"`
 				}{}
 
-				crypto.InitCrypto(config)
-				ctx := coreconfig.Context(context.Background(), config, "git.sr.ht")
 				err := client.Do(ctx, pusherName, "git.sr.ht", query, &resp)
 				if err != nil {
 					notFound("create repository", err)
@@ -308,6 +300,29 @@ func main() {
 			os.Exit(128)
 		}
 	}
+
+	query := client.GraphQLQuery{
+		Query: `
+			query {
+				me {
+					userType
+					suspensionNotice
+				}
+			}
+		`,
+	}
+	var resp struct {
+		Me struct {
+			UserType         string  `json:"userType"`
+			SuspensionNotice *string `json:"suspensionNotice"`
+		} `json:"me"`
+	}
+	if err := client.Do(ctx, pusherName, "meta.sr.ht", query, &resp); err != nil {
+		log.Println("A temporary error has occured. Please try again.")
+		logger.Fatalf("Error occured looking up pusher: %v", err)
+	}
+	pusherType := resp.Me.UserType
+	pusherSuspendNotice := resp.Me.SuspensionNotice
 
 	agrant := ""
 	snotice := ""
