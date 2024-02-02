@@ -861,11 +861,8 @@ func (r *mutationResolver) DeleteUser(ctx context.Context) (int, error) {
 // Version is the resolver for the version field.
 func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 	conf := config.ForContext(ctx)
-	upstream, _ := conf.Get("objects", "s3-upstream")
-	accessKey, _ := conf.Get("objects", "s3-access-key")
-	secretKey, _ := conf.Get("objects", "s3-secret-key")
 	bucket, _ := conf.Get("git.sr.ht", "s3-bucket")
-	artifacts := upstream != "" && accessKey != "" && secretKey != "" && bucket != ""
+	artifacts := s3.Enabled(conf) && bucket != ""
 
 	sshUser, _ := conf.Get("git.sr.ht::dispatch", "/usr/bin/gitsrht-keys")
 	sshUser = strings.Split(sshUser, ":")[0]
