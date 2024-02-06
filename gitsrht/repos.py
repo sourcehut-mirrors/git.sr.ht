@@ -6,6 +6,7 @@ import shutil
 import subprocess
 from gitsrht.types import Artifact, Repository, Redirect
 from minio import Minio
+from minio.error import S3Error
 from srht.config import cfg
 from srht.database import db
 from werkzeug.utils import secure_filename
@@ -35,7 +36,7 @@ def delete_artifact(artifact):
             repo.owner.canonical_name, repo.name)
     try:
         minio.remove_object(s3_bucket, f"{prefix}/{artifact.filename}")
-    except ResponseError as err:
+    except S3Error as err:
         print(err)
     db.session.delete(artifact)
 
