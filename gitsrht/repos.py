@@ -1,3 +1,4 @@
+import contextlib
 import hashlib
 import os.path
 import pygit2
@@ -54,11 +55,8 @@ def upload_artifact(valid, repo, commit, f, filename):
             secret_key=s3_secret_key, secure=s3_secure)
     prefix = os.path.join(s3_prefix, "artifacts",
             repo.owner.canonical_name, repo.name)
-    try:
+    with contextlib.suppress(S3Error):
         minio.make_bucket(s3_bucket)
-    except:
-        # Thanks for not giving us more specific exceptions, minio
-        pass
     sha = hashlib.sha256()
     buf = f.read(1024)
     while len(buf) > 0:

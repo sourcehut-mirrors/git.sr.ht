@@ -37,7 +37,7 @@ def register_api(app):
         try:
             dist = pkg_resources.get_distribution("gitsrht")
             return { "version": dist.version }
-        except:
+        except Exception:
             return { "version": "unknown" }
 
     @app.route("/api/user/<username>")

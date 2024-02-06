@@ -8,7 +8,7 @@ class EditorConfig:
             self.repo = repo
             self.tree = tree
             self._config = self._config_for(path)
-        except:
+        except Exception:
             self._config = None
 
     def _config_for(self, path):
@@ -41,7 +41,7 @@ class EditorConfig:
                 # gross
                 config.read_string("[__root__]\n" + blob.data.decode())
                 break
-            except:
+            except Exception:
                 config = None
         if not config:
             return None

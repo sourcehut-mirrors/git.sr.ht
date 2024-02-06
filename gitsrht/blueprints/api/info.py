@@ -172,7 +172,7 @@ def repos_by_name_readme_PUT(reponame):
     readme = None
     try:
         readme = request.data.decode("utf-8")
-    except:
+    except ValueError:
         return valid.error("README files must be UTF-8 encoded", field="body")
 
     resp = exec_gql(current_app.site, """

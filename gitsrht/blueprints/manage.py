@@ -201,7 +201,7 @@ def settings_access_POST(owner_name, repo_name):
         username = username[1:]
     try:
         user = current_app.oauth_service.lookup_user(username)
-    except:
+    except Exception:
         user = None
     valid.expect(user, "User not found.", field="user")
     valid.expect(not user or user.id != current_user.id,

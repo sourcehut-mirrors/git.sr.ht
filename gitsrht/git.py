@@ -28,7 +28,7 @@ def signature_time(signature):
         tzaware = datetime.fromtimestamp(float(signature.time), tzinfo)
         diff = datetime.now(timezone.utc) - tzaware
         return datetime.utcnow() - diff
-    except:
+    except Exception:
         return datetime.utcnow()
 
 def commit_time(commit):

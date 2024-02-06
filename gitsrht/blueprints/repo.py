@@ -281,7 +281,7 @@ def tree(owner, repo, ref, path):
                 if not blob.is_binary:
                     try:
                         data = blob.data.decode()
-                    except:
+                    except ValueError:
                         data = '[unable to decode]'
                 md = not blob.is_binary and entry.name.endswith(".md")
                 if md:
@@ -427,7 +427,7 @@ def blame(owner, repo, ref, path):
                 path="/".join(path)))
         try:
             data = blob.data.decode()
-        except:
+        except ValueError:
             return redirect(url_for("repo.log",
                 owner=repo.owner.canonical_name, repo=repo.name, ref=ref,
                 path="/".join(path)))
@@ -669,7 +669,7 @@ def refs(owner, repo):
             try:
                 page = int(page) - 1
                 tags = tags[page*results_per_page:page*results_per_page+results_per_page]
-            except:
+            except Exception:
                 page = 0
         else:
             page = 0

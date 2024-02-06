@@ -4,6 +4,7 @@ from srht.database import DbSession
 db = DbSession(cfg("git.sr.ht", "connection-string"))
 from gitsrht.types import Repository
 db.init()
+import contextlib
 import os
 
 post_update = cfg("git.sr.ht", "post-update-script")
@@ -12,14 +13,10 @@ def migrate(path, link):
     if not os.path.exists(path) \
             or not os.path.islink(path) \
             or os.readlink(path) != link:
-        try:
+        with contextlib.suppress(Exception):
             os.remove(path)
-        except:
-            pass
-        try:
+        with contextlib.suppress(Exception):
             os.symlink(link, path)
-        except:
-            pass
         return True
     return False
 
