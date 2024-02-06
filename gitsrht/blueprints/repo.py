@@ -103,7 +103,7 @@ def _highlight_file(repo, ref, entry, data, blob_id, commit_id):
 def linecounter(count):
     out = []
     for i in range(1, count + 1):
-        out.append('<a href="#L{}" id="L{}">{}\n</a>'.format(i, i, i))
+        out.append(f'<a href="#L{i}" id="L{i}">{i}\n</a>')
     return "".join(out)
 
 def render_empty_repo(owner, repo, view):
