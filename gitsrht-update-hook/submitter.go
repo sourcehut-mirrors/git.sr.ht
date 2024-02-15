@@ -289,7 +289,6 @@ func SubmitBuild(ctx context.Context, submitter *GitBuildSubmitter) ([]BuildSubm
 				$note: String,
 				$tags: [String!],
 				$secrets: Boolean,
-				$execute: Boolean,
 				$visibility: Visibility,
 			) {
 				submit(
@@ -297,7 +296,6 @@ func SubmitBuild(ctx context.Context, submitter *GitBuildSubmitter) ([]BuildSubm
 					note: $note,
 					tags: $tags,
 					secrets: $secrets,
-					execute: $execute,
 					visibility: $visibility,
 				) {
 					id
@@ -308,6 +306,7 @@ func SubmitBuild(ctx context.Context, submitter *GitBuildSubmitter) ([]BuildSubm
 				"tags":       append(submitter.GetJobTags(), name),
 				"note":       submitter.GetCommitNote(),
 				"visibility": submitter.Visibility,
+				"secrets":    true,
 			},
 		}
 
