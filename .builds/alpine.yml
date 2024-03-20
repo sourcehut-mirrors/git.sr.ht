@@ -1,7 +1,7 @@
-image: alpine/3.17
+image: alpine/3.19
 repositories:
   sr.ht: >
-    https://mirror.sr.ht/alpine/v3.17/sr.ht/
+    https://mirror.sr.ht/alpine/v3.19/sr.ht/
     https://mirror.sr.ht/alpine/alpine%40sr.ht.rsa.pub
     alpine@sr.ht.rsa.pub
 packages:
@@ -40,7 +40,7 @@ tasks:
       echo "StrictHostKeyChecking=no" >> ~/.ssh/config
       ./pkgkit upload "$remote" "$remote_path" "$project"
   - deploy: |
-      ssh $master doas /sbin/apk upgrade -U
+      ssh $master doas /sbin/apk upgrade -Ua
       ssh $master doas /sbin/service $project restart
       ssh $master doas /sbin/service $project-api restart
       ssh $master doas /sbin/service $project-webhooks restart
