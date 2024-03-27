@@ -476,9 +476,11 @@ func (r *mutationResolver) DeleteRepository(ctx context.Context, id int) (*model
 		webhooks.DeliverRepoEvent(ctx, model.WebhookEventRepoDeleted, &repo)
 		webhooks.DeliverLegacyRepoDeleted(ctx, &repo)
 
-		if err := os.RemoveAll(repo.Path); err != nil {
-			return err
-		}
+		go func(ctx context.Context, path string) {
+			if err := os.RemoveAll(path); err != nil {
+				server.EmailRecover(ctx, err)
+			}
+		}(context.WithoutCancel(ctx), repo.Path)
 
 		if len(artifacts) > 0 {
 			username := auth.ForContext(ctx).Username
