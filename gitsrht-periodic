@@ -47,17 +47,20 @@ def gc_git():
             .offset(random.randrange(0, repo_count + 1 - limit))
             .limit(limit)).all()
     for r in repos:
-        ps.labels("pre").inc(sum(map(lambda p: p.stat().st_size,
-            os.scandir(os.path.join(r.path, "objects", "pack")))))
+        try:
+            ps.labels("pre").inc(sum(map(lambda p: p.stat().st_size,
+                os.scandir(os.path.join(r.path, "objects", "pack")))))
 
-        def gc():
-            subprocess.run(["git", "-C", r.path, "gc", "--quiet"],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        gc()
+            def gc():
+                subprocess.run(["git", "-C", r.path, "gc", "--quiet"],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            gc()
 
-        ps.labels("post").inc(sum(map(lambda p: p.stat().st_size,
-            os.scandir(os.path.join(r.path, "objects", "pack")))))
-        rc.inc()
+            ps.labels("post").inc(sum(map(lambda p: p.stat().st_size,
+                os.scandir(os.path.join(r.path, "objects", "pack")))))
+            rc.inc()
+        except FileNotFoundError:
+            continue
 
 gc_s3_t = tg.labels("gc_s3")
 @gc_s3_t.time()
