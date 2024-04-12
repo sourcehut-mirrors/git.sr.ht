@@ -63,7 +63,10 @@ class EditorConfig:
         if self._config == None:
             return 80
         try:
-            return int(self._config.get("max_line_length", 80))
+            length = int(self._config.get("max_line_length", 80))
+            if length > 256:
+                length = 80
+            return length
         except ValueError:
             return 80
 
