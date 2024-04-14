@@ -416,7 +416,7 @@ def weld_hunks(blame):
         yield last
 
 @repo.route("/<owner>/<repo>/blame/<path:ref>", defaults={"path": ""})
-@repo.route("/<owner>/<repo>/blame/<ref>/<path:path>")
+@repo.route("/<owner>/<repo>/blame/<path:ref>/<path:path>")
 def blame(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
