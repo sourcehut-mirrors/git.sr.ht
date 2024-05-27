@@ -10,7 +10,7 @@ from srht.config import cfg
 from srht.database import db, DbSession
 from srht.flask import SrhtFlask, session
 from jinja2 import FileSystemLoader, ChoiceLoader
-from werkzeug.urls import url_quote
+from urllib.parse import quote as url_quote
 
 db = DbSession(cfg("git.sr.ht", "connection-string"))
 db.init()
