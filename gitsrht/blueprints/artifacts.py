@@ -86,7 +86,9 @@ def ref_download(owner, repo, ref, filename):
     minio = Minio(s3_upstream, access_key=s3_access_key,
             secret_key=s3_secret_key, secure=s3_secure)
     f = minio.get_object(s3_bucket, os.path.join(prefix, filename))
-    return send_file(f, as_attachment=True, download_name=filename)
+    resp = send_file(f, as_attachment=True, download_name=filename)
+    resp.headers.add("Content-Length", f.getheaders()["Content-Length"])
+    return resp
 
 @artifacts.route("/<owner>/<repo>/refs/delete/<path:ref>/<filename>", methods=["POST"])
 @loginrequired
