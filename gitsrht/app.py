@@ -52,7 +52,7 @@ class GitApp(SrhtFlask):
         self.add_template_filter(urls.clone_urls)
         self.add_template_filter(urls.log_rss_url)
         self.add_template_filter(urls.refs_rss_url)
-        self.add_template_filter(url_quote)
+        self.add_template_filter(url_quote, name="url_quote")
         self.add_template_filter(commit_links)
 
         from gitsrht.webhooks import webhook_metrics_collector
