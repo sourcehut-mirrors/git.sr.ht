@@ -79,7 +79,7 @@ func (submitter GitBuildSubmitter) FindManifests() (map[string]string, error) {
 
 	var files []*object.File
 	loadOptions()
-	pattern := ".build.yml,.builds/*.yml"
+	pattern := ".build.yml,.builds/*.yml,.build.yaml,.builds/*.yaml"
 	if pat, ok := options["submit"]; ok {
 		pattern = pat
 	}
