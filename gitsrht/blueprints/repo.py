@@ -145,7 +145,7 @@ def summary(owner, repo):
             ref=f"{default_branch_name}/", path="")  # Trailing slash needed
         readme = get_readme(repo, git_repo, tip,
             link_prefix=[link_prefix, blob_prefix])
-        tags = [(ref, git_repo.get(git_repo.references[ref].raw_target))
+        tags = [(ref, git_repo.get(git_repo.references[ref.decode('utf-8')].raw_target))
             for ref in git_repo.raw_listall_references()
             if ref.startswith(b"refs/tags/")]
         tags = [tag for tag in tags
@@ -632,7 +632,7 @@ def refs(owner, repo):
 
         tags = [(
                 ref,
-                git_repo.get(git_repo.references[ref].target),
+                git_repo.get(git_repo.references[ref.decode('utf-8')].target),
                 lookup_signature(git_repo, ref.decode('utf-8'))[1]
             ) for ref in git_repo.raw_listall_references()
               if ref.startswith(b"refs/tags/")]
@@ -717,7 +717,7 @@ def refs_rss(owner, repo):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
         references = [
-            git_repo.references[name]
+            git_repo.references[name.decode('utf-8')]
             for name in git_repo.raw_listall_references()
             if name.startswith(b"refs/tags/")
         ]
