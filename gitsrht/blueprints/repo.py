@@ -229,7 +229,7 @@ def lookup_signature(git_repo, ref, fmt=['tar', 'tar.gz']):
 
     for trial in fmt:
         try:
-            note = git_repo.lookup_note(commit_or_tag.hex, f'refs/notes/signatures/{trial}')
+            note = git_repo.lookup_note(str(commit_or_tag.id), f'refs/notes/signatures/{trial}')
         except KeyError:
             continue
 
