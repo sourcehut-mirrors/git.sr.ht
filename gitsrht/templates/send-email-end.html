@@ -40,16 +40,16 @@
     patchset before it's sent in the next step.
   </small>
   <div class="event-list commit-list reverse">
-    <input type="hidden" name="start_commit" value="{{start.oid.hex}}" />
+    <input type="hidden" name="start_commit" value="{{str(start.oid)}}" />
     {% for c in commits %}
     <input
       type="radio"
       name="end_commit"
-      id="commit-{{c.id.hex}}"
-      value="{{c.id.hex}}"
+      id="commit-{{str(c.id)}}"
+      value="{{str(c.id)}}"
       {% if loop.first %}checked{% endif %} />
-    <label class="event" for="commit-{{c.id.hex}}">
-      {{ utils.commit_event(repo, c, False, href="#commit-diff-" + c.oid.hex) }}
+    <label class="event" for="commit-{{str(c.id)}}">
+      {{ utils.commit_event(repo, c, False, href="#commit-diff-" + str(c.oid)) }}
     </label>
     {% endfor %}
 
@@ -103,7 +103,7 @@
 
     {% for diff in diffs %}
     {% set c = commits[loop.index-1] %}
-    <div class="commit-diff" id="commit-diff-{{c.oid.hex}}">
+    <div class="commit-diff" id="commit-diff-{{str(c.oid)}}">
       <h3>{{ trim_commit(c.message) }}</h3>
       <div class="event commit-event">
         {{ utils.commit_event(repo, c, full_body=True, diff=diff) }}
@@ -122,7 +122,7 @@
         </details>
       </div>
       {{utils.commit_diff(repo, c, diff,
-        anchor=c.oid.hex + "-", target_blank=True)}}
+        anchor=str(c.oid) + "-", target_blank=True)}}
     </div>
     {% endfor %}
 
@@ -141,7 +141,7 @@
 
   {% for c in commits %}
   {% for d in commits[loop.index-1:] %}
-  #commit-{{c.oid.hex}}:checked ~ #commit-diff-{{d.oid.hex}}
+  #commit-{{str(c.oid)}}:checked ~ #commit-diff-{{str(d.oid)}}
   {%- if not loop.last %},{% endif %}
   {% endfor %}
   {

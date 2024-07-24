@@ -83,20 +83,20 @@ endif %}{% endfor %}
   lookup=lookup_user) %}
 <div>
   {% if full_id %}
-  {{c.id.hex}}
+  {{str(c.id)}}
   {% else %}
   <a
     {% if href %}
     href="{{href}}"
     {% else %}
     href="{{url_for("repo.commit", owner=repo.owner.canonical_name,
-      repo=repo.name, ref=c.id.hex)}}{% if path %}#{{path}}{% endif %}"
+      repo=repo.name, ref=str(c.id))}}{% if path %}#{{path}}{% endif %}"
     {% endif %}
-    title="{{c.id.hex}}"
+    title="{{str(c.id)}}"
     {% if target_blank %}
     target="_blank"
     {% endif %}
-  >{{c.id.hex[:8]}}</a>
+  >{{str(c.id)[:8]}}</a>
   {% endif %}
   &mdash;
   {% set author_user = lookup(c.author.email) %}
@@ -121,7 +121,7 @@ endif %}{% endfor %}
     <a href="{{url_for("repo.commit",
       owner=repo.owner.canonical_name,
       repo=repo.name,
-      ref=parent.id.hex)}}"
+      ref=str(parent.id))}}"
     >{{parent.short_id}}</a>
     {% if not loop.last %}
     +
@@ -130,9 +130,9 @@ endif %}{% endfor %}
   </span>
   {% endif %}
 
-  {% if c.id.hex in refs %}
+  {% if str(c.id) in refs %}
   <span class="ml-2">
-    {% for ref in refs[c.id.hex] %}
+    {% for ref in refs[str(c.id)] %}
     <a
       class="ref {{ref.type}}
         {{"annotated" if ref.type == "tag" and ref.tag.message else ""}}"
@@ -154,7 +154,7 @@ endif %}{% endfor %}
 {% if full_body %}
 <pre class="commit">{{ c.message | commit_links(repo) | safe }}
 {%- if diff %}
-{{diffstat(diff, anchor=c.oid.hex + "-")}}{% endif -%}
+{{diffstat(diff, anchor=str(c.oid) + "-")}}{% endif -%}
 </pre>
 {% else %}
 <pre class="commit">{{ trim_commit(c.message) }}</pre>
@@ -182,7 +182,7 @@ instead.
    href="{{url_for("repo.tree",
       owner=repo.owner.canonical_name,
       repo=repo.name,
-      ref=parent.id.hex,
+      ref=str(parent.id),
       path=patch.delta.old_file.raw_path.decode('utf-8', 'replace'))}}"
    id="{{anchor}}{{patch.delta.old_file.raw_path.decode('utf-8', 'replace')}}"
   {% if target_blank %}
@@ -194,7 +194,7 @@ instead.
    href="{{url_for("repo.tree",
       owner=repo.owner.canonical_name,
       repo=repo.name,
-      ref=commit.id.hex,
+      ref=str(commit.id),
       path=patch.delta.new_file.raw_path.decode('utf-8', 'replace'))}}"
    id="{{anchor}}{{patch.delta.new_file.raw_path.decode('utf-8', 'replace')}}"
   {% if target_blank %}
@@ -216,7 +216,7 @@ instead.
   href="{{url_for("repo.tree",
     owner=repo.owner.canonical_name,
     repo=repo.name,
-    ref=parent.id.hex,
+    ref=str(parent.id),
     path=patch.delta.old_file.raw_path.decode('utf-8', 'replace'))}}#L{{hunk.old_start}}"
   {% if target_blank %}
   target="_blank"
@@ -227,7 +227,7 @@ instead.
   href="{{url_for("repo.tree",
     owner=repo.owner.canonical_name,
     repo=repo.name,
-    ref=commit.id.hex,
+    ref=str(commit.id),
     path=patch.delta.new_file.raw_path.decode('utf-8', 'replace'))}}#L{{hunk.new_start}}"
   {% if target_blank %}
   target="_blank"

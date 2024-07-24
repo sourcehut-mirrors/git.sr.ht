@@ -37,7 +37,7 @@
         <div class="event">
           <h4 class="mb-2">
             {% if isinstance(tag, pygit2.Commit) %}
-            {% set refname = commit.id.hex %}
+            {% set refname = str(commit.id) %}
             {% set author = commit.author %}
             {{ref[len("refs/tags/"):]}}
             {% else %}

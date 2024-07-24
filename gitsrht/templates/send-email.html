@@ -90,10 +90,10 @@
     <input
       type="radio"
       name="commit-{{branch_quoted}}"
-      id="commit-{{branch_hash}}-{{c.id.hex}}"
-      value="{{c.id.hex}}"
+      id="commit-{{branch_hash}}-{{str(c.id)}}"
+      value="{{str(c.id)}}"
       {% if loop.last %}checked{% endif %} />
-    <label class="event" for="commit-{{branch_hash}}-{{c.id.hex}}">
+    <label class="event" for="commit-{{branch_hash}}-{{str(c.id)}}">
       {{ utils.commit_event(repo, c, False, target_blank=True) }}
     </label>
     {{valid.summary("branch-" + branch_quoted)}}

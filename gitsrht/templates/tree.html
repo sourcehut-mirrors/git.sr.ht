@@ -15,7 +15,7 @@
           owner=repo.owner.canonical_name,
           repo=repo.name,
           ref=ref)}}"
-      >{{commit.id.hex[:8]}}</a> &mdash;
+      >{{str(commit.id)[:8]}}</a> &mdash;
       {% set author_user = lookup_user(commit.author.email) %}
       {% if author_user %}
       <a href="{{url_for("public.user_index",
@@ -77,7 +77,7 @@
           href="{{url_for("repo.commit",
             owner=repo.owner.canonical_name,
             repo=repo.name,
-            ref=entry.commit.id.hex)}}"
+            ref=str(entry.commit.id))}}"
         >{{trim_commit(entry.commit.message)}}</a>
         {% endif %}
       </div>
