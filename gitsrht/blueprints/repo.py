@@ -504,7 +504,7 @@ class _AnnotatedRef:
 def collect_refs(git_repo):
     refs = {}
     for _ref in git_repo.raw_listall_references():
-        _ref = _AnnotatedRef(git_repo, git_repo.references[_ref])
+        _ref = _AnnotatedRef(git_repo, git_repo.references[_ref.decode('utf-8', 'replace')])
         if not _ref.type or not hasattr(_ref, "commit"):
             continue
         if str(_ref.commit.id) not in refs:
