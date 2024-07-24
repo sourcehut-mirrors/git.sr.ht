@@ -81,7 +81,7 @@ def get_readme(repo, git_repo, tip, link_prefix=None):
             btype = (blob.type_str
                     if hasattr(blob, "type_str") else blob.type)
             if btype == "blob":
-                return blob.id.hex, blob
+                return str(blob.id), blob
         return None, None
 
     def content_getter(blob):
@@ -229,7 +229,7 @@ def lookup_signature(git_repo, ref, fmt=['tar', 'tar.gz']):
 
     for trial in fmt:
         try:
-            note = git_repo.lookup_note(commit_or_tag.hex, f'refs/notes/signatures/{trial}')
+            note = git_repo.lookup_note(str(commit_or_tag), f'refs/notes/signatures/{trial}')
         except KeyError:
             continue
 
@@ -507,9 +507,9 @@ def collect_refs(git_repo):
         _ref = _AnnotatedRef(git_repo, git_repo.references[_ref])
         if not _ref.type or not hasattr(_ref, "commit"):
             continue
-        if _ref.commit.id.hex not in refs:
-            refs[_ref.commit.id.hex] = []
-        refs[_ref.commit.id.hex].append(_ref)
+        if str(_ref.commit.id) not in refs:
+            refs[str(_ref.commit.id)] = []
+        refs[str(_ref.commit.id)].append(_ref)
     return refs
 
 @repo.route("/<owner>/<repo>/log", defaults={"ref": None, "path": ""})
@@ -749,11 +749,11 @@ def ref(owner, repo, ref):
             abort(404)
         if isinstance(tag, pygit2.Commit):
             return redirect(url_for(".commit",
-                owner=owner, repo=repo.name, ref=tag.id.hex))
+                owner=owner, repo=repo.name, ref=str(tag.id)))
         artifacts = (Artifact.query
                 .filter(Artifact.user_id == repo.owner_id)
                 .filter(Artifact.repo_id == repo.id)
-                .filter(Artifact.commit == tag.target.hex)).all()
+                .filter(Artifact.commit == str(tag.target))).all()
         artifacts.sort(key=lambda ar: ar.filename)
         return render_template("ref.html", view="refs",
                 owner=owner, repo=repo, git_repo=git_repo, tag=tag,

@@ -57,7 +57,7 @@ def tree_to_dict(t):
     }
 
 def ref_to_dict(artifacts, ref):
-    target = ref.target.hex
+    target = str(ref.target)
     return {
         "target": target,
         "name": ref.raw_name.decode("utf-8", "replace"),
@@ -74,7 +74,7 @@ def repo_refs_GET(username, reponame):
     with GitRepository(repo.path) as git_repo:
         # TODO: pagination
         refs = list(git_repo.raw_listall_references())
-        targets = [git_repo.references[ref].target.hex for ref in refs]
+        targets = [str(git_repo.references[ref].target) for ref in refs]
         artifacts = (Artifact.query
                 .filter(Artifact.user_id == repo.owner_id)
                 .filter(Artifact.repo_id == repo.id)
@@ -107,9 +107,9 @@ def repo_refs_by_name_POST(username, reponame, refname):
         except ValueError:
             abort(404)
         if isinstance(tag, pygit2.Commit):
-            target = tag.oid.hex
+            target = str(tag.oid)
         else:
-            target = tag.target.hex
+            target = str(tag.target)
         valid = Validation(request)
         f = request.files.get("file")
         valid.expect(f, "File is required", field="file")
@@ -249,7 +249,7 @@ def repo_blob_GET(username, reponame, ref, path):
             if path:
                 attachment_filename = path.split("/")[-1]
             else:
-                attachment_filename = blob.id.hex + ".bin"
+                attachment_filename = str(blob.id) + ".bin"
 
         return send_file(BytesIO(blob.data),
                 as_attachment=blob.is_binary,

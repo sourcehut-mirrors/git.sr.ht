@@ -64,7 +64,7 @@ def _get_ref(repo, ref):
 
 def diff_for_commit(git_repo, commit):
     try:
-        parent = git_repo.revparse_single(commit.id.hex + "^")
+        parent = git_repo.revparse_single(str(commit.id) + "^")
         diff = git_repo.diff(parent, commit)
     except KeyError:
         parent = None
@@ -132,7 +132,7 @@ class AnnotatedTreeEntry:
         self._repo = repo
         self.commit = None
         if entry is not None:
-            self.id = entry.id.hex
+            self.id = str(entry.id)
             self.name = entry.raw_name.decode("utf-8", "replace")
             self.type = (entry.type_str
                     if hasattr(entry, "type_str") else entry.type)
@@ -151,7 +151,7 @@ class AnnotatedTreeEntry:
             "name": self.name,
             "type": self.type,
             "filemode": self.filemode,
-            "commit": (self.commit.id.hex
+            "commit": (str(self.commit.id)
                 if hasattr(self, "commit") and self.commit else None),
         }
 

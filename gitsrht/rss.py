@@ -27,7 +27,7 @@ def commit_url(repo, commit):
     return ORIGIN + url_for("repo.commit",
         owner=repo.owner.canonical_name,
         repo=repo.name,
-        ref=commit.id.hex)
+        ref=str(commit.id))
 
 def commit_title_description(commit):
     """Split the commit message to title (first line) and the description
@@ -39,7 +39,7 @@ def commit_title_description(commit):
         return title, description
 
     # Empty message fallback
-    return commit.id.hex, ""
+    return str(commit.id), ""
 
 def ref_to_item(repo, reference):
     with GitRepository(repo.path) as git_repo:

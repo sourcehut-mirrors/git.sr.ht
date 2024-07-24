@@ -46,7 +46,7 @@ def repo_lookup_prefix(username, reponame, oid_prefix):
             return "object not found", 404
         except ValueError:
             return "ambiguous oid", 409
-        return o.oid.hex
+        return str(o.oid)
 
 @plumbing.route("/api/repos/<reponame>/refdb/<path:refname>",
         defaults={"username": None})
@@ -64,7 +64,7 @@ def repo_get_ref(username, reponame, refname):
             return "unknown reference", 404
         if isinstance(ref.target, pygit2.Oid):
             # direct reference
-            return f"{ref.target.hex} {ref.peel().oid.hex}"
+            return f"{str(ref.target)} {str(ref.peel().oid)}"
         else:
             # symbolic reference
             return str(ref.target)
