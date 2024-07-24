@@ -41,13 +41,13 @@
             {% set author = commit.author %}
             {{ref[len("refs/tags/"):]}}
             {% else %}
-            {% set refname = tag.raw_name %}
+            {% set refname = tag.raw_name.decode("utf-8", "replace") %}
             {% set author = tag.tagger %}
             <a href="{{url_for("repo.ref",
                 owner=repo.owner.canonical_name,
                 repo=repo.name,
-                ref=refname.decode("utf-8", "replace"))}}">
-              {{refname.decode("utf-8", "replace")}}
+                ref=refname)}}">
+              {{refname}}
             </a>
             {% endif %}
             <small class="pull-right text-muted">
@@ -95,11 +95,11 @@
       <h3>Branches</h3>
       <div class="event-list">
         {% for branch in branches %}
-        {% set name = branch[0] %}
+        {% set name = branch[0].decode("utf-8", "replace") %}
         {% set commit = branch[2] %}
         {% set branch = branch[1] %}
         <div class="event">
-          {{name.decode("utf-8", "replace")}}
+          {{name}}
           {{ utils.commit_event(repo, commit, skip_body=True) }}
           <div class="row mt-2">
             <div class="col">
