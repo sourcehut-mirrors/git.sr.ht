@@ -433,7 +433,7 @@ def blame(owner, repo, ref, path):
                 path="/".join(path)))
 
         try:
-            blame = git_repo.blame("/".join(path), newest_commit=orig_commit.oid)
+            blame = git_repo.blame("/".join(path), newest_commit=orig_commit.id)
         except KeyError as ke:  # Path not in the tree
             abort(404)
         except ValueError:
