@@ -252,6 +252,7 @@ def tree(owner, repo, ref, path):
         # lookup_ref will cycle through the path to separate
         # the actual ref from the actual path
         commit, ref, path = lookup_ref(git_repo, ref, path)
+        refname = ref.decode('utf-8', 'replace')
         if isinstance(commit, pygit2.Tag):
             commit = git_repo.get(commit.target)
         orig_commit = commit
@@ -286,16 +287,16 @@ def tree(owner, repo, ref, path):
                 md = not blob.is_binary and entry.name.endswith(".md")
                 if md:
                     link_prefix = url_for('repo.tree', owner=repo.owner,
-                            repo=repo.name, ref=ref,
+                            repo=repo.name, ref=refname,
                             path=os.path.dirname("/".join(path)))
                     blob_prefix = url_for(
                         'repo.raw_blob', owner=repo.owner, repo=repo.name,
-                        ref=ref, path=os.path.dirname("/".join(path)))
+                        ref=refname, path=os.path.dirname("/".join(path)))
                     md = markdown(data,
                             link_prefix=[link_prefix, blob_prefix])
                 force_source = "view-source" in request.args
                 return render_template("blob.html", view="blob",
-                        owner=owner, repo=repo, ref=ref, path=path, entry=entry,
+                        owner=owner, repo=repo, ref=refname, path=path, entry=entry,
                         blob=blob, data=data, commit=orig_commit,
                         highlight_file=_highlight_file,
                         linecounter=linecounter,
@@ -313,7 +314,7 @@ def tree(owner, repo, ref, path):
         license_exists, licenses = get_license_info_for_tip(tip)
 
         return render_template("tree.html", view="tree", owner=owner, repo=repo,
-                ref=ref, commit=commit, entry=entry, tree=tree, path=path,
+                ref=refname, commit=commit, entry=entry, tree=tree, path=path,
                 pygit2=pygit2, license_exists=license_exists, licenses=licenses)
 
 def resolve_blob(git_repo, ref, path):
@@ -421,15 +422,16 @@ def blame(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
         orig_commit, ref, path, blob, entry = resolve_blob(git_repo, ref, path)
+        refname = ref.decode('utf-8', 'replace')
         if blob.is_binary:
             return redirect(url_for("repo.log",
-                owner=repo.owner.canonical_name, repo=repo.name, ref=ref,
+                owner=repo.owner.canonical_name, repo=repo.name, ref=refname,
                 path="/".join(path)))
         try:
             data = blob.data.decode()
         except ValueError:
             return redirect(url_for("repo.log",
-                owner=repo.owner.canonical_name, repo=repo.name, ref=ref,
+                owner=repo.owner.canonical_name, repo=repo.name, ref=refname,
                 path="/".join(path)))
 
         try:
@@ -441,7 +443,7 @@ def blame(owner, repo, ref, path):
             abort(400)
 
         return render_template("blame.html", view="blame", owner=owner,
-                repo=repo, ref=ref, path=path, entry=entry, blob=blob, data=data,
+                repo=repo, ref=refname, path=path, entry=entry, blob=blob, data=data,
                 blame=list(weld_hunks(blame)), commit=orig_commit, highlight_file=_highlight_file,
                 editorconfig=EditorConfig(git_repo, orig_commit.tree, path),
                 lookup_user=lookup_user(), pygit2=pygit2)
@@ -522,6 +524,7 @@ def log(owner, repo, ref, path):
             return render_empty_repo(owner, repo, "log")
 
         commit, ref, path = lookup_ref(git_repo, ref, path)
+        refname = ref.decode("utf-8", "replace")
         if not isinstance(commit, pygit2.Commit):
             abort(404)
         refs = collect_refs(git_repo)
@@ -553,7 +556,7 @@ def log(owner, repo, ref, path):
         license_exists, licenses = get_license_info_for_tip(tip)
 
         return render_template("log.html", view="log",
-                owner=owner, repo=repo, ref=ref, path=path.split("/"),
+                owner=owner, repo=repo, ref=refname, path=path.split("/"),
                 commits=commits[:num_commits], refs=refs, entry=entry, pygit2=pygit2,
                 next_commit=next_commit, authors=authors,
                 license_exists=license_exists, licenses=licenses)

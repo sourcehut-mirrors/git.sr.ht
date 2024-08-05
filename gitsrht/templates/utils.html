@@ -1,8 +1,7 @@
 {% macro breadcrumb(ref, permaref, repo, path, entry, view, path_join, stat, pygit2, humanize) %}
-{% set ref_s = ref.decode("utf-8", "replace") %}
-{% if ref_s != repo.git_repo.default_branch_name() %}
+{% if ref != repo.git_repo.default_branch_name() %}
 <span class="mr-3">
-  <span class="text-muted">ref:</span> {{ ref_s }}
+  <span class="text-muted">ref:</span> {{ ref }}
 </span>
 {% endif %}
 {% if path != [''] %}
