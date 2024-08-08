@@ -137,7 +137,7 @@ endif %}{% endfor %}
         {{"annotated" if ref.type == "tag" and ref.tag.message else ""}}"
       {% if ref.type == "branch" %}
       href="{{url_for("repo.tree",
-        owner=repo.owner.canonical_name, repo=repo.name, ref=ref.name)}}"
+        owner=repo.owner.canonical_name, repo=repo.name, ref=ref.name.decode('utf-8', 'replace'))}}"
       {% elif ref.type == "tag" %}
       href="{{url_for("repo.ref",
           owner=repo.owner.canonical_name,
