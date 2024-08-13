@@ -142,7 +142,7 @@ endif %}{% endfor %}
       href="{{url_for("repo.ref",
           owner=repo.owner.canonical_name,
           repo=repo.name,
-          ref=ref.name)}}"
+          ref=ref.name.decode('utf-8', 'replace'))}}"
       {% endif %}
     >{{ref.name.decode("utf-8", "replace")}}</a>
   </span>
