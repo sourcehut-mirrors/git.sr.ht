@@ -328,7 +328,7 @@ def resolve_blob(git_repo, ref, path):
     orig_commit = commit
     path = path.split("/")
     for part in path:
-        if part == "":
+        if part == "" or not part:
             continue
         if part not in tree:
             abort(404)
