@@ -343,6 +343,8 @@ def resolve_blob(git_repo, ref, path):
             blob = git_repo.get(entry.id)
             break
         tree = git_repo.get(entry.id)
+        if not tree:
+            abort(404)
 
     if not blob:
         abort(404)
