@@ -325,12 +325,14 @@ def resolve_blob(git_repo, ref, path):
     blob = None
     entry = None
     tree = commit.tree
+    if not tree:
+        abort(404)
     orig_commit = commit
     path = path.split("/")
     for part in path:
         if part == "":
             continue
-        if not part or part not in tree:
+        if part not in tree:
             abort(404)
         entry = tree[part]
         etype = (entry.type_str
