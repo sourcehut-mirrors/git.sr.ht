@@ -853,11 +853,26 @@ func (r *mutationResolver) DeleteUserWebhook(ctx context.Context, id int) (model
 	return &sub, nil
 }
 
+// CreateGitWebhook is the resolver for the createGitWebhook field.
+func (r *mutationResolver) CreateGitWebhook(ctx context.Context, config model.GitWebhookInput) (model.WebhookSubscription, error) {
+	panic(fmt.Errorf("not implemented: CreateGitWebhook - createGitWebhook"))
+}
+
+// DeleteGitWebhook is the resolver for the deleteGitWebhook field.
+func (r *mutationResolver) DeleteGitWebhook(ctx context.Context, id int) (model.WebhookSubscription, error) {
+	panic(fmt.Errorf("not implemented: DeleteGitWebhook - deleteGitWebhook"))
+}
+
 // DeleteUser is the resolver for the deleteUser field.
 func (r *mutationResolver) DeleteUser(ctx context.Context) (int, error) {
 	user := auth.ForContext(ctx)
 	account.Delete(ctx, user.UserID, user.Username)
 	return user.UserID, nil
+}
+
+// DeliverGitHook is the resolver for the deliverGitHook field.
+func (r *mutationResolver) DeliverGitHook(ctx context.Context, input model.GitEventInput) (bool, error) {
+	panic(fmt.Errorf("not implemented: DeliverGitHook - deliverGitHook"))
 }
 
 // Version is the resolver for the version field.
@@ -991,6 +1006,16 @@ func (r *queryResolver) UserWebhook(ctx context.Context, id int) (model.WebhookS
 	}
 
 	return &sub, nil
+}
+
+// GitWebhooks is the resolver for the gitWebhooks field.
+func (r *queryResolver) GitWebhooks(ctx context.Context, repositoryID int, cursor *coremodel.Cursor) (*model.WebhookSubscriptionCursor, error) {
+	panic(fmt.Errorf("not implemented: GitWebhooks - gitWebhooks"))
+}
+
+// GitWebhook is the resolver for the gitWebhook field.
+func (r *queryResolver) GitWebhook(ctx context.Context, id int) (model.WebhookSubscription, error) {
+	panic(fmt.Errorf("not implemented: GitWebhook - gitWebhook"))
 }
 
 // Webhook is the resolver for the webhook field.
