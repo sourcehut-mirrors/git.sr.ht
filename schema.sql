@@ -22,7 +22,9 @@ CREATE TYPE visibility AS ENUM (
 CREATE TYPE webhook_event AS ENUM (
 	'REPO_CREATED',
 	'REPO_UPDATE',
-	'REPO_DELETED'
+	'REPO_DELETED',
+	'GIT_PRE_RECEIVE',
+	'GIT_POST_RECEIVE'
 );
 
 CREATE TYPE owner_repo_name AS (
@@ -140,6 +142,49 @@ CREATE TABLE gql_user_wh_delivery (
 	event webhook_event NOT NULL,
 	subscription_id integer NOT NULL
 		REFERENCES gql_user_wh_sub(id) ON DELETE CASCADE,
+	request_body character varying NOT NULL,
+	response_body character varying,
+	response_headers character varying,
+	response_status integer
+);
+
+CREATE TABLE gql_git_wh_sub (
+	id serial PRIMARY KEY,
+	created timestamp without time zone NOT NULL,
+	events webhook_event[] NOT NULL,
+	url character varying NOT NULL,
+	query character varying NOT NULL,
+	auth_method auth_method NOT NULL,
+	token_hash character varying(128),
+	grants character varying,
+	client_id uuid,
+	expires timestamp without time zone,
+	node_id character varying,
+	user_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+	repo_id integer NOT NULL REFERENCES repository(id) ON DELETE CASCADE,
+	CONSTRAINT gql_git_wh_sub_auth_method_check
+		CHECK ((auth_method = ANY (ARRAY['OAUTH2'::auth_method, 'INTERNAL'::auth_method]))),
+	CONSTRAINT gql_git_wh_sub_check
+		CHECK (((auth_method = 'OAUTH2'::auth_method) = (token_hash IS NOT NULL))),
+	CONSTRAINT gql_git_wh_sub_check1
+		CHECK (((auth_method = 'OAUTH2'::auth_method) = (expires IS NOT NULL))),
+	CONSTRAINT gql_git_wh_sub_check2
+		CHECK (((auth_method = 'INTERNAL'::auth_method) = (node_id IS NOT NULL))),
+	CONSTRAINT gql_git_wh_sub_events_check
+		CHECK ((array_length(events, 1) > 0))
+);
+
+CREATE INDEX gql_git_wh_sub_token_hash_idx
+	ON gql_git_wh_sub
+	USING btree (token_hash);
+
+CREATE TABLE gql_git_wh_delivery (
+	id serial PRIMARY KEY,
+	uuid uuid NOT NULL,
+	date timestamp without time zone NOT NULL,
+	event webhook_event NOT NULL,
+	subscription_id integer NOT NULL
+		REFERENCES gql_git_wh_sub(id) ON DELETE CASCADE,
 	request_body character varying NOT NULL,
 	response_body character varying,
 	response_headers character varying,
