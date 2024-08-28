@@ -4,8 +4,13 @@ import (
 	"context"
 	"time"
 
+	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/storer"
 )
+
+const MAX_COMMITS = 50
 
 // This event is used for pre-receive and post-receive git hooks.
 //
@@ -49,17 +54,76 @@ func (ref *UpdatedRef) Ref() (*Reference, error) {
 }
 
 func (ref *UpdatedRef) Old() (Object, error) {
+	if ref.oldHash == nil {
+		return nil, nil
+	}
 	return LookupObject(ref.repo.Repo(), *ref.oldHash)
 }
 
 func (ref *UpdatedRef) New() (Object, error) {
+	if ref.newHash == nil {
+		return nil, nil
+	}
 	return LookupObject(ref.repo.Repo(), *ref.newHash)
 }
 
 func (ref *UpdatedRef) Log(ctx context.Context) (*CommitCursor, error) {
-	panic("not implemented")
+	repo := ref.repo.Repo()
+	repo.Lock()
+	defer repo.Unlock()
+
+	opts := &git.LogOptions{
+		Order: git.LogOrderCommitterTime,
+		From:  *ref.newHash,
+	}
+
+	log, err := repo.Log(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	// Collect up to 50 commits
+	var commits []*Commit
+	log.ForEach(func(c *object.Commit) error {
+		if c.ID().String() == ref.oldHash.String() ||
+			len(commits) == MAX_COMMITS {
+			return storer.ErrStop
+		}
+		commits = append(commits, CommitFromObject(repo, c))
+		return nil
+	})
+
+	return &CommitCursor{
+		Results: commits,
+	}, nil
 }
 
 func (ref *UpdatedRef) Diff(ctx context.Context) (*string, error) {
-	panic("not implemented")
+	repo := ref.repo.Repo()
+	repo.Lock()
+	defer repo.Unlock()
+
+	oldObject, err := repo.Object(plumbing.CommitObject, *ref.oldHash)
+	if err != nil {
+		return nil, err
+	}
+
+	newObject, err := repo.Object(plumbing.CommitObject, *ref.newHash)
+	if err != nil {
+		return nil, err
+	}
+
+	oldCommit := oldObject.(*object.Commit)
+	newCommit := newObject.(*object.Commit)
+
+	newctx, _ := context.WithTimeout(ctx, 1*time.Second)
+	patch, err := oldCommit.PatchContext(newctx, newCommit)
+	if err == context.DeadlineExceeded {
+		return nil, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	text := patch.String()
+	return &text, nil
 }
