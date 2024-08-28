@@ -21,6 +21,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
 	"git.sr.ht/~sircmpwn/core-go/config"
@@ -42,6 +43,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/storer"
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 	minio "github.com/minio/minio-go/v7"
 )
@@ -80,6 +82,87 @@ func (r *artifactResolver) URL(ctx context.Context, obj *model.Artifact) (string
 // Diff is the resolver for the diff field.
 func (r *commitResolver) Diff(ctx context.Context, obj *model.Commit) (string, error) {
 	return obj.DiffContext(ctx), nil
+}
+
+// Client is the resolver for the client field.
+func (r *gitWebhookSubscriptionResolver) Client(ctx context.Context, obj *model.GitWebhookSubscription) (*model.OAuthClient, error) {
+	panic(fmt.Errorf("not implemented: Client - client"))
+}
+
+// Deliveries is the resolver for the deliveries field.
+func (r *gitWebhookSubscriptionResolver) Deliveries(ctx context.Context, obj *model.GitWebhookSubscription, cursor *coremodel.Cursor) (*model.WebhookDeliveryCursor, error) {
+	panic(fmt.Errorf("not implemented: Deliveries - deliveries"))
+}
+
+// Sample is the resolver for the sample field.
+func (r *gitWebhookSubscriptionResolver) Sample(ctx context.Context, obj *model.GitWebhookSubscription, event model.WebhookEvent) (string, error) {
+	repo, err := loaders.ForContext(ctx).RepositoriesByID.Load(obj.RepoID)
+	if err != nil {
+		panic(err) // Invariant
+	}
+
+	// Collect sample data
+	head, err := repo.Repo().Head()
+	if err != nil {
+		return "", fmt.Errorf("Repository does not have enough commits to generate a sample push event")
+	}
+	oldHash, err := repo.Repo().ResolveRevision("HEAD~1")
+	if err != nil {
+		return "", fmt.Errorf("Repository does not have enough commits to generate a sample push event")
+	}
+	newHash, err := repo.Repo().ResolveRevision("HEAD")
+	if err != nil {
+		return "", fmt.Errorf("Repository does not have enough commits to generate a sample push event")
+	}
+
+	update := model.NewUpdatedRef(repo, head, oldHash, newHash)
+
+	payloadUUID := uuid.New()
+	webhook := corewebhooks.WebhookContext{
+		User:        auth.ForContext(ctx),
+		PayloadUUID: payloadUUID,
+		Name:        "git",
+		Event:       event.String(),
+		Subscription: &corewebhooks.WebhookSubscription{
+			ID:         obj.ID,
+			URL:        obj.URL,
+			Query:      obj.Query,
+			AuthMethod: obj.AuthMethod,
+			TokenHash:  obj.TokenHash,
+			Grants:     obj.Grants,
+			ClientID:   obj.ClientID,
+			Expires:    obj.Expires,
+			NodeID:     obj.NodeID,
+		},
+	}
+
+	user := auth.ForContext(ctx)
+	pusher := &model.User{
+		ID:       user.UserID,
+		Created:  user.Created,
+		Updated:  user.Updated,
+		Username: user.Username,
+		Email:    user.Email,
+		URL:      user.URL,
+		Location: user.Location,
+		Bio:      user.Bio,
+	}
+
+	webhook.Payload = &model.GitEvent{
+		UUID:       payloadUUID.String(),
+		Event:      event,
+		Date:       time.Now().UTC(),
+		Repository: repo,
+		Pusher:     pusher,
+		Updates:    []*model.UpdatedRef{&update},
+	}
+
+	subctx := corewebhooks.Context(ctx, webhook.Payload)
+	bytes, err := webhook.Exec(subctx, server.ForContext(ctx).Schema)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
 }
 
 // CreateRepository is the resolver for the createRepository field.
@@ -855,7 +938,81 @@ func (r *mutationResolver) DeleteUserWebhook(ctx context.Context, id int) (model
 
 // CreateGitWebhook is the resolver for the createGitWebhook field.
 func (r *mutationResolver) CreateGitWebhook(ctx context.Context, config model.GitWebhookInput) (model.WebhookSubscription, error) {
-	panic(fmt.Errorf("not implemented: CreateGitWebhook - createGitWebhook"))
+	schema := server.ForContext(ctx).Schema
+	if err := corewebhooks.Validate(schema, config.Query); err != nil {
+		return nil, err
+	}
+
+	user := auth.ForContext(ctx)
+	ac, err := corewebhooks.NewAuthConfig(ctx)
+	if err != nil {
+		return nil, err
+	}
+	repo, err := loaders.ForContext(ctx).RepositoriesByID.Load(config.RepositoryID)
+	if err != nil {
+		return nil, err
+	}
+
+	var sub model.GitWebhookSubscription
+	if len(config.Events) == 0 {
+		return nil, fmt.Errorf("Must specify at least one event")
+	}
+	events := make([]string, len(config.Events))
+	for i, ev := range config.Events {
+		events[i] = ev.String()
+		// TODO: gqlgen does not support doing anything useful with directives
+		// on enums at the time of writing, so we have to do a little bit of
+		// manual fuckery
+		var access string
+		switch ev {
+		case model.WebhookEventGitPreReceive,
+			model.WebhookEventGitPostReceive:
+			access = "OBJECTS"
+		default:
+			return nil, fmt.Errorf("Unsupported event %s", ev.String())
+		}
+		if !user.Grants.Has(access, auth.RO) {
+			return nil, fmt.Errorf("Insufficient access granted for webhook event %s", ev.String())
+		}
+	}
+
+	u, err := url.Parse(config.URL)
+	if err != nil {
+		return nil, err
+	} else if u.Host == "" {
+		return nil, fmt.Errorf("Cannot use URL without host")
+	} else if u.Scheme != "http" && u.Scheme != "https" {
+		return nil, fmt.Errorf("Cannot use non-HTTP or HTTPS URL")
+	}
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			INSERT INTO gql_git_wh_sub (
+				created, events, url, query,
+				auth_method,
+				token_hash, grants, client_id, expires,
+				node_id,
+				user_id, repo_id
+			) VALUES (
+				NOW() at time zone 'utc',
+				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+			) RETURNING id, url, query, events, repo_id;`,
+			pq.Array(events), config.URL, config.Query,
+			ac.AuthMethod,
+			ac.TokenHash, ac.Grants, ac.ClientID, ac.Expires, // OAUTH2
+			ac.NodeID, // INTERNAL
+			user.UserID, repo.ID)
+
+		if err := row.Scan(&sub.ID, &sub.URL,
+			&sub.Query, pq.Array(&sub.Events), &sub.RepoID); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &sub, nil
 }
 
 // DeleteGitWebhook is the resolver for the deleteGitWebhook field.
@@ -1015,7 +1172,35 @@ func (r *queryResolver) GitWebhooks(ctx context.Context, repositoryID int, curso
 
 // GitWebhook is the resolver for the gitWebhook field.
 func (r *queryResolver) GitWebhook(ctx context.Context, id int) (model.WebhookSubscription, error) {
-	panic(fmt.Errorf("not implemented: GitWebhook - gitWebhook"))
+	var sub model.GitWebhookSubscription
+
+	filter, err := corewebhooks.FilterWebhooks(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		row := database.
+			Select(ctx, &sub).
+			From(`gql_git_wh_sub`).
+			Where(sq.And{sq.Expr(`id = ?`, id), filter}).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		if err := row.Scan(database.Scan(ctx, &sub)...); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &sub, nil
 }
 
 // Webhook is the resolver for the webhook field.
@@ -1439,7 +1624,7 @@ func (r *userWebhookSubscriptionResolver) Deliveries(ctx context.Context, obj *m
 }
 
 // Sample is the resolver for the sample field.
-func (r *userWebhookSubscriptionResolver) Sample(ctx context.Context, obj *model.UserWebhookSubscription, event *model.WebhookEvent) (string, error) {
+func (r *userWebhookSubscriptionResolver) Sample(ctx context.Context, obj *model.UserWebhookSubscription, event model.WebhookEvent) (string, error) {
 	// TODO
 	panic(fmt.Errorf("not implemented"))
 }
@@ -1486,6 +1671,11 @@ func (r *Resolver) Artifact() api.ArtifactResolver { return &artifactResolver{r}
 // Commit returns api.CommitResolver implementation.
 func (r *Resolver) Commit() api.CommitResolver { return &commitResolver{r} }
 
+// GitWebhookSubscription returns api.GitWebhookSubscriptionResolver implementation.
+func (r *Resolver) GitWebhookSubscription() api.GitWebhookSubscriptionResolver {
+	return &gitWebhookSubscriptionResolver{r}
+}
+
 // Mutation returns api.MutationResolver implementation.
 func (r *Resolver) Mutation() api.MutationResolver { return &mutationResolver{r} }
 
@@ -1515,6 +1705,7 @@ func (r *Resolver) WebhookDelivery() api.WebhookDeliveryResolver { return &webho
 type aCLResolver struct{ *Resolver }
 type artifactResolver struct{ *Resolver }
 type commitResolver struct{ *Resolver }
+type gitWebhookSubscriptionResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type referenceResolver struct{ *Resolver }

@@ -115,6 +115,18 @@ func (whd *WebhookDelivery) QueryWithCursor(ctx context.Context,
 	return deliveries, cur
 }
 
+func (we *WebhookEvent) Scan(src interface{}) error {
+	bytes, ok := src.([]uint8)
+	if !ok {
+		return fmt.Errorf("Unable to scan from %T into WebhookEvent", src)
+	}
+	*we = WebhookEvent(string(bytes))
+	if !we.IsValid() {
+		return fmt.Errorf("%s is not a valid WebhookEvent", string(bytes))
+	}
+	return nil
+}
+
 type UserWebhookSubscription struct {
 	ID     int            `json:"id"`
 	Events []WebhookEvent `json:"events"`
@@ -131,18 +143,6 @@ type UserWebhookSubscription struct {
 
 	alias  string
 	fields *database.ModelFields
-}
-
-func (we *WebhookEvent) Scan(src interface{}) error {
-	bytes, ok := src.([]uint8)
-	if !ok {
-		return fmt.Errorf("Unable to scan from %T into WebhookEvent", src)
-	}
-	*we = WebhookEvent(string(bytes))
-	if !we.IsValid() {
-		return fmt.Errorf("%s is not a valid WebhookEvent", string(bytes))
-	}
-	return nil
 }
 
 func (UserWebhookSubscription) IsWebhookSubscription() {}
@@ -230,4 +230,67 @@ func (sub *UserWebhookSubscription) QueryWithCursor(ctx context.Context,
 	}
 
 	return subs, cur
+}
+
+type GitWebhookSubscription struct {
+	ID     int            `json:"id"`
+	Events []WebhookEvent `json:"events"`
+	Query  string         `json:"query"`
+	URL    string         `json:"url"`
+
+	RepoID     int
+	AuthMethod string
+	ClientID   *string
+	TokenHash  *string
+	Expires    *time.Time
+	Grants     *string
+	NodeID     *string
+
+	alias  string
+	fields *database.ModelFields
+}
+
+func (GitWebhookSubscription) IsWebhookSubscription() {}
+
+func (sub *GitWebhookSubscription) As(alias string) *GitWebhookSubscription {
+	sub.alias = alias
+	return sub
+}
+
+func (sub *GitWebhookSubscription) Alias() string {
+	return sub.alias
+}
+
+func (sub *GitWebhookSubscription) Table() string {
+	return "gql_git_wh_sub"
+}
+
+func (sub *GitWebhookSubscription) Fields() *database.ModelFields {
+	if sub.fields != nil {
+		return sub.fields
+	}
+	sub.fields = &database.ModelFields{
+		Fields: []*database.FieldMap{
+			{"events", "events", pq.Array(&sub.Events)},
+			{"url", "url", &sub.URL},
+
+			// Always fetch:
+			{"id", "", &sub.ID},
+			{"query", "", &sub.Query},
+			{"repo_id", "", &sub.RepoID},
+			{"auth_method", "", &sub.AuthMethod},
+			{"token_hash", "", &sub.TokenHash},
+			{"client_id", "", &sub.ClientID},
+			{"grants", "", &sub.Grants},
+			{"expires", "", &sub.Expires},
+			{"node_id", "", &sub.NodeID},
+		},
+	}
+	return sub.fields
+}
+
+func (sub *GitWebhookSubscription) QueryWithCursor(ctx context.Context,
+	runner sq.BaseRunner, q sq.SelectBuilder,
+	cur *model.Cursor) ([]WebhookSubscription, *model.Cursor) {
+	panic("TODO")
 }

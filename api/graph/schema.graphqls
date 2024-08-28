@@ -208,7 +208,17 @@ type UserWebhookSubscription implements WebhookSubscription {
   url: String!
   client: OAuthClient @private
   deliveries(cursor: Cursor): WebhookDeliveryCursor!
-  sample(event: WebhookEvent): String!
+  sample(event: WebhookEvent!): String!
+}
+
+type GitWebhookSubscription implements WebhookSubscription {
+  id: Int!
+  events: [WebhookEvent!]!
+  query: String!
+  url: String!
+  client: OAuthClient @private
+  deliveries(cursor: Cursor): WebhookDeliveryCursor!
+  sample(event: WebhookEvent!): String!
 }
 
 type WebhookDelivery {
@@ -283,9 +293,9 @@ type GitEvent implements WebhookPayload {
   event: WebhookEvent!
   date: Time!
 
-  repository: Repository!
-  pusher: Entity!
-  updates: [UpdatedRef]!
+  repository: Repository! @access(scope: REPOSITORIES, kind: RO)
+  pusher: Entity! @access(scope: PROFILE, kind: RO)
+  updates: [UpdatedRef]! @access(scope: OBJECTS, kind: RO)
 }
 
 """
@@ -591,6 +601,8 @@ input UserWebhookInput {
 
 input GitWebhookInput {
   repositoryID: Int!
+
+  url: String!
   events: [WebhookEvent!]!
   query: String!
 
