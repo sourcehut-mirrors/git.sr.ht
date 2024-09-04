@@ -86,12 +86,39 @@ func (r *commitResolver) Diff(ctx context.Context, obj *model.Commit) (string, e
 
 // Client is the resolver for the client field.
 func (r *gitWebhookSubscriptionResolver) Client(ctx context.Context, obj *model.GitWebhookSubscription) (*model.OAuthClient, error) {
-	panic(fmt.Errorf("not implemented: Client - client"))
+	if obj.ClientID == nil {
+		return nil, nil
+	}
+	return &model.OAuthClient{
+		UUID: *obj.ClientID,
+	}, nil
 }
 
 // Deliveries is the resolver for the deliveries field.
 func (r *gitWebhookSubscriptionResolver) Deliveries(ctx context.Context, obj *model.GitWebhookSubscription, cursor *coremodel.Cursor) (*model.WebhookDeliveryCursor, error) {
-	panic(fmt.Errorf("not implemented: Deliveries - deliveries"))
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var deliveries []*model.WebhookDelivery
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		d := (&model.WebhookDelivery{}).
+			WithName(`user`).
+			As(`delivery`)
+		query := database.
+			Select(ctx, d).
+			From(`gql_git_wh_delivery delivery`).
+			Where(`delivery.subscription_id = ?`, obj.ID)
+		deliveries, cursor = d.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.WebhookDeliveryCursor{deliveries, cursor}, nil
 }
 
 // Sample is the resolver for the sample field.
