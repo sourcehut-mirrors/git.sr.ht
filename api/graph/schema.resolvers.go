@@ -284,7 +284,12 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 		if err := os.Mkdir(hookdir, os.ModePerm); err != nil {
 			return err
 		}
-		for _, hook := range []string{"pre-receive", "update", "post-update"} {
+		for _, hook := range []string{
+			"pre-receive",
+			"update",
+			"post-update",
+			"post-receive",
+		} {
 			if err := os.Symlink(postUpdate, path.Join(hookdir, hook)); err != nil {
 				return err
 			}
