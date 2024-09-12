@@ -276,17 +276,6 @@ type UpdatedRef {
 
 """
 This event is used for pre-receive and post-receive git hooks.
-
-If a pre-receive event is configured to be delievered synchronously, the git
-push operation is blocked until the webhook destination server returns a
-response. If the response code is not 200 OK, the push operation is cancelled.
-This allows the webhook user to accept or reject pushes according to
-user-specific policy, for instance enforcing an OWNERS file or denying certain
-users the right to push to certain branches. If a push is rejected, the HTTP
-response content is printed on the pushing user's console.
-
-post-receive events are never processed synchronously and the HTTP response has
-no outcome on the push operation.
 """
 type GitEvent implements WebhookPayload {
   uuid: String!
@@ -605,12 +594,6 @@ input GitWebhookInput {
   url: String!
   events: [WebhookEvent!]!
   query: String!
-
-  """
-  If enabled, this webhook will be delivered synchronously. This only applies
-  to GIT_PRE_RECEIVE events. Consult the documentation for GitEvent for details.
-  """
-  sync: Boolean!
 }
 
 input UpdatedRefInput {
