@@ -1044,7 +1044,34 @@ func (r *mutationResolver) CreateGitWebhook(ctx context.Context, config model.Gi
 
 // DeleteGitWebhook is the resolver for the deleteGitWebhook field.
 func (r *mutationResolver) DeleteGitWebhook(ctx context.Context, id int) (model.WebhookSubscription, error) {
-	panic(fmt.Errorf("not implemented: DeleteGitWebhook - deleteGitWebhook"))
+	var sub model.GitWebhookSubscription
+
+	filter, err := corewebhooks.FilterWebhooks(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := sq.Delete(`gql_git_wh_sub`).
+			PlaceholderFormat(sq.Dollar).
+			Where(sq.And{sq.Expr(`id = ?`, id), filter}).
+			Suffix(`RETURNING id, url, query, events, repo_id`).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		if err := row.Scan(&sub.ID, &sub.URL,
+			&sub.Query, pq.Array(&sub.Events),
+			&sub.RepoID); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("No git webhook by ID %d found", id)
+		}
+		return nil, err
+	}
+
+	return &sub, nil
 }
 
 // DeleteUser is the resolver for the deleteUser field.
