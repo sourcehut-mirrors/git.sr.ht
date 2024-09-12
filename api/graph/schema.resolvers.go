@@ -1221,7 +1221,36 @@ func (r *queryResolver) UserWebhook(ctx context.Context, id int) (model.WebhookS
 
 // GitWebhooks is the resolver for the gitWebhooks field.
 func (r *queryResolver) GitWebhooks(ctx context.Context, repositoryID int, cursor *coremodel.Cursor) (*model.WebhookSubscriptionCursor, error) {
-	panic(fmt.Errorf("not implemented: GitWebhooks - gitWebhooks"))
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	filter, err := corewebhooks.FilterWebhooks(ctx)
+	if err != nil {
+		return nil, err
+	}
+	filter = sq.And{
+		filter,
+		sq.Expr(`repo_id = ?`, repositoryID),
+	}
+
+	var subs []model.WebhookSubscription
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		sub := (&model.GitWebhookSubscription{}).As(`sub`)
+		query := database.
+			Select(ctx, sub).
+			From(`gql_git_wh_sub sub`).
+			Where(filter)
+		subs, cursor = sub.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.WebhookSubscriptionCursor{subs, cursor}, nil
 }
 
 // GitWebhook is the resolver for the gitWebhook field.

@@ -238,6 +238,7 @@ type GitWebhookSubscription struct {
 	Query  string         `json:"query"`
 	URL    string         `json:"url"`
 
+	UserID     int
 	RepoID     int
 	AuthMethod string
 	ClientID   *string
@@ -277,6 +278,7 @@ func (sub *GitWebhookSubscription) Fields() *database.ModelFields {
 			// Always fetch:
 			{"id", "", &sub.ID},
 			{"query", "", &sub.Query},
+			{"user_id", "", &sub.UserID},
 			{"repo_id", "", &sub.RepoID},
 			{"auth_method", "", &sub.AuthMethod},
 			{"token_hash", "", &sub.TokenHash},
@@ -292,5 +294,47 @@ func (sub *GitWebhookSubscription) Fields() *database.ModelFields {
 func (sub *GitWebhookSubscription) QueryWithCursor(ctx context.Context,
 	runner sq.BaseRunner, q sq.SelectBuilder,
 	cur *model.Cursor) ([]WebhookSubscription, *model.Cursor) {
-	panic("TODO")
+	var (
+		err  error
+		rows *sql.Rows
+	)
+
+	if cur.Next != "" {
+		next, _ := strconv.ParseInt(cur.Next, 10, 64)
+		q = q.Where(database.WithAlias(sub.alias, "id")+"<= ?", next)
+	}
+	q = q.
+		OrderBy(database.WithAlias(sub.alias, "id")).
+		Limit(uint64(cur.Count + 1))
+
+	if rows, err = q.RunWith(runner).QueryContext(ctx); err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	var (
+		subs   []WebhookSubscription
+		lastID int
+	)
+	for rows.Next() {
+		var sub GitWebhookSubscription
+		if err := rows.Scan(database.Scan(ctx, &sub)...); err != nil {
+			panic(err)
+		}
+		subs = append(subs, &sub)
+		lastID = sub.ID
+	}
+
+	if len(subs) > cur.Count {
+		cur = &model.Cursor{
+			Count:  cur.Count,
+			Next:   strconv.Itoa(lastID),
+			Search: cur.Search,
+		}
+		subs = subs[:cur.Count]
+	} else {
+		cur = nil
+	}
+
+	return subs, cur
 }
