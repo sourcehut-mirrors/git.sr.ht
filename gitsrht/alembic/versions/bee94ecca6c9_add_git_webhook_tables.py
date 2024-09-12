@@ -25,6 +25,7 @@ def upgrade():
         events webhook_event[] NOT NULL,
         url character varying NOT NULL,
         query character varying NOT NULL,
+        sync boolean NOT NULL,
         auth_method auth_method NOT NULL,
         token_hash character varying(128),
         grants character varying,

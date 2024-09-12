@@ -1019,10 +1019,11 @@ func (r *mutationResolver) CreateGitWebhook(ctx context.Context, config model.Gi
 				auth_method,
 				token_hash, grants, client_id, expires,
 				node_id,
-				user_id, repo_id
+				user_id, repo_id, sync
 			) VALUES (
 				NOW() at time zone 'utc',
-				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+				'f'
 			) RETURNING id, url, query, events, repo_id;`,
 			pq.Array(events), config.URL, config.Query,
 			ac.AuthMethod,
