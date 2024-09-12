@@ -1084,7 +1084,7 @@ func (r *mutationResolver) DeleteUser(ctx context.Context) (int, error) {
 
 // DeliverGitHook is the resolver for the deliverGitHook field.
 func (r *mutationResolver) DeliverGitHook(ctx context.Context, input model.GitEventInput) (bool, error) {
-	panic(fmt.Errorf("not implemented: DeliverGitHook - deliverGitHook"))
+	return webhooks.DeliverGitEvent(ctx, input), nil
 }
 
 // Version is the resolver for the version field.

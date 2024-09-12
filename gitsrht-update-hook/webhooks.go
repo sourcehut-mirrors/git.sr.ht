@@ -17,6 +17,18 @@ import (
 	"github.com/mattn/go-runewidth"
 )
 
+type UpdatedRefInput struct {
+	Ref string `json:"ref"`
+	Old string `json:"old"`
+	New string `json:"new"`
+}
+
+type GitEventInput struct {
+	RepositoryID int               `json:"repositoryID"`
+	Event        string            `json:"event"`
+	Updates      []UpdatedRefInput `json:"updates"`
+}
+
 type WebhookSubscription struct {
 	Id     int
 	Url    string

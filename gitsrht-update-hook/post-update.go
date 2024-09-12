@@ -189,6 +189,8 @@ func postUpdate() {
 	}
 
 	loadOptions()
+
+	// Legacy webhook payload
 	payload := WebhookPayload{
 		Push:     pushUuid,
 		PushOpts: options,
