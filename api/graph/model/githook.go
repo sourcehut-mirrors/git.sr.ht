@@ -50,18 +50,21 @@ func NewUpdatedRef(
 }
 
 func (ref *UpdatedRef) Ref() (*Reference, error) {
+	if ref.ref == nil {
+		return nil, nil
+	}
 	return &Reference{ref.repo, ref.ref}, nil
 }
 
 func (ref *UpdatedRef) Old() (Object, error) {
-	if ref.oldHash == nil {
+	if ref.oldHash == nil || ref.oldHash.IsZero() {
 		return nil, nil
 	}
 	return LookupObject(ref.repo.Repo(), *ref.oldHash)
 }
 
 func (ref *UpdatedRef) New() (Object, error) {
-	if ref.newHash == nil {
+	if ref.newHash == nil || ref.oldHash.IsZero() {
 		return nil, nil
 	}
 	return LookupObject(ref.repo.Repo(), *ref.newHash)

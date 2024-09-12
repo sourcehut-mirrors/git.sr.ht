@@ -254,7 +254,8 @@ type RepositoryEvent implements WebhookPayload {
 }
 
 type UpdatedRef {
-  ref: Reference!
+  # Is null when pushing a new reference
+  ref: Reference
   # Is null when pushing a new reference
   old: Object
   # Is null when deleting a reference
@@ -604,6 +605,7 @@ input UpdatedRefInput {
 
 input GitEventInput {
   repositoryID: Int!
+  event: WebhookEvent!
   updates: [UpdatedRefInput]!
 }
 
