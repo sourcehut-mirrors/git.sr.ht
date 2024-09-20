@@ -41,6 +41,18 @@ def commit_title_description(commit):
     # Empty message fallback
     return str(commit.id), ""
 
+def tag_title_description(tag):
+    """Split the tag message to title (first line) and the description
+    (remaining lines)."""
+    lines = tag.message.strip().split("\n")
+    if lines:
+        title = lines[0]
+        description = "\n".join(lines[1:]).strip().replace("\n", "<br />")
+        return title, description
+
+    # Empty message fallback
+    return str(commit.id), ""
+
 def ref_to_item(repo, reference):
     with GitRepository(repo.path) as git_repo:
         target = git_repo.get(reference.target)
@@ -76,12 +88,31 @@ def commit_to_item(repo, commit):
 
     return element
 
+def tag_to_item(repo, tag):
+    time = aware_time(tag.tagger).strftime(RFC_822_FORMAT)
+    url = ref_url(repo, tag)
+    title, description = tag_title_description(tag)
+    author = f"{tag.tagger.email} ({tag.tagger.name})"
+
+    element = ET.Element("item")
+    ET.SubElement(element, "title").text = title
+    ET.SubElement(element, "description").text = description
+    ET.SubElement(element, "author").text = author
+    ET.SubElement(element, "link").text = url
+    ET.SubElement(element, "guid").text = url
+    ET.SubElement(element, "pubDate").text = time
+
+    return element
+
 def to_item(repo, item):
     if isinstance(item, pygit2.Reference):
         return ref_to_item(repo, item)
 
     if isinstance(item, pygit2.Commit):
         return commit_to_item(repo, item)
+
+    if isinstance(item, pygit2.Tag):
+        return tag_to_item(repo, item)
 
     raise ValueError(f"Don't know how to convert {type(item)} to an RSS item.")
 
@@ -95,7 +126,7 @@ def generate_feed(repo, items, title, link, description):
     ET.SubElement(channel, "language").text = "en"
 
     for item in items:
-        channel.append(to_item(repo, item))
+        channel.append(to_item(repo, item[1]))
 
     xml = ET.tostring(root, encoding="UTF-8")
     return Response(xml, mimetype='application/rss+xml')

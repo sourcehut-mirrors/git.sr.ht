@@ -723,18 +723,21 @@ def licenses(owner, repo):
 def refs_rss(owner, repo):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
-        references = [
-            git_repo.references[name.decode('utf-8')]
-            for name in git_repo.raw_listall_references()
-            if name.startswith(b"refs/tags/")
-        ]
+        references = [(
+                ref,
+                git_repo.get(git_repo.references[ref.decode('utf-8')].target),
+                lookup_signature(git_repo, ref.decode('utf-8'))[1]
+            ) for ref in git_repo.raw_listall_references()
+              if ref.startswith(b"refs/tags/")]
 
-    def _ref_sort_key(ref):
-        target = git_repo.get(ref.target)
-        author = target.author if hasattr(target, 'author') else target.get_object().author
-        return author.time + author.offset
+    def _tag_key(tag):
+        if isinstance(tag[1], pygit2.Commit):
+            return tag[1].commit_time
+        elif isinstance(tag[1], pygit2.Tag):
+            return _tag_key([None, tag[1].get_object()])
+        return 0
 
-    references = sorted(references, key=_ref_sort_key, reverse=True)[:20]
+    references = sorted(references, key=_tag_key, reverse=True)[:20]
 
     repo_name = f"{repo.owner.canonical_name}/{repo.name}"
     title = f"{repo_name} refs"
