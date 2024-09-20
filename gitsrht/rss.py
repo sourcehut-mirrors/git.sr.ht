@@ -116,7 +116,7 @@ def to_item(repo, item):
 
     raise ValueError(f"Don't know how to convert {type(item)} to an RSS item.")
 
-def generate_feed(repo, items, title, link, description):
+def generate_refs_feed(repo, items, title, link, description):
     root = ET.Element("rss", version="2.0")
     channel = ET.SubElement(root, "channel")
 
@@ -127,6 +127,21 @@ def generate_feed(repo, items, title, link, description):
 
     for item in items:
         channel.append(to_item(repo, item[1]))
+
+    xml = ET.tostring(root, encoding="UTF-8")
+    return Response(xml, mimetype='application/rss+xml')
+
+def generate_commits_feed(repo, items, title, link, description):
+    root = ET.Element("rss", version="2.0")
+    channel = ET.SubElement(root, "channel")
+
+    ET.SubElement(channel, "title").text = title
+    ET.SubElement(channel, "link").text = link
+    ET.SubElement(channel, "description").text = description
+    ET.SubElement(channel, "language").text = "en"
+
+    for item in items:
+        channel.append(to_item(repo, item))
 
     xml = ET.tostring(root, encoding="UTF-8")
     return Response(xml, mimetype='application/rss+xml')

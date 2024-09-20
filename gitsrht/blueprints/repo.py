@@ -11,7 +11,7 @@ from flask import Response, url_for, session, redirect
 from gitsrht.editorconfig import EditorConfig
 from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
 from gitsrht.git import diffstat, get_log, diff_for_commit, strip_pgp_signature
-from gitsrht.rss import generate_feed
+from gitsrht.rss import generate_refs_feed, generate_commits_feed
 from gitsrht.spdx import SPDX_LICENSES
 from gitsrht.types import Artifact, User
 from io import BytesIO
@@ -585,7 +585,7 @@ def log_rss(owner, repo, ref):
         repo=repo.name,
         ref=ref if ref != default_branch else None)
 
-    return generate_feed(repo, commits, title, link, description)
+    return generate_commits_feed(repo, commits, title, link, description)
 
 @repo.route("/<owner>/<repo>/commit/<path:ref>")
 def commit(owner, repo, ref):
@@ -745,7 +745,7 @@ def refs_rss(owner, repo):
     link = cfg("git.sr.ht", "origin") + url_for("repo.refs",
         owner=repo.owner.canonical_name, repo=repo.name)
 
-    return generate_feed(repo, references, title, link, description)
+    return generate_refs_feed(repo, references, title, link, description)
 
 @repo.route("/<owner>/<repo>/refs/<path:ref>")
 def ref(owner, repo, ref):
