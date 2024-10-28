@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gitsrht"
+dynamic = ["version"]
+description = "git.sr.ht website"
+readme = "README.md"
+authors = [{name = "Drew DeVault", email = "sir@cmpwn.com"}]
+dependencies = [
+    "srht",
+    "scmsrht",
+    "pygit2",
+    "minio",
+]
+license.text = "AGPL-3.0-only"
+
+[project.urls]
+repository = "https://git.sr.ht/~sircmpwn/git.sr.ht"
+
+[tool.setuptools]
+# This defaults to true, but we explicitly specify what we want included in the
+# package via packages and tool.setuptools.package-data below.
+include-package-data = false
+packages = [
+    "gitsrht",
+    "gitsrht.alembic",
+    "gitsrht.alembic.versions",
+    "gitsrht.blueprints",
+    "gitsrht.blueprints.api",
+    "gitsrht.static",
+    "gitsrht.static.icons",
+    "gitsrht.templates",
+    "gitsrht.types",
+]
+script-files = [
+    "gitsrht-initdb",
+    "gitsrht-migrate",
+    "gitsrht-periodic",
+]
+[tool.setuptools.package-data]
+"gitsrht" = ['default_query.graphql', 'schema.graphqls']
+"gitsrht.templates" = ['*.html']
+"gitsrht.static" = ['*']
+"gitsrht.static.icons" = ['*']
+
+[tool.setuptools_scm]
