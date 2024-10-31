@@ -51,8 +51,7 @@ CREATE TABLE "user" (
 	-- TODO: Delete these
 	oauth_token character varying(256),
 	oauth_token_expires timestamp without time zone,
-	oauth_token_scopes character varying DEFAULT ''::character varying,
-	oauth_revocation_token character varying(256)
+	oauth_token_scopes character varying DEFAULT ''::character varying
 );
 
 CREATE INDEX ix_user_username ON "user" USING btree (username);
