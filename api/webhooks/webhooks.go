@@ -6,9 +6,9 @@ import (
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
 	"git.sr.ht/~sircmpwn/core-go/webhooks"
+	sq "github.com/Masterminds/squirrel"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/google/uuid"
-	sq "github.com/Masterminds/squirrel"
 
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"

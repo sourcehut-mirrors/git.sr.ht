@@ -81,6 +81,6 @@ func receiveHook(event string) {
 
 	if err != nil {
 		logger.Fatalf("Failed to execute pre-receive hooks: %s",
-		err.Error())
+			err.Error())
 	}
 }
