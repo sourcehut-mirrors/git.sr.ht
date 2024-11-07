@@ -27,6 +27,17 @@ CREATE TYPE webhook_event AS ENUM (
 	'GIT_POST_RECEIVE'
 );
 
+CREATE TYPE user_type AS ENUM (
+	'UNCONFIRMED',
+	'ACTIVE_NON_PAYING',
+	'ACTIVE_FREE',
+	'ACTIVE_PAYING',
+	'ACTIVE_DELINQUENT',
+	'ADMIN',
+	'UNKNOWN',
+	'SUSPENDED'
+);
+
 CREATE TYPE owner_repo_name AS (
 	owner text,
 	repo_name text
@@ -43,7 +54,7 @@ CREATE TABLE "user" (
 	created timestamp without time zone NOT NULL,
 	updated timestamp without time zone NOT NULL,
 	email character varying(256) NOT NULL,
-	user_type character varying NOT NULL DEFAULT 'active_non_paying'::character varying,
+	user_type user_type NOT NULL,
 	url character varying(256),
 	location character varying(256),
 	bio character varying(4096),

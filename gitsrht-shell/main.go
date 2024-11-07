@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"syscall"
 
+	"git.sr.ht/~sircmpwn/core-go/auth"
 	"git.sr.ht/~sircmpwn/core-go/client"
 	coreconfig "git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/crypto"
@@ -373,7 +374,7 @@ func main() {
 		os.Exit(128)
 	}
 
-	if pusherType == "suspended" {
+	if pusherType == auth.USER_SUSPENDED {
 		log.Println("Your account has been suspended for the following reason:")
 		log.Println()
 		log.Println("\t" + *pusherSuspendNotice)
