@@ -3,7 +3,7 @@ module git.sr.ht/~sircmpwn/git.sr.ht
 go 1.16
 
 require (
-	git.sr.ht/~sircmpwn/core-go v0.0.0-20240202110806-942e19c3517b
+	git.sr.ht/~sircmpwn/core-go v0.0.0-20241108083940-50396a55470c
 	git.sr.ht/~sircmpwn/dowork v0.0.0-20221010085743-46c4299d76a1
 	git.sr.ht/~sircmpwn/scm.sr.ht/srht-keys v0.0.0-20230322101108-c39456ffb47d
 	git.sr.ht/~turminal/go-fnmatch v0.0.0-20211021204744-1a55764af6de
@@ -14,7 +14,6 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/emersion/go-pgpmail v0.2.1 // indirect
 	github.com/emersion/go-sasl v0.0.0-20231106173351-e73c9f7bad43 // indirect
-	github.com/emersion/go-smtp v0.20.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/fernet/fernet-go v0.0.0-20211208181803-9f70042a33ee
 	github.com/go-chi/chi/v5 v5.0.11 // indirect
