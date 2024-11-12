@@ -207,7 +207,7 @@ def settings_access_POST(owner_name, repo_name):
     valid.expect(not user or user.id != current_user.id,
             "You can't adjust your own access controls. You always have full read/write access.",
             field="user")
-    valid.expect(not user or user.user_type != UserType.unconfirmed,
+    valid.expect(not user or user.user_type != UserType.pending,
             "This account has not been confirmed yet.", field="user")
     valid.expect(not user or user.user_type != UserType.suspended,
             "This account has been suspended.", field="user")
