@@ -63,7 +63,7 @@ func DeliverGitEvent(ctx context.Context, input model.GitEventInput) bool {
 		oldHash := plumbing.NewHash(ref.Old)
 		newHash := plumbing.NewHash(ref.New)
 
-		if !oldHash.IsZero() {
+		if !oldHash.IsZero() && !newHash.IsZero() {
 			grepo.Lock()
 			gref, err = grepo.Reference(
 				plumbing.ReferenceName(ref.Ref), true)
