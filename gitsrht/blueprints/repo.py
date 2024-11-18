@@ -130,9 +130,6 @@ def summary(owner, repo):
             return render_empty_repo(owner, repo, "summary")
 
         default_branch = git_repo.default_branch()
-        if not default_branch:
-            return render_empty_repo(owner, repo, "summary")
-
         default_branch_name = default_branch.raw_name \
             .decode("utf-8", "replace")[len("refs/heads/"):]
         tip = git_repo.get(default_branch.raw_target)
@@ -634,6 +631,7 @@ def patch(owner, repo, ref):
 def refs(owner, repo):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
+        print("refs", git_repo.is_empty)
         if git_repo.is_empty:
             return render_empty_repo(owner, repo, "refs")
 

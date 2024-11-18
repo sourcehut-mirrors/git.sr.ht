@@ -124,7 +124,8 @@ class Repository(GitRepository):
 
     @property
     def is_empty(self):
-        return len(self.raw_listall_branches(pygit2.GIT_BRANCH_LOCAL)) == 0
+        return (len(self.raw_listall_branches(pygit2.GIT_BRANCH_LOCAL)) == 0
+                or not self.default_branch())
 
 class AnnotatedTreeEntry:
     def __init__(self, repo, entry):
