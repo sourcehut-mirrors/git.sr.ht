@@ -631,7 +631,6 @@ def patch(owner, repo, ref):
 def refs(owner, repo):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
-        print("refs", git_repo.is_empty)
         if git_repo.is_empty:
             return render_empty_repo(owner, repo, "refs")
 
