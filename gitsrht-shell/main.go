@@ -374,7 +374,7 @@ func main() {
 		os.Exit(128)
 	}
 
-	if pusherType == auth.USER_SUSPENDED {
+	if pusherType == auth.USER_TYPE_SUSPENDED {
 		log.Println("Your account has been suspended for the following reason:")
 		log.Println()
 		log.Println("\t" + *pusherSuspendNotice)
