@@ -16,6 +16,7 @@
           owner=repo.owner.canonical_name,
           repo=repo.name,
           ref=ref)}}"
+        rel="nofollow"
       >{{str(commit.id)[:8]}}</a> &mdash;
       {% set author_user = lookup_user(commit.author.email) %}
       {% if author_user %}
@@ -41,9 +42,12 @@
       {% if path != [''] and index == 0 %}
       <div class="mode"></div>
       <div class="name tree">
-        <a href="{{url_for("repo.tree",
-          owner=repo.owner.canonical_name, repo=repo.name, ref=ref,
-          path=path_join(*path[:-1]) if path[:-1] else None)}}">..</a>
+        <a
+          href="{{url_for("repo.tree",
+            owner=repo.owner.canonical_name, repo=repo.name, ref=ref,
+            path=path_join(*path[:-1]) if path[:-1] else None)}}"
+          rel="nofollow"
+        >..</a>
       </div>
       <div class="commit"></div>
       <div class="date"></div>
@@ -64,9 +68,11 @@
         {% if entry.type == "commit" %}
         {{entry.name}} @ {{ entry.id }}
         {% else %}
-        <a href="{{url_for("repo.tree",
-          owner=repo.owner.canonical_name, repo=repo.name, ref=ref,
-          path=path_join(*(path + [entry.name])))}}"
+        <a
+          href="{{url_for("repo.tree",
+            owner=repo.owner.canonical_name, repo=repo.name, ref=ref,
+            path=path_join(*(path + [entry.name])))}}"
+          rel="nofollow"
         >
           {{entry.name}}{% if entry.type == "tree" %}/{% endif %}
         </a>
@@ -79,6 +85,7 @@
             owner=repo.owner.canonical_name,
             repo=repo.name,
             ref=str(entry.commit.id))}}"
+          rel="nofollow"
         >{{trim_commit(entry.commit.message)}}</a>
         {% endif %}
       </div>

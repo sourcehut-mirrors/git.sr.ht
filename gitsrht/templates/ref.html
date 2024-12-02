@@ -31,6 +31,7 @@
         {% endif %}
         <a
           class="btn btn-default btn-block"
+          rel="nofollow"
           href="{{url_for("repo.tree",
             owner=repo.owner.canonical_name,
             repo=repo.name, ref=tagname)}}"

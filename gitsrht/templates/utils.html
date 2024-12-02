@@ -7,6 +7,7 @@
 {% if path != [''] %}
 <a href="{{url_for("repo.tree",
   owner=repo.owner.canonical_name, repo=repo.name, ref=ref)}}"
+  rel="nofollow"
 >{{repo.name}}</a>{% endif %}/{% for part in path%}{%
   if loop.last %}{{part}}{% else %}<a
     href="{{url_for("repo.tree", owner=repo.owner.canonical_name,
@@ -41,14 +42,14 @@ endif %}{% endfor %}
     <li class="nav-item">
       <a class="nav-link {% if view in ["blob", "tree"] %}active{% endif %}"
          href="{{url_for("repo.tree", owner=repo.owner.canonical_name,
-              repo=repo.name, ref=ref, path=path)}}">
+              repo=repo.name, ref=ref, path=path)}}" rel="nofollow">
         {%- if is_blob %}View{% else %}Tree{% endif %}</a>
     </li>
 
     <li class="nav-item">
       <a class="nav-link {% if view == "log" %}active{% endif %}"
          href="{{url_for("repo.log", owner=repo.owner.canonical_name,
-              repo=repo.name, ref=ref, path=path)}}">Log</a>
+              repo=repo.name, ref=ref, path=path)}}" rel="nofollow">Log</a>
     </li>
 
     {% if is_blob %}
@@ -56,21 +57,21 @@ endif %}{% endfor %}
         <li class="nav-item">
           <a class="nav-link {% if view == "blame" %}active{% endif %}"
              href="{{url_for("repo.blame", owner=repo.owner.canonical_name,
-                  repo=repo.name, ref=ref, path=path)}}">Blame</a>
+                  repo=repo.name, ref=ref, path=path)}}" rel="nofollow">Blame</a>
         </li>
       {% endif %}
 
       <li class="nav-item">
         <a class="nav-link" rel="noopener noreferrer nofollow"
            href="{{url_for("repo.raw_blob", owner=repo.owner.canonical_name,
-                repo=repo.name, ref=ref, path=path)}}">View raw</a>
+                repo=repo.name, ref=ref, path=path)}}" rel="nofollow">View raw</a>
       </li>
     {% endif %}
     <li class="nav-item">
       <a class="nav-link"
          {%- set args = request.view_args.copy() -%}
          {%- do args.update(dict(ref=permaref)) -%}
-         href="{{url_for(request.endpoint, **args)}}">Permalink</a>
+         href="{{url_for(request.endpoint, **args)}}" rel="nofollow">Permalink</a>
     </li>
   </ul>
 </div>
@@ -95,6 +96,7 @@ endif %}{% endfor %}
     {% if target_blank %}
     target="_blank"
     {% endif %}
+    rel="nofollow"
   >{{str(c.id)[:8]}}</a>
   {% endif %}
   &mdash;
@@ -110,6 +112,7 @@ endif %}{% endfor %}
       id="log-{{c.id}}"
       href="{{url_for("repo.log", owner=repo.owner.canonical_name,
         repo=repo.name)}}?from={{c.id}}#log-{{c.id}}"
+      rel="nofollow"
     >{{ commit_time(c) | date }}</a>
   </small>
 
@@ -121,6 +124,7 @@ endif %}{% endfor %}
       owner=repo.owner.canonical_name,
       repo=repo.name,
       ref=str(parent.id))}}"
+      rel="nofollow"
     >{{parent.short_id}}</a>
     {% if not loop.last %}
     +
@@ -144,6 +148,7 @@ endif %}{% endfor %}
           repo=repo.name,
           ref=ref.name.decode('utf-8', 'replace'))}}"
       {% endif %}
+      rel="nofollow"
     >{{ref.name.decode("utf-8", "replace")}}</a>
   </span>
   {% endfor %}
@@ -170,6 +175,7 @@ This diff is too large to display. Try <a
     owner=repo.owner.canonical_name,
     repo=repo.name,
     ref=commit.id)}}"
+  rel="nofollow"
 >viewing the raw diff</a>
 instead.
 </div>
@@ -187,6 +193,7 @@ instead.
   {% if target_blank %}
   target="_blank"
   {% endif %}
+  rel="nofollow"
  >{{patch.delta.old_file.raw_path.decode('utf-8', 'replace')}}</a>{#
  #}{% endif %} =&gt; {#
  #}<a
@@ -199,6 +206,7 @@ instead.
   {% if target_blank %}
   target="_blank"
   {% endif %}
+  rel="nofollow"
  >{{patch.delta.new_file.raw_path.decode('utf-8', 'replace')}}</a>{#
  #} <span class="pull-right"><span class="text-success">+{{patch.line_stats[1]}}</span>{#
  #} <span class="text-danger">-{{patch.line_stats[2]}}</span></span>{%
@@ -220,6 +228,7 @@ instead.
   {% if target_blank %}
   target="_blank"
   {% endif %}
+  rel="nofollow"
 >{{hunk.old_start}}</a>,{{hunk.old_lines}} {#
 #}{% endif %}<a
   style="text-decoration: underline"
@@ -231,6 +240,7 @@ instead.
   {% if target_blank %}
   target="_blank"
   {% endif %}
+  rel="nofollow"
 >{{hunk.new_start}}</a>,{{hunk.new_lines}} {#
 #}@@{{hunk.header.split('@@')[-1][:-1]}}</strong>
 {% for line in hunk.lines

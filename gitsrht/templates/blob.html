@@ -23,6 +23,7 @@ pre {
           owner=repo.owner.canonical_name,
           repo=repo.name,
           ref=ref)}}"
+        rel="nofollow"
       >{{str(commit.id)[:8]}}</a> &mdash;
       {% set author_user = lookup_user(commit.author.email) %}
       {% if author_user %}
