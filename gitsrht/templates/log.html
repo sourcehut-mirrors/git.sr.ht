@@ -9,6 +9,7 @@
     title="{{ repo.owner.canonical_name }}/{{ repo.name }}: {{ ref }} log"
     type="application/rss+xml"
     href="{{ root }}{{ repo|log_rss_url(ref=ref) }}">
+<meta name="robots" content="nofollow">
 {% endblock %}
 
 {% block tabs_extra %}
