@@ -53,7 +53,7 @@ endif %}{% endfor %}
     </li>
 
     {% if is_blob %}
-      {% if not entry.is_binary %}
+      {% if current_user and not entry.is_binary %}
         <li class="nav-item">
           <a class="nav-link {% if view == "blame" %}active{% endif %}"
              href="{{url_for("repo.blame", owner=repo.owner.canonical_name,

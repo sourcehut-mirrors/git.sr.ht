@@ -25,6 +25,7 @@ from scmsrht.formatting import get_formatted_readme, get_highlighted_file
 from scmsrht.urls import get_clone_urls
 from srht.config import cfg, get_origin
 from srht.markdown import markdown, sanitize
+from srht.oauth import loginrequired
 from urllib.parse import urlparse
 
 repo = Blueprint('repo', __name__)
@@ -417,6 +418,7 @@ def weld_hunks(blame):
     if last is not None:
         yield last
 
+@loginrequired
 @repo.route("/<owner>/<repo>/blame/<path:ref>", defaults={"path": ""})
 @repo.route("/<owner>/<repo>/blame/<path:ref>/<path:path>")
 def blame(owner, repo, ref, path):
