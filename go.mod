@@ -7,15 +7,15 @@ toolchain go1.23.3
 require (
 	git.sr.ht/~sircmpwn/core-go v0.0.0-20241122143336-e559510fc244
 	git.sr.ht/~sircmpwn/dowork v0.0.0-20221010085743-46c4299d76a1
-	git.sr.ht/~sircmpwn/scm.sr.ht/srht-keys v0.0.0-20230322101108-c39456ffb47d
+	git.sr.ht/~sircmpwn/scm.sr.ht/srht-keys v0.0.0-20241202093706-8da5ec7e6b94
 	git.sr.ht/~turminal/go-fnmatch v0.0.0-20211021204744-1a55764af6de
 	github.com/99designs/gqlgen v0.17.42
 	github.com/Masterminds/squirrel v1.5.4
-	github.com/fernet/fernet-go v0.0.0-20211208181803-9f70042a33ee
+	github.com/fernet/fernet-go v0.0.0-20240119011108-303da6aec611
 	github.com/go-git/go-git/v5 v5.11.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
-	github.com/google/uuid v1.5.0
+	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.10.9
 	github.com/mattn/go-runewidth v0.0.15
 	github.com/minio/minio-go/v7 v7.0.66
