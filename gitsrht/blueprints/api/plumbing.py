@@ -10,10 +10,10 @@ plumbing = Blueprint("api_plumbing", __name__)
 
 def libgit2_object_type_to_str(otype):
     return {
-        pygit2.GIT_OBJ_COMMIT: "commit",
-        pygit2.GIT_OBJ_TREE: "tree",
-        pygit2.GIT_OBJ_BLOB: "blob",
-        pygit2.GIT_OBJ_TAG: "tag",
+        pygit2.GIT_OBJECT_COMMIT: "commit",
+        pygit2.GIT_OBJECT_TREE: "tree",
+        pygit2.GIT_OBJECT_BLOB: "blob",
+        pygit2.GIT_OBJECT_TAG: "tag",
     }[otype]
 
 @plumbing.route("/api/repos/<reponame>/odb/<oid>", defaults={"username": None})

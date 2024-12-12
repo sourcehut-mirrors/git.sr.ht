@@ -293,6 +293,7 @@ def tree(owner, repo, ref, path):
                     md = markdown(data,
                             link_prefix=[link_prefix, blob_prefix])
                 force_source = "view-source" in request.args
+
                 return render_template("blob.html", view="blob",
                         owner=owner, repo=repo, ref=refname, path=path, entry=entry,
                         blob=blob, data=data, commit=orig_commit,

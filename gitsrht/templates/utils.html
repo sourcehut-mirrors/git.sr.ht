@@ -16,7 +16,7 @@
   >{{part}}</a>/{%
 endif %}{% endfor %}
 
-{% set is_blob = entry and entry.type == pygit2.GIT_OBJ_BLOB %}
+{% set is_blob = entry and entry.type == pygit2.GIT_OBJECT_BLOB %}
 {% if entry %}
   {# Root tree has no filemode #}
   {% set filemode = entry.filemode or stat.S_IFDIR %}
