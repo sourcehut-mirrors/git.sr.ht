@@ -18,7 +18,7 @@ pre, body {
 <div class="header-extension mb-0">
   <div class="blob container-fluid">
     <span>
-      {{ utils.breadcrumb(ref, commit.id, repo, path, entry, view, path_join, stat, pygit2, humanize) }}
+      {{ utils.breadcrumb(ref, commit.id, repo, path, entry, view, path_join, stat, pygit2, humanize, current_user) }}
     </span>
     <div class="commit">
       <a

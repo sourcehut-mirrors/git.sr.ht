@@ -1,4 +1,4 @@
-{% macro breadcrumb(ref, permaref, repo, path, entry, view, path_join, stat, pygit2, humanize) %}
+{% macro breadcrumb(ref, permaref, repo, path, entry, view, path_join, stat, pygit2, humanize, current_user) %}
 {% if ref != repo.git_repo.default_branch_name() %}
 <span class="mr-3">
   <span class="text-muted">ref:</span> {{ ref }}
