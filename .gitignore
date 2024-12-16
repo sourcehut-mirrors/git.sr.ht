@@ -15,5 +15,9 @@ overrides/
 .pgp
 build
 *_gen.go
-api/api
+git.sr.ht-api
+git.sr.ht-dispatch
+git.sr.ht-keys
+git.sr.ht-shell
+git.sr.ht-update-hook
 api/graph/api/generated.go

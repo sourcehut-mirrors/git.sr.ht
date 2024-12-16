@@ -20,7 +20,7 @@ db.init()
 
 registry = CollectorRegistry()
 tg = Gauge("gitsrht_periodic_time",
-        "Time to run gitsrht-periodic jobs",
+        "Time to run git.sr.ht-periodic jobs",
         ["section"],
         registry=registry)
 

@@ -51,7 +51,7 @@ def get_repo_or_redir(owner, repo):
     return owner, repo
 
 def get_access(repo, user=None):
-	# Note: when updating push access logic, also update git.sr.ht/gitsrht-shell
+	# Note: when updating push access logic, also update git.sr.ht/git.sr.ht-shell
     if not user:
         user = current_user
     if not repo:

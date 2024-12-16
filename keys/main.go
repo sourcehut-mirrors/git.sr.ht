@@ -11,13 +11,13 @@ import (
 )
 
 func main() {
-	// gitsrht-keys is run by sshd to generate an authorized_key file on stdout.
+	// git.sr.ht-keys is run by sshd to generate an authorized_key file on stdout.
 	// In order to facilitate this, we do one of two things:
 	// - Attempt to fetch the cached key info from Redis (preferred)
 	// - Fetch the key from meta.sr.ht and store it in SQL and Redis (slower)
 	service := "git.sr.ht"
-	shellName := "gitsrht-shell"
-	logFile := "/var/log/gitsrht-keys"
+	shellName := "git.sr.ht-shell"
+	logFile := "/var/log/git.sr.ht-keys"
 
 	var (
 		config   ini.File

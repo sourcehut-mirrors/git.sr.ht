@@ -39,7 +39,7 @@ func main() {
 }
 
 func init() {
-	logf, err := os.OpenFile("/var/log/gitsrht-update-hook",
+	logf, err := os.OpenFile("/var/log/git.sr.ht-update-hook",
 		os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		log.Printf("Warning: unable to open log file: %v "+

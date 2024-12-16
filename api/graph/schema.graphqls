@@ -693,7 +693,7 @@ type Mutation {
 
   """
   Delivers git webhooks. If it returns false, the push event should be
-  rejected. Invoked by gitsrht-update-hook.
+  rejected. Invoked by git.sr.ht-update-hook.
   """
   deliverGitHook(input: GitEventInput!): Boolean! @internal
 }

@@ -109,7 +109,7 @@ def linecounter(count):
 
 def render_empty_repo(owner, repo, view):
     origin = cfg("git.sr.ht", "origin")
-    git_user = cfg("git.sr.ht::dispatch", "/usr/bin/gitsrht-keys", "git:git").split(":")[0]
+    git_user = cfg("git.sr.ht::dispatch", "/usr/bin/git.sr.ht-keys", "git:git").split(":")[0]
     urls = get_clone_urls(origin, owner, repo, git_user + '@{origin}:{user}/{repo}')
     return render_template("empty-repo.html", owner=owner, repo=repo, view=view,
             clone_urls=urls)

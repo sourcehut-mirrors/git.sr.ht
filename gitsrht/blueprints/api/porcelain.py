@@ -19,7 +19,7 @@ from srht.validation import Validation
 
 porcelain = Blueprint("api_porcelain", __name__)
 
-# See also gitsrht-update-hook/types.go
+# See also update-hook/types.go
 def commit_to_dict(c):
     return {
         "id": str(c.id),

@@ -1098,7 +1098,7 @@ func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 	bucket, _ := conf.Get("git.sr.ht", "s3-bucket")
 	artifacts := s3.Enabled(conf) && bucket != ""
 
-	sshUser, _ := conf.Get("git.sr.ht::dispatch", "/usr/bin/gitsrht-keys")
+	sshUser, _ := conf.Get("git.sr.ht::dispatch", "/usr/bin/git.sr.ht-keys")
 	sshUser = strings.Split(sshUser, ":")[0]
 
 	return &model.Version{

@@ -29,15 +29,13 @@ packages = [
     "gitsrht.alembic.versions",
     "gitsrht.blueprints",
     "gitsrht.blueprints.api",
-    "gitsrht.static",
-    "gitsrht.static.icons",
     "gitsrht.templates",
     "gitsrht.types",
 ]
 script-files = [
-    "gitsrht-initdb",
-    "gitsrht-migrate",
-    "gitsrht-periodic",
+    "git.sr.ht-initdb",
+    "git.sr.ht-migrate",
+    "git.sr.ht-periodic",
 ]
 [tool.setuptools.package-data]
 "gitsrht" = ['default_query.graphql', 'schema.graphqls']

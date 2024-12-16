@@ -1,8 +1,56 @@
-SRHT_PATH?=/usr/lib/python3.12/site-packages/srht
-MODULE=gitsrht/
-include ${SRHT_PATH}/Makefile
+PREFIX?=/usr/local
+BINDIR?=$(PREFIX)/bin
+LIBDIR?=$(PREFIX)/lib
+SHAREDIR?=$(PREFIX)/share/sourcehut
 
-all: api gitsrht-dispatch gitsrht-keys gitsrht-shell gitsrht-update-hook
+SERVICE=git.sr.ht
+STATICDIR=$(SHAREDIR)/static/$(SERVICE)
+
+SASSC?=sassc
+SASSC_INCLUDE=-I$(SHAREDIR)/scss/
+
+BINARIES=\
+	$(SERVICE)-api \
+	$(SERVICE)-dispatch \
+	$(SERVICE)-keys \
+	$(SERVICE)-shell \
+	$(SERVICE)-update-hook
+
+all: all-bin all-share
+
+install: install-bin install-share
+
+clean: clean-bin clean-share
+
+all-bin: $(BINARIES)
+
+all-share: static/main.min.css
+
+install-bin: all-bin
+	mkdir -p $(BINDIR)
+	for bin in $(BINARIES); \
+	do \
+		install -Dm755 $$bin $(BINDIR)/; \
+	done
+
+install-share: all-share
+	mkdir -p $(STATICDIR)
+	install -Dm644 static/*.css $(STATICDIR)
+	install -Dm644 api/graph/schema.graphqls $(SHAREDIR)/$(SERVICE).graphqls
+
+clean-bin:
+	rm -f $(BINARIES)
+
+clean-share:
+	rm -f static/main.min.css static/main.css
+
+.PHONY: all all-bin all-share
+.PHONY: install install-bin install-share
+.PHONY: clean clean-bin clean-share
+
+static/main.min.css: scss/main.scss
+	mkdir -p $(@D)
+	$(SASSC) $(SASSC_INCLUDE) $< $@
 
 api/loaders/*_gen.go &: api/loaders/generate.go api/loaders/gen go.sum
 	cd api && go generate ./loaders
@@ -10,19 +58,20 @@ api/loaders/*_gen.go &: api/loaders/generate.go api/loaders/gen go.sum
 api/graph/api/generated.go: api/graph/schema.graphqls api/graph/generate.go go.sum api/loaders/*_gen.go
 	cd api && go generate ./graph
 
-api: api/graph/api/generated.go api/loaders/*_gen.go
-	cd api && go build
+$(SERVICE)-api: api/graph/api/generated.go api/loaders/*_gen.go
+	go build -o $@ ./api
 
-gitsrht-dispatch:
-	cd gitsrht-dispatch && go build
+$(SERVICE)-dispatch:
+	go build -o $@ ./dispatch
 
-gitsrht-keys:
-	cd gitsrht-keys && go build
+$(SERVICE)-keys:
+	go build -o $@ ./keys
 
-gitsrht-shell:
-	cd gitsrht-shell && go build
+$(SERVICE)-shell:
+	go build -o $@ ./shell
 
-gitsrht-update-hook:
-	cd gitsrht-update-hook && go build
+$(SERVICE)-update-hook:
+	go build -o $@ ./update-hook
 
-.PHONY: all api gitsrht-dispatch gitsrht-keys gitsrht-shell gitsrht-update-hook
+# Always rebuild
+.PHONY: $(BINARIES)

@@ -31,7 +31,7 @@ const (
 )
 
 func main() {
-	// gitsrht-shell runs after we've authenticated the SSH session as an
+	// git.sr.ht-shell runs after we've authenticated the SSH session as an
 	// authentic agent of a particular account, but before we've checked if
 	// they have permission to perform the git operation they're trying to do.
 	// Our job is to:
@@ -59,7 +59,7 @@ func main() {
 
 	// Initialization and set up, collect our runtime needs
 	log.SetFlags(0)
-	logf, err := os.OpenFile("/var/log/gitsrht-shell",
+	logf, err := os.OpenFile("/var/log/git.sr.ht-shell",
 		os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		log.Printf("Warning: unable to open log file: %v "+
