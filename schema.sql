@@ -49,7 +49,7 @@ CREATE TABLE "user" (
 	username character varying(256) UNIQUE,
 	created timestamp without time zone NOT NULL,
 	updated timestamp without time zone NOT NULL,
-	email character varying(256) NOT NULL,
+	email character varying(256) NOT NULL UNIQUE,
 	user_type user_type NOT NULL,
 	url character varying(256),
 	location character varying(256),
