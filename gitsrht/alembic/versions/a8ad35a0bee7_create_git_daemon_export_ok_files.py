@@ -25,7 +25,7 @@ Session = sessionmaker()
 
 
 def upgrade():
-    print("/!\ WARNING: Not creating git-daemon-export-ok files")
+    print("/!\\ WARNING: Not creating git-daemon-export-ok files")
 
 
 def downgrade():
