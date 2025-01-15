@@ -48,9 +48,13 @@ clean-share:
 .PHONY: install install-bin install-share
 .PHONY: clean clean-bin clean-share
 
-static/main.min.css: scss/main.scss
+static/main.css: scss/main.scss
 	mkdir -p $(@D)
 	$(SASSC) $(SASSC_INCLUDE) $< $@
+
+static/main.min.css: static/main.css
+	minify -o $@ $<
+	cp $@ $(@D)/main.min.$$(sha256sum $@ | cut -c1-8).css
 
 api/loaders/*_gen.go &: api/loaders/generate.go api/loaders/gen go.sum
 	cd api && go generate ./loaders
