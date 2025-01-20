@@ -4,7 +4,7 @@ import stat
 from functools import lru_cache
 from gitsrht import urls
 from gitsrht.git import commit_time, commit_links, trim_commit, signature_time
-from gitsrht.service import oauth_service, webhooks_notify
+from gitsrht.service import oauth_service
 from gitsrht.types import User
 from srht.config import cfg
 from srht.database import db, DbSession
@@ -42,7 +42,6 @@ class GitApp(SrhtFlask):
         self.register_blueprint(mail)
         self.register_blueprint(manage)
         self.register_blueprint(repo)
-        self.register_blueprint(webhooks_notify)
         self.register_blueprint(gql_blueprint)
 
         from gitsrht.repos import object_storage_enabled
