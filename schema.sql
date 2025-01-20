@@ -198,23 +198,6 @@ CREATE TABLE gql_git_wh_delivery (
 	response_status integer
 );
 
--- Legacy SSH key table, to be fetched from meta.sr.ht instead (TODO: Remove)
-CREATE TABLE sshkey (
-	id serial PRIMARY KEY,
-	user_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
-	meta_id integer NOT NULL,
-	key character varying(4096) NOT NULL,
-	fingerprint character varying(512) NOT NULL
-);
-
-CREATE INDEX ix_sshkey_key
-	ON sshkey
-	USING btree (md5((key)::text));
-
-CREATE UNIQUE INDEX ix_sshkey_meta_id
-	ON sshkey
-	USING btree (meta_id);
-
 -- Legacy OAuth (TODO: Remove)
 CREATE TABLE oauthtoken (
 	id serial PRIMARY KEY,
