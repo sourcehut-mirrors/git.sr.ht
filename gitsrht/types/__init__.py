@@ -149,4 +149,3 @@ class Repository(Base):
         return self._git_repo
 
 from gitsrht.types.artifact import Artifact
-from gitsrht.types.sshkey import SSHKey
