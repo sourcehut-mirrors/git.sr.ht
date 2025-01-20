@@ -84,14 +84,10 @@ class HttpGitRepos:
         return self._app(environ, start_response)
 
 if __name__ == '__main__':
-    from srht.debug import configure_static_folder, configure_static_serving
-    from srht.debug import configure_static_arguments, build_parser, run_app
+    from srht.debug import build_parser, run_app
     from gitsrht.app import app
-    configure_static_folder(app)
     parser = build_parser(app)
-    configure_static_arguments(parser)
     configure_git_arguments(parser)
     args = parser.parse_args()
-    configure_static_serving(app, args)
     configure_git_app(app, args)
     run_app(app)
