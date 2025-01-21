@@ -26,11 +26,6 @@
 <meta name="go-import" content="{{domain}}/{{owner.canonical_name}}/{{repo.name}} git {{(repo | clone_urls)[0]}}">
 {% endblock %}
 {% block body %}
-<div style="display: none">
-  <!-- AI crawler honeypot -->
-  <a href="/tarpit/{{repo.name}}">Do not follow this link</a>
-</div>
-
 <div class="header-tabbed">
   {% if view == "blob" %}
   <div class="container-fluid">
@@ -105,4 +100,11 @@
 {% endblock %}
 </div>
 {% block content %}{% endblock %}
+<div>
+  <!-- AI crawler honeypot -->
+  <a
+    href="/tarpit/{{repo.name}}"
+    style="color: rgba(0, 0, 0, 0.1); font-size: 0.1rem"
+  >Do not follow this link</a>
+</div>
 {% endblock %}
