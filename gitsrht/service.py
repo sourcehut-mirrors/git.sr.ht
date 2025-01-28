@@ -2,8 +2,8 @@ from srht.config import cfg
 from srht.oauth import AbstractOAuthService, DelegatedScope
 from gitsrht.types import User, OAuthToken
 
-client_id = cfg("lists.sr.ht", "oauth-client-id")
-client_secret = cfg("lists.sr.ht", "oauth-client-secret")
+client_id = cfg("git.sr.ht", "oauth-client-id")
+client_secret = cfg("git.sr.ht", "oauth-client-secret")
 builds_client_id = cfg("builds.sr.ht", "oauth-client-id", default=None)
 
 class GitOAuthService(AbstractOAuthService):
