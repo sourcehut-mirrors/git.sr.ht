@@ -17,7 +17,8 @@
             name="name"
             id="name"
             class="form-control {{valid.cls("name")}}"
-            value="{{ name or "" }}" />
+            value="{{ name or "" }}"
+            required />
           {{valid.summary("name")}}
         </div>
         <div class="form-group">
@@ -42,7 +43,9 @@
                 type="radio"
                 name="visibility"
                 value="PUBLIC"
-                checked> Public
+                {% if not visiblity or visibility == "PUBLIC" %}
+                checked
+                {% endif %}> Public
             </label>
           </div>
           <div class="form-check form-check-inline">
@@ -54,7 +57,10 @@
                 class="form-check-input"
                 type="radio"
                 name="visibility"
-                value="UNLISTED"> Unlisted
+                value="UNLISTED"
+                {% if visibility == "UNLISTED" %}
+                checked
+                {% endif %}> Unlisted
             </label>
           </div>
           <div class="form-check form-check-inline">
@@ -66,7 +72,10 @@
                 class="form-check-input"
                 type="radio"
                 name="visibility"
-                value="PRIVATE"> Private
+                value="PRIVATE"
+                {% if visibility == "PRIVATE" %}
+                checked
+                {% endif %}> Private
             </label>
           </div>
         </fieldset>
