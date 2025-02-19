@@ -31,7 +31,6 @@ def create_POST():
     description = valid.optional("description")
     visibility = valid.require("visibility")
     if not valid.ok:
-        print(valid.kwargs)
         return render_template("create.html", **valid.kwargs)
     if description == "":
         description = None
