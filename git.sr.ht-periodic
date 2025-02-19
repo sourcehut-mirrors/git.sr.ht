@@ -13,6 +13,7 @@ from srht.config import cfg
 from srht.database import DbSession
 from gitsrht.types import Artifact, User, Repository
 from minio import Minio
+from minio.deleteobjects import DeleteObject
 from datetime import datetime, timedelta
 
 db = DbSession(cfg("git.sr.ht", "connection-string"))
@@ -91,7 +92,7 @@ def gc_s3():
 
     if not objs:
         return
-    errs = list(minio.remove_objects(gr.s3_bucket, objs))
+    errs = list(minio.remove_objects(gr.s3_bucket, [DeleteObject(o) for o in objs]))
     if errs:
         raise Exception(f"While removing dangling artifacts {objs}, got errors: {errs}")
 
