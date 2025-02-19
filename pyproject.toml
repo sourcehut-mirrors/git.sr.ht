@@ -33,7 +33,6 @@ packages = [
     "gitsrht.types",
 ]
 script-files = [
-    "git.sr.ht-initdb",
     "git.sr.ht-migrate",
     "git.sr.ht-periodic",
 ]
