@@ -35,10 +35,14 @@ func main() {
 		scopes[i] = s.String()
 	}
 
-	reposQueue := work.NewQueue("repos")
-	accountQueue := work.NewQueue("account")
-	webhookQueue := webhooks.NewQueue(schema)
-	legacyWebhooks := webhooks.NewLegacyQueue()
+	queueSize := config.GetInt(appConfig, "git.sr.ht::api",
+		"repo-worker-queue-size", config.DefaultQueueSize)
+	reposQueue := work.NewQueue("repos", queueSize)
+	queueSize = config.GetInt(appConfig, "git.sr.ht::api",
+		"account-del-queue-size", config.DefaultQueueSize)
+	accountQueue := work.NewQueue("account", queueSize)
+	webhookQueue := webhooks.NewQueue(schema, appConfig)
+	legacyWebhooks := webhooks.NewLegacyQueue(appConfig)
 
 	server.NewServer("git.sr.ht", appConfig).
 		WithDefaultMiddleware().
