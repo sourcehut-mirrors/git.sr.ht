@@ -30,6 +30,13 @@ const (
 	ACCESS_MANAGE = 4
 )
 
+func eacces(logger *log.Logger) {
+	logger.Println("Access denied.")
+	log.Println("Access denied.")
+	log.Println()
+	os.Exit(128)
+}
+
 func main() {
 	// git.sr.ht-shell runs after we've authenticated the SSH session as an
 	// authentic agent of a particular account, but before we've checked if
@@ -293,6 +300,9 @@ func main() {
 			log.Println("A temporary error has occured. Please try again.")
 			logger.Fatalf("Error occured looking up repo: %v", err)
 		} else {
+			if repoVisibility == "PRIVATE" && repoOwnerName != pusherName && accessGrant == nil {
+				eacces(logger)
+			}
 			log.Printf("\033[93mNOTICE\033[0m: This repository has moved.")
 			log.Printf("Please update your remote to:")
 			log.Println()
@@ -368,10 +378,7 @@ func main() {
 	}
 
 	if needsAccess&hasAccess != needsAccess {
-		logger.Println("Access denied.")
-		log.Println("Access denied.")
-		log.Println()
-		os.Exit(128)
+		eacces(logger)
 	}
 
 	if pusherType == auth.USER_TYPE_SUSPENDED {
