@@ -40,8 +40,8 @@
     they be sent?
   </p>
   {{csrf_token()}}
-  <input type="hidden" name="start_commit" value="{{str(start.oid)}}" />
-  <input type="hidden" name="end_commit" value="{{str(end.oid)}}" />
+  <input type="hidden" name="start_commit" value="{{str(start.id)}}" />
+  <input type="hidden" name="end_commit" value="{{str(end.id)}}" />
   <input type="hidden" name="cover_letter_subject" value="{{cover_letter_subject}}" />
   <input type="hidden" name="version" value="{{version}}" />
   <div class="row">

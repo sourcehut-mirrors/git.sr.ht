@@ -84,7 +84,7 @@ def send_email_end(owner, repo):
         diffs = list()
         for commit in log:
             try:
-                parent = git_repo.revparse_single(str(commit.oid) + "^")
+                parent = git_repo.revparse_single(str(commit.id) + "^")
                 diff = git_repo.diff(parent, commit)
             except KeyError:
                 parent = None
@@ -262,7 +262,7 @@ def send_email_review(owner, repo):
             diffs = list()
             for commit in log:
                 try:
-                    parent = git_repo.revparse_single(str(commit.oid) + "^")
+                    parent = git_repo.revparse_single(str(commit.id) + "^")
                     diff = git_repo.diff(parent, commit)
                 except KeyError:
                     parent = None

@@ -35,7 +35,7 @@ def ref_upload(owner, repo, ref):
         except ValueError:
             abort(404)
         if isinstance(tag, pygit2.Commit):
-            target = str(tag.oid)
+            target = str(tag.id)
         else:
             target = str(tag.target)
         valid = Validation(request)
@@ -71,7 +71,7 @@ def ref_download(owner, repo, ref, filename):
         except ValueError:
             abort(404)
         if isinstance(tag, pygit2.Commit):
-            target = str(tag.oid)
+            target = str(tag.id)
         else:
             target = str(tag.target)
     artifact = (Artifact.query
@@ -102,7 +102,7 @@ def ref_delete(owner, repo, ref, filename):
         except ValueError:
             abort(404)
         if isinstance(tag, pygit2.Commit):
-            target = str(tag.oid)
+            target = str(tag.id)
         else:
             target = str(tag.target)
     artifact = (Artifact.query

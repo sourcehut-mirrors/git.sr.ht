@@ -107,7 +107,7 @@ def repo_refs_by_name_POST(username, reponame, refname):
         except ValueError:
             abort(404)
         if isinstance(tag, pygit2.Commit):
-            target = str(tag.oid)
+            target = str(tag.id)
         else:
             target = str(tag.target)
         valid = Validation(request)

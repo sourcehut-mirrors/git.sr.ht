@@ -158,7 +158,7 @@ endif %}{% endfor %}
 {% if full_body %}
 <pre class="commit">{{ c.message | commit_links(repo) | safe }}
 {%- if diff %}
-{{diffstat(diff, anchor=str(c.oid) + "-")}}{% endif -%}
+{{diffstat(diff, anchor=str(c.id) + "-")}}{% endif -%}
 </pre>
 {% else %}
 <pre class="commit">{{ trim_commit(c.message) }}</pre>
