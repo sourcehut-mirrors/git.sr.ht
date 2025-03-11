@@ -280,6 +280,10 @@ def send_email_review(owner, repo):
             comm = valid.optional(f"commentary_{i}")
             if comm:
                 session[f"commentary_{i}"] = comm
+            else:
+                # If a previous "Prepare a patchset" was aborted, the
+                # session might contain a stale commentary; clear it.
+                session.pop("commentary_{i}", None)
 
         session["cover_letter"] = cover_letter
         return render_template("send-email-review.html",
