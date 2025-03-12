@@ -16,6 +16,7 @@ BINARIES=\
 	$(SERVICE)-dispatch \
 	$(SERVICE)-keys \
 	$(SERVICE)-shell \
+	$(SERVICE)-http-clone \
 	$(SERVICE)-update-hook
 
 all: all-bin all-share
@@ -75,6 +76,9 @@ $(SERVICE)-keys:
 
 $(SERVICE)-shell:
 	go build -o $@ ./shell
+
+$(SERVICE)-http-clone:
+	go build -o $@ ./http-clone
 
 $(SERVICE)-update-hook:
 	go build -o $@ ./update-hook

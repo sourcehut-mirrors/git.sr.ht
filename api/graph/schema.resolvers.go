@@ -1305,6 +1305,71 @@ func (r *queryResolver) Webhook(ctx context.Context) (model.WebhookPayload, erro
 	return payload, nil
 }
 
+// RepositoryByDiskPath is the resolver for the repositoryByDiskPath field.
+func (r *queryResolver) RepositoryByDiskPath(ctx context.Context, path string) (*model.Repository, error) {
+	var redir model.Repository
+
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		row := database.
+			Select(ctx, &redir).
+			From(`repository`).
+			Where(sq.Expr(`path = ?`, path)).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		return row.Scan(database.Scan(ctx, &redir)...)
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &redir, nil
+}
+
+// RedirectByDiskPath is the resolver for the redirectByDiskPath field.
+func (r *queryResolver) RedirectByDiskPath(ctx context.Context, path string) (*model.Redirect, error) {
+	var redir model.Redirect
+
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		row := database.
+			Select(ctx, &redir).
+			From(`redirect`).
+			Where(sq.Expr(`path = ?`, path)).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		return row.Scan(database.Scan(ctx, &redir)...)
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &redir, nil
+}
+
+// Owner is the resolver for the owner field.
+func (r *redirectResolver) Owner(ctx context.Context, obj *model.Redirect) (model.Entity, error) {
+	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
+}
+
+// OriginalPath is the resolver for the originalPath field.
+func (r *redirectResolver) OriginalPath(ctx context.Context, obj *model.Redirect) (string, error) {
+	return obj.Path, nil
+}
+
+// Repository is the resolver for the repository field.
+func (r *redirectResolver) Repository(ctx context.Context, obj *model.Redirect) (*model.Repository, error) {
+	return loaders.ForContext(ctx).RepositoriesByID.Load(obj.RepositoryID)
+}
+
 // Artifacts is the resolver for the artifacts field.
 func (r *referenceResolver) Artifacts(ctx context.Context, obj *model.Reference, cursor *coremodel.Cursor) (*model.ArtifactCursor, error) {
 	// XXX: This could utilize a loader if it ever becomes a bottleneck
@@ -1600,6 +1665,11 @@ func (r *repositoryResolver) RevparseSingle(ctx context.Context, obj *model.Repo
 	return commit, nil
 }
 
+// RepoPath is the resolver for the repoPath field.
+func (r *repositoryResolver) RepoPath(ctx context.Context, obj *model.Repository) (string, error) {
+	return obj.Path, nil
+}
+
 // Entries is the resolver for the entries field.
 func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *coremodel.Cursor) (*model.TreeEntryCursor, error) {
 	if cursor == nil {
@@ -1771,6 +1841,9 @@ func (r *Resolver) Mutation() api.MutationResolver { return &mutationResolver{r}
 // Query returns api.QueryResolver implementation.
 func (r *Resolver) Query() api.QueryResolver { return &queryResolver{r} }
 
+// Redirect returns api.RedirectResolver implementation.
+func (r *Resolver) Redirect() api.RedirectResolver { return &redirectResolver{r} }
+
 // Reference returns api.ReferenceResolver implementation.
 func (r *Resolver) Reference() api.ReferenceResolver { return &referenceResolver{r} }
 
@@ -1797,6 +1870,7 @@ type commitResolver struct{ *Resolver }
 type gitWebhookSubscriptionResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type redirectResolver struct{ *Resolver }
 type referenceResolver struct{ *Resolver }
 type repositoryResolver struct{ *Resolver }
 type treeResolver struct{ *Resolver }

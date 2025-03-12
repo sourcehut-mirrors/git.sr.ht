@@ -18,6 +18,7 @@ build
 git.sr.ht-api
 git.sr.ht-dispatch
 git.sr.ht-keys
+git.sr.ht-http-clone
 git.sr.ht-shell
 git.sr.ht-update-hook
 api/graph/api/generated.go

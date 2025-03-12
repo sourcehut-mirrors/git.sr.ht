@@ -22,7 +22,6 @@ class GitApp(SrhtFlask):
 
         self.url_map.strict_slashes = False
 
-        from gitsrht.blueprints.auth import auth
         from gitsrht.blueprints.public import public
         from gitsrht.blueprints.api import register_api
         from gitsrht.blueprints.api.plumbing import plumbing
@@ -33,7 +32,6 @@ class GitApp(SrhtFlask):
         from gitsrht.blueprints.repo import repo
         from srht.graphql import gql_blueprint
 
-        self.register_blueprint(auth)
         self.register_blueprint(public)
 
         register_api(self)

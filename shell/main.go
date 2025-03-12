@@ -176,7 +176,6 @@ func main() {
 	crypto.InitCrypto(config)
 	ctx := coreconfig.Context(context.Background(), config, "git.sr.ht")
 
-	// Note: when updating push access logic, also update scm.sr.ht/access.py
 	var (
 		repoId         int
 		repoName       string
