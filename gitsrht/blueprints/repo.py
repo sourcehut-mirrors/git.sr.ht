@@ -622,7 +622,7 @@ def patch(owner, repo, ref):
                 "format-patch",
                 "--stdout", "-1",
                 "--full-index",
-                "--no-signature,
+                "--no-signature",
                 "--end-of-options",
                 ref
             ], timeout=10, stdout=subprocess.PIPE, stderr=sys.stderr)
