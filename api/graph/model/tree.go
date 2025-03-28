@@ -41,8 +41,11 @@ func (ent *TreeEntry) Object() Object {
 
 func (tree *Tree) Entry(path string) *TreeEntry {
 	ent, err := tree.tree.FindEntry(path)
-	if err == object.ErrEntryNotFound {
+	if err == object.ErrEntryNotFound || err == object.ErrDirectoryNotFound {
 		return nil
+	}
+	if err != nil {
+		panic(err)
 	}
 	return &TreeEntry{
 		Name: ent.Name,
