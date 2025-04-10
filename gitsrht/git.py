@@ -191,9 +191,7 @@ def _diffstat_name(delta, anchor):
     pfx_length = 0
     old_path = delta.old_file.raw_path
     new_path = delta.new_file.raw_path
-    for i in range(max(len(old_path), len(new_path))):
-        if i >= len(old_path) or i >= len(new_path):
-            break
+    for i in range(min(len(old_path), len(new_path))):
         if old_path[i] != new_path[i]:
             break
         if old_path[i] == b'/'[0]:
