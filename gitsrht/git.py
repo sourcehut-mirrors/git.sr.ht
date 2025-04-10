@@ -198,11 +198,11 @@ def _diffstat_name(delta, anchor):
             pfx_length = i + 1
     # TODO: detect common suffix
     if pfx_length != 0:
-        return (f"{delta.old_file.raw_path[:pfx_length].decode('utf-8', 'replace')}{{" +
-            f"{delta.old_file.raw_path[pfx_length:].decode('utf-8', 'replace')} =&gt; " +
-            f"{delta.new_file.raw_path[pfx_length:].decode('utf-8', 'replace')}}}")
-    return (f"{delta.old_file.raw_path.decode('utf-8', 'replace')} => " +
-            f"{delta.new_file.raw_path.decode('utf-8', 'replace')}")
+        return (f"{old_path[:pfx_length].decode('utf-8', 'replace')}{{" +
+            f"{old_path[pfx_length:].decode('utf-8', 'replace')} =&gt; " +
+            f"{new_path[pfx_length:].decode('utf-8', 'replace')}}}")
+    return (f"{old_path.decode('utf-8', 'replace')} => " +
+            f"{new_path.decode('utf-8', 'replace')}")
 
 def _diffstat_line(delta, patch, anchor):
     name = _diffstat_name(delta, anchor)
