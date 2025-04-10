@@ -179,14 +179,17 @@ class AnnotatedTreeEntry:
 def annotate_tree(repo, tree, commit):
     return [AnnotatedTreeEntry(repo, entry).fetch_blob() for entry in tree]
 
+def _diffstat_mark_up(anchor, delta, data_s):
+    return Markup(
+            f"<a href='#{escape(anchor)}{escape(delta.old_file.raw_path.decode('utf-8', 'replace'))}'>" +
+            f"{escape(data_s)}" +
+            f"</a>")
+
 def _diffstat_name(delta, anchor):
     if delta.status == pygit2.GIT_DELTA_DELETED:
         return Markup(escape(delta.old_file.path))
     if delta.old_file.raw_path == delta.new_file.raw_path:
-        return Markup(
-                f"<a href='#{escape(anchor)}{escape(delta.old_file.raw_path.decode('utf-8', 'replace'))}'>" +
-                f"{escape(delta.old_file.raw_path.decode('utf-8', 'replace'))}" +
-                f"</a>")
+        return _diffstat_mark_up(anchor, delta, delta.old_file.raw_path.decode('utf-8', 'replace'))
     # Based on git/diff.c
     pfx_length = 0
     sfx_length = 0
@@ -218,7 +221,7 @@ def _diffstat_name(delta, anchor):
 
     if sfx_length != 0:
         ret += f"{old_path[-sfx_length:].decode('utf-8', 'replace')}"
-    return ret
+    return _diffstat_mark_up(anchor, delta, ret)
 
 def _diffstat_line(delta, patch, anchor):
     name = _diffstat_name(delta, anchor)
