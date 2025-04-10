@@ -189,6 +189,7 @@ def _diffstat_name(delta, anchor):
                 f"</a>")
     # Based on git/diff.c
     pfx_length = 0
+    sfx_length = 0
     old_path = delta.old_file.raw_path
     new_path = delta.new_file.raw_path
     for i in range(min(len(old_path), len(new_path))):
@@ -196,13 +197,28 @@ def _diffstat_name(delta, anchor):
             break
         if old_path[i] == b'/'[0]:
             pfx_length = i + 1
-    # TODO: detect common suffix
-    if pfx_length != 0:
-        return (f"{old_path[:pfx_length].decode('utf-8', 'replace')}{{" +
-            f"{old_path[pfx_length:].decode('utf-8', 'replace')} =&gt; " +
-            f"{new_path[pfx_length:].decode('utf-8', 'replace')}}}")
-    return (f"{old_path.decode('utf-8', 'replace')} => " +
-            f"{new_path.decode('utf-8', 'replace')}")
+    for i in range(1, min(len(old_path), len(new_path)) + 1):
+        if old_path[-i] != new_path[-i]:
+            break
+        if old_path[-i] == b'/'[0] or old_path[-i] == b'.'[0]:
+            sfx_length = i
+
+    ret = f"{old_path[:pfx_length].decode('utf-8', 'replace')}"
+
+    if pfx_length != 0 or sfx_length != 0:
+        ret += "{"
+    if sfx_length != 0:
+        ret += (f"{old_path[pfx_length:-sfx_length].decode('utf-8', 'replace')} => " +
+                f"{new_path[pfx_length:-sfx_length].decode('utf-8', 'replace')}")
+    else:
+        ret += (f"{old_path[pfx_length:].decode('utf-8', 'replace')} => " +
+                f"{new_path[pfx_length:].decode('utf-8', 'replace')}")
+    if pfx_length != 0 or sfx_length != 0:
+        ret += "}"
+
+    if sfx_length != 0:
+        ret += f"{old_path[-sfx_length:].decode('utf-8', 'replace')}"
+    return ret
 
 def _diffstat_line(delta, patch, anchor):
     name = _diffstat_name(delta, anchor)
