@@ -39,6 +39,7 @@ install-bin: all-bin
 install-share: all-share
 	mkdir -p $(STATICDIR)
 	install -Dm644 static/*.css $(STATICDIR)
+	install -Dm644 js/* $(STATICDIR)
 	install -Dm644 api/graph/schema.graphqls $(ASSETS)/$(SERVICE).graphqls
 
 clean-bin:
