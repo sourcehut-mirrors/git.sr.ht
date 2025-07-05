@@ -162,7 +162,7 @@ def prepare_patchset(repo, git_repo, cover_letter=None, extra_headers=False,
         if start_rev.parent_ids:
             args += [f"{start_commit}^..{end_commit}"]
         else:
-            args += ["--root", end_commit]
+            args += ["--root", "--end-of-options", end_commit]
         print(args)
         p = subprocess.run(args, timeout=30,
                 stdout=subprocess.PIPE, stderr=sys.stderr)
