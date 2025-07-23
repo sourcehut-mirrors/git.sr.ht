@@ -64,34 +64,6 @@ def ref_to_dict(artifacts, ref):
         "artifacts": [a.to_dict() for a in artifacts.get(target, [])],
     }
 
-@porcelain.route("/api/repos/<reponame>/refs", defaults={"username": None})
-@porcelain.route("/api/<username>/repos/<reponame>/refs")
-@oauth("data:read")
-def repo_refs_GET(username, reponame):
-    user = get_user(username)
-    repo = get_repo(user, reponame)
-
-    with GitRepository(repo.path) as git_repo:
-        # TODO: pagination
-        refs = list(git_repo.raw_listall_references())
-        targets = [str(git_repo.references[ref].target) for ref in refs]
-        artifacts = (Artifact.query
-                .filter(Artifact.user_id == repo.owner_id)
-                .filter(Artifact.repo_id == repo.id)
-                .filter(Artifact.commit.in_(targets))).all()
-        artifacts = {
-            key: list(value) for key, value in
-                groupby(artifacts, key=lambda a: a.commit)
-        }
-        return {
-            "next": None,
-            "results": [
-                ref_to_dict(artifacts, git_repo.references[ref]) for ref in refs
-            ],
-            "total": len(refs),
-            "results_per_page": len(refs),
-        }
-
 @porcelain.route("/api/repos/<reponame>/artifacts/<path:refname>", defaults={"username": None}, methods=["POST"])
 @porcelain.route("/api/<username>/repos/<reponame>/artifacts/<path:refname>", methods=["POST"])
 @oauth("data:write")
