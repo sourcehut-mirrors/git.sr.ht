@@ -9,11 +9,13 @@ from datetime import datetime, timedelta
 from flask import Blueprint, render_template, abort, current_app, send_file, make_response, request
 from flask import Response, url_for, session, redirect
 from gitsrht.editorconfig import EditorConfig
+from gitsrht.formatting import get_formatted_readme, get_highlighted_file
 from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
 from gitsrht.git import diffstat, get_log, diff_for_commit, strip_pgp_signature
 from gitsrht.rss import generate_refs_feed, generate_commits_feed
 from gitsrht.spdx import SPDX_LICENSES
 from gitsrht.types import Artifact, User
+from gitsrht.urls import clone_urls
 from io import BytesIO
 from markupsafe import Markup, escape
 from jinja2.utils import url_quote
@@ -21,8 +23,6 @@ from pygments import highlight
 from pygments.formatters import HtmlFormatter
 from pygments.lexers import guess_lexer, guess_lexer_for_filename, TextLexer
 from gitsrht.access import get_repo, get_repo_or_redir
-from scmsrht.formatting import get_formatted_readme, get_highlighted_file
-from scmsrht.urls import get_clone_urls
 from srht.config import cfg, get_origin
 from srht.markdown import markdown, sanitize
 from srht.oauth import loginrequired
@@ -88,7 +88,7 @@ def get_readme(repo, git_repo, tip, link_prefix=None):
     def content_getter(blob):
         return git_repo.get(blob.id).data.decode()
 
-    return get_formatted_readme("git.sr.ht:git", file_finder, content_getter,
+    return get_formatted_readme(file_finder, content_getter,
             link_prefix=link_prefix)
 
 def _highlight_file(repo, ref, entry, data, blob_id, commit_id):
@@ -99,7 +99,7 @@ def _highlight_file(repo, ref, entry, data, blob_id, commit_id):
                 f"<a href=\"{url_quote(data.encode('utf-8'))}\">" +
                 f"{escape(data)}</a><pre></div>")
     else:
-        return get_highlighted_file("git.sr.ht:git", entry.name, blob_id, data)
+        return get_highlighted_file(entry.name, blob_id, data)
 
 def linecounter(count):
     out = []
@@ -110,9 +110,8 @@ def linecounter(count):
 def render_empty_repo(owner, repo, view):
     origin = cfg("git.sr.ht", "origin")
     git_user = cfg("git.sr.ht::dispatch", "/usr/bin/git.sr.ht-keys", "git:git").split(":")[0]
-    urls = get_clone_urls(origin, owner, repo, git_user + '@{origin}:{user}/{repo}')
     return render_template("empty-repo.html", owner=owner, repo=repo, view=view,
-            clone_urls=urls)
+            clone_urls=clone_urls(repo))
 
 def get_last_3_commits(git_repo, commit):
     commits = list()

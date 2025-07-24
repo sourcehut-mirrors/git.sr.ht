@@ -10,7 +10,6 @@ readme = "README.md"
 authors = [{name = "Drew DeVault", email = "sir@cmpwn.com"}]
 dependencies = [
     "srht",
-    "scmsrht",
     "pygit2",
     "minio",
 ]

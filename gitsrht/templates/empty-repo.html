@@ -16,12 +16,14 @@
     <div class="col-md-4">
       <h3>clone</h3>
       <dl>
-        {% for url in clone_urls %}
-        <dt>{{url.desc}}</dt>
-        {% if url.link %}<dd><a href="{{url.url}}">{{url.url}}</a></dd>
-        {% else %}<dd>{{url.url}}</dd>
-        {% endif -%}
-        {% endfor -%}
+        {% with read_only, read_write = repo|clone_urls %}
+        <dl>
+          <dt>read-only</dt>
+          <dd><a href="{{read_only}}">{{read_only}}</a></dd>
+          <dt>read/write</dt>
+          <dd>{{read_write}}</dd>
+        </dl>
+        {% endwith %}
       </dl>
     </div>
     <div class="col-md-8">
