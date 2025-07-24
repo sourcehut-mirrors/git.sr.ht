@@ -23,9 +23,7 @@ def format_readme(content_hash, name, content_getter, user_obj, link_prefix=None
     Formats a `README` file for display on a repository's summary page.
     """
 
-    cache_key = ("git.sr.ht:readme:" +
-        "f{content_hash}:{link_prefix}:v{SRHT_MARKDOWN_VERSION}:" +
-        "v10")
+    cache_key = f"git.sr.ht:readme:{content_hash}:{link_prefix}:v{SRHT_MARKDOWN_VERSION}:v10"
     html = get_cache(cache_key)
     if html:
         return Markup(html.decode())
