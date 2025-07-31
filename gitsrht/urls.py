@@ -3,7 +3,7 @@ from srht.config import cfg, get_origin
 
 def clone_urls(repo):
     """Returns the readonly and read/write URL for a given repo."""
-    git_user = cfg("git.sr.ht::dispatch", "/usr/bin/git.sr.ht-keys", "git:git").split(":")[0]
+    git_user = cfg("git.sr.ht", "ssh-user", "git")
     base = (get_origin("git.sr.ht", external=True)
         .replace("http://", "")
         .replace("https://", ""))
