@@ -7,14 +7,13 @@ package graph
 import (
 	"bytes"
 	"context"
-	"crypto/md5"
 	"crypto/sha256"
 	"database/sql"
-	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/url"
 	"os"
 	"path"
@@ -27,7 +26,7 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/database"
 	coremodel "git.sr.ht/~sircmpwn/core-go/model"
-	"git.sr.ht/~sircmpwn/core-go/s3"
+	"git.sr.ht/~sircmpwn/core-go/objects"
 	"git.sr.ht/~sircmpwn/core-go/server"
 	"git.sr.ht/~sircmpwn/core-go/valid"
 	corewebhooks "git.sr.ht/~sircmpwn/core-go/webhooks"
@@ -39,13 +38,15 @@ import (
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/webhooks"
 	"github.com/99designs/gqlgen/graphql"
 	sq "github.com/Masterminds/squirrel"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
-	minio "github.com/minio/minio-go/v7"
 )
 
 // Repository is the resolver for the repository field.
@@ -71,9 +72,9 @@ func (r *artifactResolver) URL(ctx context.Context, obj *model.Artifact) (string
 		return "", fmt.Errorf("S3 prefix not configured for this server")
 	}
 
-	base := s3.URL(conf, bucket)
+	base := objects.URL(conf)
 	if base == "" {
-		return "", s3.ErrDisabled
+		return "", objects.ErrDisabled
 	}
 
 	return fmt.Sprintf("%s/%s/%s/%s", base, bucket, prefix, obj.Filename), nil
@@ -682,16 +683,13 @@ func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.ACL, e
 func (r *mutationResolver) UploadArtifact(ctx context.Context, repoID int, revspec string, file graphql.Upload) (*model.Artifact, error) {
 	conf := config.ForContext(ctx)
 
-	mc, err := s3.NewClient(conf)
+	sc, err := objects.NewClient(conf)
 	if err != nil {
 		return nil, err
 	}
 
 	bucket, _ := conf.Get("git.sr.ht", "s3-bucket")
 	prefix, _ := conf.Get("git.sr.ht", "s3-prefix")
-	if bucket == "" {
-		return nil, s3.ErrDisabled
-	}
 
 	repo, err := loaders.ForContext(ctx).RepositoriesByID.Load(repoID)
 	if err != nil {
@@ -709,30 +707,31 @@ func (r *mutationResolver) UploadArtifact(ctx context.Context, repoID int, revsp
 		return nil, err
 	}
 
-	s3path := path.Join(prefix, "artifacts",
+	s3key := path.Join(prefix, "artifacts",
 		"~"+auth.ForContext(ctx).Username, repo.Name, file.Filename)
 
-	err = mc.MakeBucket(ctx, bucket, minio.MakeBucketOptions{})
-	if err != nil {
-		if s3err, ok := err.(minio.ErrorResponse); !ok ||
-			(s3err.Code != "BucketAlreadyExists" && s3err.Code != "BucketAlreadyOwnedByYou") {
-			panic(err)
-		}
-	}
-
-	core := minio.Core{mc}
-	uid, err := core.NewMultipartUpload(ctx, bucket,
-		s3path, minio.PutObjectOptions{
-			ContentType: "application/octet-stream",
-		})
+	upload, err := sc.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
+		Bucket:      aws.String(bucket),
+		Key:         aws.String(s3key),
+		ContentType: aws.String("application/octet-stream"),
+	})
 	if err != nil {
 		return nil, err
 	}
 
 	var success bool
 	defer func() {
-		if !success {
-			core.AbortMultipartUpload(context.Background(), bucket, s3path, uid)
+		if success {
+			return
+		}
+		_, err := sc.AbortMultipartUpload(context.Background(), &s3.AbortMultipartUploadInput{
+			Bucket:   aws.String(bucket),
+			Key:      aws.String(s3key),
+			UploadId: upload.UploadId,
+		})
+		if err != nil {
+			log.Printf("Warning: error aborting S3 upload %s:%s: %s",
+				bucket, s3key, err.Error())
 		}
 	}()
 
@@ -749,8 +748,8 @@ func (r *mutationResolver) UploadArtifact(ctx context.Context, repoID int, revsp
 		reader := io.TeeReader(file.File, sha)
 
 		var (
-			partNum int = 1
-			parts   []minio.CompletePart
+			partNum int32 = 1
+			parts   []s3types.CompletedPart
 		)
 		for {
 			var data [134217728]byte // 128 MiB
@@ -764,23 +763,19 @@ func (r *mutationResolver) UploadArtifact(ctx context.Context, repoID int, revsp
 				return err
 			}
 
-			md5sum := md5.Sum(data[:n])
-			md5b64 := base64.StdEncoding.EncodeToString(md5sum[:])
-			shasum := sha256.Sum256(data[:n])
-			shahex := hex.EncodeToString(shasum[:])
-
-			opart, err := core.PutObjectPart(ctx, bucket, s3path,
-				uid, partNum, bytes.NewReader(data[:n]), int64(n),
-				minio.PutObjectPartOptions{
-					Md5Base64: md5b64,
-					Sha256Hex: shahex,
-					SSE:       nil,
-				})
+			opart, err := sc.UploadPart(ctx, &s3.UploadPartInput{
+				Bucket:     aws.String(bucket),
+				Key:        aws.String(s3key),
+				PartNumber: aws.Int32(partNum),
+				UploadId:   upload.UploadId,
+				Body:       bytes.NewReader(data[:n]),
+			})
 			if err != nil {
 				return err
 			}
-			parts = append(parts, minio.CompletePart{
-				PartNumber: partNum,
+
+			parts = append(parts, s3types.CompletedPart{
+				PartNumber: aws.Int32(partNum),
 				ETag:       opart.ETag,
 			})
 			partNum++
@@ -804,8 +799,15 @@ func (r *mutationResolver) UploadArtifact(ctx context.Context, repoID int, revsp
 			return err
 		}
 
-		_, err := core.CompleteMultipartUpload(ctx, bucket, s3path, uid, parts,
-			minio.PutObjectOptions{})
+		_, err := sc.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
+			Bucket:   aws.String(bucket),
+			Key:      aws.String(s3key),
+			UploadId: upload.UploadId,
+
+			MultipartUpload: &s3types.CompletedMultipartUpload{
+				Parts: parts,
+			},
+		})
 		return err
 	}); err != nil {
 		return nil, err
@@ -819,16 +821,13 @@ func (r *mutationResolver) UploadArtifact(ctx context.Context, repoID int, revsp
 func (r *mutationResolver) DeleteArtifact(ctx context.Context, id int) (*model.Artifact, error) {
 	conf := config.ForContext(ctx)
 
-	mc, err := s3.NewClient(conf)
+	sc, err := objects.NewClient(conf)
 	if err != nil {
 		return nil, err
 	}
 
 	bucket, _ := conf.Get("git.sr.ht", "s3-bucket")
 	prefix, _ := conf.Get("git.sr.ht", "s3-prefix")
-	if bucket == "" {
-		return nil, s3.ErrDisabled
-	}
 
 	var artifact model.Artifact
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
@@ -853,9 +852,13 @@ func (r *mutationResolver) DeleteArtifact(ctx context.Context, id int) (*model.A
 			return err
 		}
 
-		s3path := path.Join(prefix, "artifacts",
+		s3key := path.Join(prefix, "artifacts",
 			"~"+auth.ForContext(ctx).Username, repoName, artifact.Filename)
-		return mc.RemoveObject(ctx, bucket, s3path, minio.RemoveObjectOptions{})
+		_, err := sc.DeleteObject(ctx, &s3.DeleteObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(s3key),
+		})
+		return err
 	}); err != nil {
 		return nil, err
 	}
@@ -1096,7 +1099,7 @@ func (r *mutationResolver) DeliverGitHook(ctx context.Context, input model.GitEv
 func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 	conf := config.ForContext(ctx)
 	bucket, _ := conf.Get("git.sr.ht", "s3-bucket")
-	artifacts := s3.Enabled(conf) && bucket != ""
+	artifacts := objects.Enabled(conf) && bucket != ""
 
 	sshUser, _ := conf.Get("git.sr.ht::dispatch", "/usr/bin/git.sr.ht-keys")
 	sshUser = strings.Split(sshUser, ":")[0]

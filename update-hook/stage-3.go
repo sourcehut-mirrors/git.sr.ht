@@ -8,9 +8,10 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"git.sr.ht/~sircmpwn/core-go/s3"
+	"git.sr.ht/~sircmpwn/core-go/objects"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	_ "github.com/lib/pq"
-	"github.com/minio/minio-go/v7"
 )
 
 func stage3() {
@@ -125,7 +126,7 @@ func deleteArtifacts(ctx *PushContext, db *sql.DB, payload *WebhookPayload) {
 	s3bucket, _ := config.Get("git.sr.ht", "s3-bucket")
 	s3prefix, _ := config.Get("git.sr.ht", "s3-prefix")
 
-	minioClient, err := s3.NewClient(config)
+	sc, err := objects.NewClient(config)
 	if err != nil {
 		logger.Fatalf("Error connecting to S3: %e", err)
 	}
@@ -150,11 +151,15 @@ func deleteArtifacts(ctx *PushContext, db *sql.DB, payload *WebhookPayload) {
 			if err = rows.Scan(&filename); err != nil {
 				logger.Fatalf("Scanning artifact rows: %e", err)
 			}
-			path := filepath.Join(s3prefix, "artifacts",
+			s3key := filepath.Join(s3prefix, "artifacts",
 				"~"+ctx.Repo.OwnerName, ctx.Repo.Name, filename)
-			logger.Printf("Deleting S3 object %s", path)
-			err = minioClient.RemoveObject(context.TODO(), s3bucket, path,
-				minio.RemoveObjectOptions{})
+			logger.Printf("Deleting S3 object %s:%s", s3bucket, s3key)
+
+			_, err := sc.DeleteObject(context.Background(),
+				&s3.DeleteObjectInput{
+					Bucket: aws.String(s3bucket),
+					Key:    aws.String(s3key),
+				})
 			if err != nil {
 				logger.Printf("Error removing S3 object: %e", err)
 			}

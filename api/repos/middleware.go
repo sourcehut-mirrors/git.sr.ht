@@ -10,10 +10,11 @@ import (
 
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/database"
-	"git.sr.ht/~sircmpwn/core-go/s3"
+	"git.sr.ht/~sircmpwn/core-go/objects"
 	work "git.sr.ht/~sircmpwn/dowork"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/go-git/go-git/v5"
-	"github.com/minio/minio-go/v7"
 )
 
 type contextKey struct {
@@ -102,20 +103,21 @@ func DeleteArtifactsBlocking(
 ) error {
 	conf := config.ForContext(ctx)
 
-	mc, err := s3.NewClient(conf)
+	sc, err := objects.NewClient(conf)
 	if err != nil {
 		return err
 	}
 
 	bucket, _ := conf.Get("git.sr.ht", "s3-bucket")
 	prefix, _ := conf.Get("git.sr.ht", "s3-prefix")
-	if bucket == "" {
-		return s3.ErrDisabled
-	}
 
 	for _, filename := range filenames {
-		s3path := path.Join(prefix, "artifacts", "~"+username, repoName, filename)
-		if err := mc.RemoveObject(ctx, bucket, s3path, minio.RemoveObjectOptions{}); err != nil {
+		s3key := path.Join(prefix, "artifacts", "~"+username, repoName, filename)
+		_, err := sc.DeleteObject(ctx, &s3.DeleteObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(s3key),
+		})
+		if err != nil {
 			return err
 		}
 	}
