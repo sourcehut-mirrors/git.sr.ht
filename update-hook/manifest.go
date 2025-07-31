@@ -3,7 +3,7 @@ package main
 // TODO: Move this into builds.sr.ht
 
 import (
-	"gopkg.in/yaml.v2"
+	"github.com/goccy/go-yaml"
 )
 
 type Manifest struct {

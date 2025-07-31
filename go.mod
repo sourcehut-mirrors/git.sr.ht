@@ -14,6 +14,7 @@ require (
 	github.com/fernet/fernet-go v0.0.0-20240119011108-303da6aec611
 	github.com/go-git/go-git/v5 v5.11.0
 	github.com/go-redis/redis/v8 v8.11.5
+	github.com/goccy/go-yaml v1.18.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.10.9
@@ -23,7 +24,6 @@ require (
 	github.com/vaughan0/go-ini v0.0.0-20130923145212-a98ad7ee00ec
 	github.com/vektah/dataloaden v0.3.0
 	github.com/vektah/gqlparser/v2 v2.5.23
-	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
