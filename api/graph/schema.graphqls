@@ -138,8 +138,23 @@ type Repository {
 
   ## Plumbing API:
 
+  """
+  Returns any number of git objects by their IDs.
+  """
   objects(ids: [String!]): [Object]! @access(scope: OBJECTS, kind: RO)
+  """
+  Returns a specific git object by its ID.
+  """
+  object(id: String!): Object @access(scope: OBJECTS, kind: RO)
+
+  """
+  Enumerates references on this repository.
+  """
   references(cursor: Cursor): ReferenceCursor! @access(scope: OBJECTS, kind: RO)
+  """
+  Returns a reference by its fully qualified name, e.g. refs/heads/master.
+  """
+  reference(name: String!): Reference @access(scope: OBJECTS, kind: RO)
 
   ## Porcelain API:
 
@@ -417,6 +432,7 @@ type Reference {
   target: String!
   follow: Object
 
+  artifact(filename: String!): Artifact
   artifacts(cursor: Cursor): ArtifactCursor!
 }
 

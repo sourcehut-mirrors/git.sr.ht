@@ -20,6 +20,7 @@ type Artifact struct {
 	Size     int       `json:"size"`
 
 	Commit string
+	RepoID int
 
 	alias  string
 	fields *database.ModelFields
@@ -44,14 +45,13 @@ func (a *Artifact) Fields() *database.ModelFields {
 	}
 	a.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{"id", "id", &a.ID},
 			{"created", "created", &a.Created},
-			{"filename", "filename", &a.Filename},
 			{"checksum", "checksum", &a.Checksum},
 			{"size", "size", &a.Size},
 
 			// Always fetch:
 			{"id", "", &a.ID},
+			{"repo_id", "", &a.RepoID},
 			{"commit", "", &a.Commit},
 			{"filename", "", &a.Filename},
 		},

@@ -63,6 +63,15 @@ func (r *aCLResolver) Entity(ctx context.Context, obj *model.ACL) (model.Entity,
 func (r *artifactResolver) URL(ctx context.Context, obj *model.Artifact) (string, error) {
 	conf := config.ForContext(ctx)
 
+	repo, err := loaders.ForContext(ctx).RepositoriesByID.Load(obj.RepoID)
+	if err != nil {
+		panic(err) // Invariant
+	}
+	owner, err := loaders.ForContext(ctx).UsersByID.Load(repo.OwnerID)
+	if err != nil {
+		panic(err) // Invariant
+	}
+
 	bucket, ok := conf.Get("git.sr.ht", "s3-bucket")
 	if !ok {
 		return "", fmt.Errorf("S3 bucket not configured for this server")
@@ -77,7 +86,9 @@ func (r *artifactResolver) URL(ctx context.Context, obj *model.Artifact) (string
 		return "", objects.ErrDisabled
 	}
 
-	return fmt.Sprintf("%s/%s/%s/%s", base, bucket, prefix, obj.Filename), nil
+	s3key := path.Join(prefix, "artifacts",
+		owner.CanonicalName(), repo.Name, obj.Filename)
+	return fmt.Sprintf("%s/%s/%s", base, bucket, s3key), nil
 }
 
 // Diff is the resolver for the diff field.
@@ -1375,6 +1386,64 @@ func (r *redirectResolver) Repository(ctx context.Context, obj *model.Redirect) 
 	return loaders.ForContext(ctx).RepositoriesByID.Load(obj.RepositoryID)
 }
 
+// Artifact is the resolver for the artifact field.
+func (r *referenceResolver) Artifact(ctx context.Context, obj *model.Reference, filename string) (*model.Artifact, error) {
+	repo := obj.Repo.Repo()
+	repo.Lock()
+	defer repo.Unlock()
+	ref, err := repo.Reference(obj.Ref.Name(), true)
+	if err != nil {
+		return nil, err
+	}
+	o, err := repo.Object(plumbing.TagObject, ref.Hash())
+	if err != nil {
+		return nil, err
+	}
+	tag, ok := o.(*object.Tag)
+	if !ok {
+		panic(fmt.Errorf("Expected artifact to be attached to tag"))
+	}
+
+	var artifact model.Artifact
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+		SELECT
+			id,
+			repo_id,
+			created,
+			filename,
+			checksum,
+			size,
+			commit
+		FROM artifacts
+		WHERE
+			repo_id = $1 AND
+			commit = $2 AND
+			filename = $3
+		`, obj.Repo.ID, tag.Target.String(), filename)
+
+		return row.Scan(
+			&artifact.ID,
+			&artifact.RepoID,
+			&artifact.Created,
+			&artifact.Filename,
+			&artifact.Checksum,
+			&artifact.Size,
+			&artifact.Commit,
+		)
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &artifact, nil
+}
+
 // Artifacts is the resolver for the artifacts field.
 func (r *referenceResolver) Artifacts(ctx context.Context, obj *model.Reference, cursor *coremodel.Cursor) (*model.ArtifactCursor, error) {
 	// XXX: This could utilize a loader if it ever becomes a bottleneck
@@ -1508,6 +1577,12 @@ func (r *repositoryResolver) Objects(ctx context.Context, obj *model.Repository,
 	return objects, nil
 }
 
+// Object is the resolver for the object field.
+func (r *repositoryResolver) Object(ctx context.Context, obj *model.Repository, id string) (model.Object, error) {
+	hash := plumbing.NewHash(id)
+	return model.LookupObject(obj.Repo(), hash)
+}
+
 // References is the resolver for the references field.
 func (r *repositoryResolver) References(ctx context.Context, obj *model.Repository, cursor *coremodel.Cursor) (*model.ReferenceCursor, error) {
 	repo := obj.Repo()
@@ -1556,6 +1631,20 @@ func (r *repositoryResolver) References(ctx context.Context, obj *model.Reposito
 	}
 
 	return &model.ReferenceCursor{refs, cursor}, nil
+}
+
+// Reference is the resolver for the reference field.
+func (r *repositoryResolver) Reference(ctx context.Context, obj *model.Repository, name string) (*model.Reference, error) {
+	repo := obj.Repo()
+	repo.Lock()
+	defer repo.Unlock()
+
+	ref, err := repo.Reference(plumbing.ReferenceName(name), true)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.Reference{obj, ref}, nil
 }
 
 // Log is the resolver for the log field.
