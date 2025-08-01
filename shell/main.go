@@ -66,7 +66,7 @@ func main() {
 
 	// Initialization and set up, collect our runtime needs
 	log.SetFlags(0)
-	logf, err := os.OpenFile("/var/log/git.sr.ht/git.sr.ht-shell",
+	logf, err := os.OpenFile("/var/log/git.sr.ht/git.sr.ht-shell.log",
 		os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		log.Printf("Warning: unable to open log file: %v "+
