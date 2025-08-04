@@ -11,6 +11,7 @@ authors = [{name = "Drew DeVault", email = "sir@cmpwn.com"}]
 dependencies = [
     "srht",
     "pygit2",
+    "minio",
 ]
 license.text = "AGPL-3.0-only"
 

@@ -45,13 +45,13 @@
           class="event"
           method="POST"
           action="{{url_for("artifacts.ref_delete",
-            owner=repo.owner.username,
+            owner=repo.owner.canonical_name,
             repo=repo.name, ref=tagname,
             filename=artifact.filename)}}"
         >
           <a
             href="{{url_for("artifacts.ref_download",
-              owner=repo.owner.username,
+              owner=repo.owner.canonical_name,
               repo=repo.name, ref=tagname,
               filename=artifact.filename)}}"
             rel="nofollow"
