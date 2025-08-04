@@ -6,6 +6,7 @@ from gitsrht.blueprints.repo import lookup_ref, collect_refs
 from gitsrht.types import Artifact
 from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
 from gitsrht.git import get_log
+from gitsrht.repos import upload_artifact
 from gitsrht.webhooks import RepoWebhook
 from io import BytesIO
 from itertools import groupby
@@ -62,6 +63,35 @@ def ref_to_dict(artifacts, ref):
         "name": ref.raw_name.decode("utf-8", "replace"),
         "artifacts": [a.to_dict() for a in artifacts.get(target, [])],
     }
+
+@porcelain.route("/api/repos/<reponame>/artifacts/<path:refname>", defaults={"username": None}, methods=["POST"])
+@porcelain.route("/api/<username>/repos/<reponame>/artifacts/<path:refname>", methods=["POST"])
+@oauth("data:write")
+def repo_refs_by_name_POST(username, reponame, refname):
+    user = get_user(username)
+    repo = get_repo(user, reponame, needs=UserAccess.manage)
+
+    with GitRepository(repo.path) as git_repo:
+        try:
+            tag = git_repo.revparse_single(refname)
+        except KeyError:
+            abort(404)
+        except ValueError:
+            abort(404)
+        if isinstance(tag, pygit2.Commit):
+            target = str(tag.id)
+        else:
+            target = str(tag.target)
+        valid = Validation(request)
+        f = request.files.get("file")
+        valid.expect(f, "File is required", field="file")
+        if not valid.ok:
+            return valid.response
+        artifact = upload_artifact(valid, repo, target, f, f.filename)
+        if not valid.ok:
+            return valid.response
+        db.session.commit()
+        return artifact.to_dict()
 
 # dear god, this routing
 @porcelain.route("/api/repos/<reponame>/log",

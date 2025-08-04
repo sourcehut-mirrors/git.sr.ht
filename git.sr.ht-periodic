@@ -5,12 +5,15 @@ import math
 import random
 import sqlalchemy as sa
 import subprocess
+import gitsrht.repos as gr
 import prometheus_client
 from prometheus_client import CollectorRegistry, Gauge
 from prometheus_client.context_managers import Timer
 from srht.config import cfg
 from srht.database import DbSession
 from gitsrht.types import Artifact, User, Repository
+from minio import Minio
+from minio.deleteobjects import DeleteObject
 from datetime import datetime, timedelta
 
 db = DbSession(cfg("git.sr.ht", "connection-string"))
@@ -60,7 +63,50 @@ def gc_git():
         except FileNotFoundError:
             continue
 
-gc_git()
+gc_s3_t = tg.labels("gc_s3")
+@gc_s3_t.time()
+def gc_s3():
+    if not gr.object_storage_enabled:
+        return
+    # Once a weekish
+    if random.randrange(0, int(math.ceil(7 * 24 * 60 / 20))) != 0:
+       return
+    prefix = os.path.join(gr.s3_prefix, "artifacts")
+    minio = Minio(gr.s3_upstream, access_key=gr.s3_access_key,
+            secret_key=gr.s3_secret_key, secure=True)
+
+    objs = set(obj.object_name for obj
+        in minio.list_objects(gr.s3_bucket, prefix, recursive=True))
+    artifacts = Artifact.query.all()
+
+    users = {u.id: u for u in (User.query .filter(User.id.in_(
+        set(a.user_id for a in artifacts)))).all()}
+
+    repos = {r.id: r for r in (Repository.query.filter(Repository.id.in_(
+        set(a.repo_id for a in artifacts)))).all()}
+
+    for art in artifacts:
+        artifact_path = os.path.join(prefix, users[art.user_id].canonical_name,
+                repos[art.repo_id].name, art.filename)
+        objs.discard(artifact_path)
+
+    if not objs:
+        return
+    errs = list(minio.remove_objects(gr.s3_bucket, [DeleteObject(o) for o in objs]))
+    if errs:
+        raise Exception(f"While removing dangling artifacts {objs}, got errors: {errs}")
+
+    Gauge("gitsrht_periodic_gc_s3_count",
+            "Amount of objects pruned by the gc_s3 job",
+            registry=registry).set(len(objs))
+
+all_t = tg.labels("total")
+@all_t.time()
+def all():
+    gc_git()
+    gc_s3()
+all()
+
 
 pg_endpoint = cfg("sr.ht", "pushgateway", default=None)
 if pg_endpoint:
