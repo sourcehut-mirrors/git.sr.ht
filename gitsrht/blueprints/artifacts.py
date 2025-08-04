@@ -76,12 +76,7 @@ def ref_download(owner, repo, ref, filename):
         }
     }
     """, **params)
-    ref = r["user"]["repository"]["reference"]
-    if ref is None:
-        abort(404)
-    artifact = ref["artifact"]
-    if artifact is None:
-        abort(404)
+    artifact = r["user"]["repository"]["reference"]["artifact"]
     return redirect(artifact["url"])
 
 @artifacts.route("/~<owner>/<repo>/refs/delete/<path:ref>/<filename>", methods=["POST"])
