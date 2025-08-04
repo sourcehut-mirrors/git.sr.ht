@@ -264,7 +264,7 @@ def send_email_review(owner, repo):
 
         try:
             emails = prepare_patchset(repo, git_repo)
-        except:
+        except PatchsetSizeError:
             valid.error(Markup('<strong>Error</strong>: This patchset exceeds the maximum size for an emailed patch set. ' +
                                'Consider using <a href="https://git-scm.com/docs/git-request-pull">git request-pull</a> instead.'))
             emails = None
