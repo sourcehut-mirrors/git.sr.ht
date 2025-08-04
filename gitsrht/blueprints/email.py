@@ -10,9 +10,10 @@ from email.utils import make_msgid, parseaddr
 from email.message import EmailMessage
 from flask import Blueprint, render_template, abort, request, url_for, session
 from flask import redirect
+from gitsrht.access import get_repo_or_redir
 from gitsrht.git import Repository as GitRepository, commit_time, diffstat
 from gitsrht.git import get_log
-from gitsrht.access import get_repo_or_redir
+from markupsafe import Markup
 from srht.config import cfg, cfgi, cfgb
 from srht.email import start_smtp
 from srht.oauth import loginrequired, current_user
@@ -127,6 +128,9 @@ commentary_re = re.compile(r"""
 )
 """, re.MULTILINE | re.VERBOSE)
 
+class PatchsetSizeError(Exception):
+    pass
+
 def prepare_patchset(repo, git_repo, cover_letter=None, extra_headers=False,
         to=None, cc=None):
     with NamedTemporaryFile() as ntf:
@@ -168,6 +172,10 @@ def prepare_patchset(repo, git_repo, cover_letter=None, extra_headers=False,
                 stdout=subprocess.PIPE, stderr=sys.stderr)
         if p.returncode != 0:
             abort(400) # TODO: Something more useful, I suppose.
+
+        # Default postfix maximum mail size
+        if len(p.stdout) >= 10240000:
+            raise PatchsetSizeError()
 
         ntf.write(p.stdout)
         ntf.flush()
@@ -254,7 +262,13 @@ def send_email_review(owner, repo):
         elif "README" in tip.tree:
             readme = "README"
 
-        emails = prepare_patchset(repo, git_repo)
+        try:
+            emails = prepare_patchset(repo, git_repo)
+        except:
+            valid.error(Markup('<strong>Error</strong>: This patchset exceeds the maximum size for an emailed patch set. ' +
+                               'Consider using <a href="https://git-scm.com/docs/git-request-pull">git request-pull</a> instead.'))
+            emails = None
+
         start = git_repo.get(start_commit)
         tip = git_repo.get(end_commit)
         if not emails or not valid.ok:
