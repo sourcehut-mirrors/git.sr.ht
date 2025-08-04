@@ -1641,6 +1641,9 @@ func (r *repositoryResolver) Reference(ctx context.Context, obj *model.Repositor
 
 	ref, err := repo.Reference(plumbing.ReferenceName(name), true)
 	if err != nil {
+		if err == plumbing.ErrReferenceNotFound {
+			return nil, nil
+		}
 		return nil, err
 	}
 
