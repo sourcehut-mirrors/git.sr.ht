@@ -62,33 +62,9 @@ func (r *aCLResolver) Entity(ctx context.Context, obj *model.ACL) (model.Entity,
 // URL is the resolver for the url field.
 func (r *artifactResolver) URL(ctx context.Context, obj *model.Artifact) (string, error) {
 	conf := config.ForContext(ctx)
-
-	repo, err := loaders.ForContext(ctx).RepositoriesByID.Load(obj.RepoID)
-	if err != nil {
-		panic(err) // Invariant
-	}
-	owner, err := loaders.ForContext(ctx).UsersByID.Load(repo.OwnerID)
-	if err != nil {
-		panic(err) // Invariant
-	}
-
-	bucket, ok := conf.Get("git.sr.ht", "s3-bucket")
-	if !ok {
-		return "", fmt.Errorf("S3 bucket not configured for this server")
-	}
-	prefix, ok := conf.Get("git.sr.ht", "s3-prefix")
-	if !ok {
-		return "", fmt.Errorf("S3 prefix not configured for this server")
-	}
-
-	base := objects.URL(conf)
-	if base == "" {
-		return "", objects.ErrDisabled
-	}
-
-	s3key := path.Join(prefix, "artifacts",
-		owner.CanonicalName(), repo.Name, obj.Filename)
-	return fmt.Sprintf("%s/%s/%s", base, bucket, s3key), nil
+	origin := config.GetOrigin(conf, "git.sr.ht", true)
+	return fmt.Sprintf("%s/query/artifact/%s/%s",
+		origin, obj.Checksum, obj.Filename), nil
 }
 
 // Diff is the resolver for the diff field.
