@@ -1,5 +1,4 @@
 import pygit2
-import requests
 from flask import Blueprint, redirect, render_template, request, redirect
 from flask import abort, url_for
 from gitsrht.git import Repository as GitRepository, strip_pgp_signature
@@ -83,7 +82,6 @@ def ref_download(owner, repo, ref, filename):
     artifact = ref["artifact"]
     if artifact is None:
         abort(404)
-    url = artifact["url"]
     return redirect(artifact["url"])
 
 @artifacts.route("/~<owner>/<repo>/refs/delete/<path:ref>/<filename>", methods=["POST"])
