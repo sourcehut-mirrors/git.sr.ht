@@ -15,9 +15,9 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/webhooks"
 	work "git.sr.ht/~sircmpwn/dowork"
 	"github.com/99designs/gqlgen/graphql"
-	"github.com/go-chi/chi/v5"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/go-chi/chi/v5"
 
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/account"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph"
@@ -87,7 +87,7 @@ func main() {
 			ownerName string
 		)
 		if err := database.WithTx(ctx, &sql.TxOptions{
-			ReadOnly: true,
+			ReadOnly:  true,
 			Isolation: 0,
 		}, func(tx *sql.Tx) error {
 			row := tx.QueryRowContext(ctx, `
