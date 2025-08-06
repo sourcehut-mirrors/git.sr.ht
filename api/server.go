@@ -2,12 +2,22 @@ package main
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
+	"io"
+	"net/http"
+	"path"
 
 	"git.sr.ht/~sircmpwn/core-go/config"
+	"git.sr.ht/~sircmpwn/core-go/database"
+	"git.sr.ht/~sircmpwn/core-go/objects"
 	"git.sr.ht/~sircmpwn/core-go/server"
 	"git.sr.ht/~sircmpwn/core-go/webhooks"
 	work "git.sr.ht/~sircmpwn/dowork"
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/go-chi/chi/v5"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/account"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph"
@@ -45,7 +55,7 @@ func main() {
 	webhookQueue := webhooks.NewQueue(schema, appConfig)
 	legacyWebhooks := webhooks.NewLegacyQueue(appConfig)
 
-	server.NewServer("git.sr.ht", appConfig).
+	srv := server.NewServer("git.sr.ht", appConfig).
 		WithDefaultMiddleware().
 		WithMiddleware(
 			loaders.Middleware,
@@ -59,6 +69,77 @@ func main() {
 			accountQueue,
 			reposQueue,
 			webhookQueue.Queue,
-			legacyWebhooks.Queue).
-		Run()
+			legacyWebhooks.Queue)
+
+	srv.AnonRouter().HandleFunc("/query/artifact/{checksum}/{filename}", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			w.Write([]byte("Method not allowed\r\n"))
+			return
+		}
+
+		ctx := r.Context()
+		checksum := chi.URLParam(r, "checksum")
+		filename := chi.URLParam(r, "filename")
+
+		var (
+			repoName  string
+			ownerName string
+		)
+		if err := database.WithTx(ctx, &sql.TxOptions{
+			ReadOnly: true,
+			Isolation: 0,
+		}, func(tx *sql.Tx) error {
+			row := tx.QueryRowContext(ctx, `
+			SELECT
+				repo.name,
+				"user".username
+			FROM artifacts
+			JOIN repository repo ON repo.id = repo_id
+			JOIN "user" on "user".id = repo.owner_id
+			WHERE checksum = $1 AND filename = $2
+			`, checksum, filename)
+			return row.Scan(&repoName, &ownerName)
+		}); err != nil {
+			if err == sql.ErrNoRows {
+				w.WriteHeader(http.StatusNotFound)
+				w.Write([]byte("Not found\n"))
+			} else {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(err.Error()))
+			}
+			return
+		}
+
+		sc, err := objects.NewClient(appConfig)
+		if err != nil {
+			panic(err)
+		}
+
+		bucket, _ := appConfig.Get("git.sr.ht", "s3-bucket")
+		prefix, _ := appConfig.Get("git.sr.ht", "s3-prefix")
+
+		s3key := path.Join(prefix, "artifacts",
+			"~"+ownerName, repoName, filename)
+		obj, err := sc.GetObject(r.Context(), &s3.GetObjectInput{
+			Bucket: aws.String(bucket),
+			Key:    aws.String(s3key),
+		})
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		defer obj.Body.Close()
+
+		w.Header().Add("Content-Type", "application/octet-stream")
+		w.Header().Set("Content-Length",
+			fmt.Sprintf("%d", *obj.ContentLength))
+
+		if r.Method == http.MethodGet {
+			io.Copy(w, obj.Body)
+		}
+	})
+
+	srv.Run()
 }

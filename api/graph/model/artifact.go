@@ -46,14 +46,14 @@ func (a *Artifact) Fields() *database.ModelFields {
 	a.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
 			{"created", "created", &a.Created},
-			{"checksum", "checksum", &a.Checksum},
 			{"size", "size", &a.Size},
 
 			// Always fetch:
 			{"id", "", &a.ID},
-			{"repo_id", "", &a.RepoID},
+			{"checksum", "", &a.Checksum},
 			{"commit", "", &a.Commit},
 			{"filename", "", &a.Filename},
+			{"repo_id", "", &a.RepoID},
 		},
 	}
 	return a.fields
