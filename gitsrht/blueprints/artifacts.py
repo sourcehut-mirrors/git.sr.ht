@@ -1,9 +1,7 @@
-import pygit2
 import requests
-from flask import Blueprint, redirect, render_template, request, redirect
+from flask import Blueprint, redirect, render_template, request
 from flask import send_file, abort, url_for
 from gitsrht.git import Repository as GitRepository, strip_pgp_signature
-from gitsrht.types import Artifact
 from gitsrht.access import check_access, UserAccess
 from srht.crypto import encrypt_request_authorization
 from srht.graphql import exec_gql, GraphQLUpload
