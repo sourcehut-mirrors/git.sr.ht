@@ -1,10 +1,11 @@
 import pygit2
 import requests
 from flask import Blueprint, redirect, render_template, request, redirect
-from flask import abort, url_for
+from flask import send_file, abort, url_for
 from gitsrht.git import Repository as GitRepository, strip_pgp_signature
 from gitsrht.types import Artifact
 from gitsrht.access import check_access, UserAccess
+from srht.crypto import encrypt_request_authorization
 from srht.graphql import exec_gql, GraphQLUpload
 from srht.oauth import loginrequired
 from srht.validation import Validation
@@ -51,14 +52,17 @@ def ref_upload(owner, repo, ref):
             repo=repo.name,
             ref=ref))
 
-@artifacts.route("/~<owner>/<repo>/refs/download/<path:ref>/<filename>")
+@artifacts.route("/<owner>/<repo>/refs/download/<path:ref>/<filename>")
 def ref_download(owner, repo, ref, filename):
+    owner, repo = check_access("~" + owner, repo, UserAccess.read)
+
     params = {
-        "owner": owner,
-        "repo": repo,
+        "owner": owner.username,
+        "repo": repo.name,
         "ref": f"refs/tags/{ref}",
         "filename": filename,
     }
+
     r = exec_gql("git.sr.ht", """
     query GetArtifactURL(
         $owner: String!,
@@ -70,21 +74,29 @@ def ref_download(owner, repo, ref, filename):
             repository(name: $repo) {
                 reference(name: $ref) {
                     artifact(filename: $filename) {
+                        filename
                         url
                     }
                 }
             }
         }
     }
-    """, **params)
+    """, user=owner, **params)
+
     ref = r["user"]["repository"]["reference"]
     if ref is None:
         abort(404)
     artifact = ref["artifact"]
     if artifact is None:
         abort(404)
+
     url = artifact["url"]
-    return redirect(artifact["url"])
+    auth = encrypt_request_authorization(user=owner)
+    resp = requests.get(url, headers=auth, stream=True)
+    return send_file(resp.raw,
+        mimetype="application/octet-stream",
+        as_attachment=True,
+        download_name=artifact["filename"])
 
 @artifacts.route("/~<owner>/<repo>/refs/delete/<path:ref>/<filename>", methods=["POST"])
 @loginrequired

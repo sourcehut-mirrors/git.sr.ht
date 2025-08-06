@@ -71,7 +71,7 @@ func main() {
 			webhookQueue.Queue,
 			legacyWebhooks.Queue)
 
-	srv.AnonRouter().HandleFunc("/query/artifact/{checksum}/{filename}", func(w http.ResponseWriter, r *http.Request) {
+	srv.Router().HandleFunc("/query/artifact/{checksum}/{filename}", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			w.Write([]byte("Method not allowed\r\n"))
