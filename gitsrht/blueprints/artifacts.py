@@ -21,7 +21,7 @@ def ref_upload(owner, repo, ref):
         default_branch = git_repo.default_branch()
         if not valid.ok:
             return render_template("ref.html", view="refs",
-                    owner=owner, repo=repo, git_repo=git_repo, tag=tag,
+                    owner=owner, repo=repo, git_repo=git_repo, tag=ref,
                     strip_pgp_signature=strip_pgp_signature,
                     default_branch=default_branch, **valid.kwargs)
         for f in file_list:
