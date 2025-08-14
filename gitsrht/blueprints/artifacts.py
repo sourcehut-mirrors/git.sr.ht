@@ -52,7 +52,7 @@ def ref_upload(owner, repo, ref):
 
 @artifacts.route("/<owner>/<repo>/refs/download/<path:ref>/<filename>")
 def ref_download(owner, repo, ref, filename):
-    owner, repo = check_access("~" + owner, repo, UserAccess.read)
+    owner, repo = check_access(owner, repo, UserAccess.read)
 
     params = {
         "owner": owner.username,
