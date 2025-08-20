@@ -14,6 +14,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.37.1
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.85.1
 	github.com/fernet/fernet-go v0.0.0-20240119011108-303da6aec611
+	github.com/go-chi/chi/v5 v5.0.11
 	github.com/go-git/go-git/v5 v5.11.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/goccy/go-yaml v1.18.0
@@ -55,7 +56,6 @@ require (
 	github.com/emersion/go-sasl v0.0.0-20231106173351-e73c9f7bad43 // indirect
 	github.com/emersion/go-smtp v0.21.3 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
-	github.com/go-chi/chi/v5 v5.0.11 // indirect
 	github.com/go-chi/cors v1.2.2 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.5.0 // indirect

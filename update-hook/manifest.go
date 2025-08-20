@@ -3,6 +3,8 @@ package main
 // TODO: Move this into builds.sr.ht
 
 import (
+	"bytes"
+
 	"github.com/goccy/go-yaml"
 )
 
@@ -32,9 +34,11 @@ func ManifestFromYAML(src string) (Manifest, error) {
 }
 
 func (manifest Manifest) ToYAML() (string, error) {
-	bytes, err := yaml.Marshal(&manifest)
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf, yaml.UseLiteralStyleIfMultiline(true))
+	err := enc.Encode(&manifest)
 	if err != nil {
 		return "", err
 	}
-	return string(bytes), nil
+	return buf.String(), nil
 }
