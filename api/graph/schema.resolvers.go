@@ -9,10 +9,12 @@ import (
 	"context"
 	"crypto/sha256"
 	"database/sql"
+	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/url"
 	"os"
@@ -21,6 +23,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
 	"git.sr.ht/~sircmpwn/core-go/config"
@@ -65,6 +68,31 @@ func (r *artifactResolver) URL(ctx context.Context, obj *model.Artifact) (string
 	origin := config.GetOrigin(conf, "git.sr.ht", true)
 	return fmt.Sprintf("%s/query/artifact/%s/%s",
 		origin, obj.Checksum, obj.Filename), nil
+}
+
+// Content is the resolver for the content field.
+func (r *binaryBlobResolver) Content(ctx context.Context, obj *model.BinaryBlob) (string, error) {
+	conf := config.ForContext(ctx)
+	origin := config.GetOrigin(conf, "git.sr.ht", true)
+	return fmt.Sprintf("%s/query/blob/%d/%s",
+		origin, obj.Repo.Obj.ID, obj.ID), nil
+}
+
+// Base64 is the resolver for the base64 field.
+func (r *binaryBlobResolver) Base64(ctx context.Context, obj *model.BinaryBlob) (string, error) {
+	reader, err := obj.Blob.Reader()
+	if err != nil {
+		panic(err)
+	}
+	defer reader.Close()
+
+	limit := io.LimitReader(reader, 32768) // 32 KiB max for binary
+	data, err := ioutil.ReadAll(limit)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(data), nil
 }
 
 // Diff is the resolver for the diff field.
@@ -1743,6 +1771,36 @@ func (r *repositoryResolver) RepoPath(ctx context.Context, obj *model.Repository
 	return obj.Path, nil
 }
 
+// Content is the resolver for the content field.
+func (r *textBlobResolver) Content(ctx context.Context, obj *model.TextBlob) (string, error) {
+	conf := config.ForContext(ctx)
+	origin := config.GetOrigin(conf, "git.sr.ht", true)
+	return fmt.Sprintf("%s/query/blob/%d/%s",
+		origin, obj.Repo.Obj.ID, obj.ID), nil
+}
+
+// Text is the resolver for the text field.
+func (r *textBlobResolver) Text(ctx context.Context, obj *model.TextBlob) (string, error) {
+	reader, err := obj.Blob.Reader()
+	if err != nil {
+		panic(err)
+	}
+	defer reader.Close()
+
+	limit := io.LimitReader(reader, 131072) // 128 KiB max for text
+	data, err := ioutil.ReadAll(limit)
+	if err != nil {
+		return "", err
+	}
+
+	text := string(data)
+	if !utf8.ValidString(text) {
+		return "", fmt.Errorf("File contains invalid UTF-8 data")
+	}
+
+	return text, nil
+}
+
 // Entries is the resolver for the entries field.
 func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *coremodel.Cursor) (*model.TreeEntryCursor, error) {
 	if cursor == nil {
@@ -1900,6 +1958,9 @@ func (r *Resolver) ACL() api.ACLResolver { return &aCLResolver{r} }
 // Artifact returns api.ArtifactResolver implementation.
 func (r *Resolver) Artifact() api.ArtifactResolver { return &artifactResolver{r} }
 
+// BinaryBlob returns api.BinaryBlobResolver implementation.
+func (r *Resolver) BinaryBlob() api.BinaryBlobResolver { return &binaryBlobResolver{r} }
+
 // Commit returns api.CommitResolver implementation.
 func (r *Resolver) Commit() api.CommitResolver { return &commitResolver{r} }
 
@@ -1923,6 +1984,9 @@ func (r *Resolver) Reference() api.ReferenceResolver { return &referenceResolver
 // Repository returns api.RepositoryResolver implementation.
 func (r *Resolver) Repository() api.RepositoryResolver { return &repositoryResolver{r} }
 
+// TextBlob returns api.TextBlobResolver implementation.
+func (r *Resolver) TextBlob() api.TextBlobResolver { return &textBlobResolver{r} }
+
 // Tree returns api.TreeResolver implementation.
 func (r *Resolver) Tree() api.TreeResolver { return &treeResolver{r} }
 
@@ -1939,6 +2003,7 @@ func (r *Resolver) WebhookDelivery() api.WebhookDeliveryResolver { return &webho
 
 type aCLResolver struct{ *Resolver }
 type artifactResolver struct{ *Resolver }
+type binaryBlobResolver struct{ *Resolver }
 type commitResolver struct{ *Resolver }
 type gitWebhookSubscriptionResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
@@ -1946,6 +2011,7 @@ type queryResolver struct{ *Resolver }
 type redirectResolver struct{ *Resolver }
 type referenceResolver struct{ *Resolver }
 type repositoryResolver struct{ *Resolver }
+type textBlobResolver struct{ *Resolver }
 type treeResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
 type userWebhookSubscriptionResolver struct{ *Resolver }

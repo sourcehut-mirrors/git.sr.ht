@@ -4,6 +4,15 @@ scalar Cursor
 scalar Time
 scalar Upload
 
+"""
+URL from which some secondary data may be retrieved. You must provide the
+same Authentication header to this address as you did to the GraphQL resolver
+which provided it. The URL is not guaranteed to be consistent for an extended
+length of time; applications should submit a new GraphQL query each time they
+wish to access the data at the provided URL.
+"""
+scalar URL
+
 "Used to provide a human-friendly description of an access scope"
 directive @scopehelp(details: String!) on ENUM_VALUE
 
@@ -424,7 +433,7 @@ type Artifact {
   filename: String!
   checksum: String!
   size: Int!
-  url: String!
+  url: URL!
 }
 
 type Reference {
@@ -491,6 +500,7 @@ type TreeEntry {
 
 interface Blob {
   id: String!
+  content: URL!
 }
 
 type TextBlob implements Object & Blob {
@@ -498,8 +508,11 @@ type TextBlob implements Object & Blob {
   id: String!
   shortId: String!
   raw: String!
+  content: URL!
 
-  # TODO: Consider adding a range specifier
+  """
+  Returns up to 128 KiB of text content. Use the content field if you need more.
+  """
   text: String!
 }
 
@@ -508,8 +521,13 @@ type BinaryBlob implements Object & Blob {
   id: String!
   shortId: String!
   raw: String!
+  content: URL!
 
-  # TODO: Consider adding a range specifier
+  """
+  Returns up to 32 KiB of binary content.
+
+  Notice: this field is deprecated. Prefer to use the content field.
+  """
   base64: String!
 }
 

@@ -9,8 +9,9 @@ import (
 type RepoWrapper struct {
 	*git.Repository
 	sync.Mutex
+	Obj *Repository
 }
 
-func WrapRepo(repo *git.Repository) *RepoWrapper {
-	return &RepoWrapper{repo, sync.Mutex{}}
+func WrapRepo(obj *Repository, repo *git.Repository) *RepoWrapper {
+	return &RepoWrapper{repo, sync.Mutex{}, obj}
 }

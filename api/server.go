@@ -5,8 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"path"
+	"strconv"
 
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/database"
@@ -18,6 +20,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
 
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/account"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph"
@@ -70,6 +74,63 @@ func main() {
 			reposQueue,
 			webhookQueue.Queue,
 			legacyWebhooks.Queue)
+
+	srv.Router().HandleFunc("/query/blob/{repo_id}/{oid}", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			w.Write([]byte("Method not allowed\r\n"))
+			return
+		}
+
+		ctx := r.Context()
+		srepoID := chi.URLParam(r, "repo_id")
+		oid := chi.URLParam(r, "oid")
+
+		repoID, err := strconv.ParseInt(srepoID, 10, 64)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte("Invalid repository ID"))
+			return
+		}
+
+		dbrepo, err := loaders.ForContext(ctx).RepositoriesByID.
+			Load(int(repoID))
+		if err != nil || dbrepo == nil {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte("Invalid repository ID"))
+			return
+		}
+
+		repo := dbrepo.Repo()
+		repo.Lock()
+		obj, err := repo.Object(plumbing.BlobObject, plumbing.NewHash(oid))
+		repo.Unlock()
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(err.Error()))
+			return
+		}
+
+		blob := obj.(*object.Blob)
+		rd, err := blob.Reader()
+		if err != nil {
+			panic(err)
+		}
+		defer rd.Close()
+
+		w.Header().Add("Content-Type", "application/octet-stream")
+		w.Header().Set("Content-Length", fmt.Sprintf("%d", blob.Size))
+
+		if r.Method == http.MethodHead {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		_, err = io.Copy(w, rd)
+		if err != nil {
+			log.Printf("Error writing response: %s", err.Error())
+		}
+	})
 
 	srv.Router().HandleFunc("/query/artifact/{checksum}/{filename}", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {

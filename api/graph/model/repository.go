@@ -39,7 +39,7 @@ func (r *Repository) Repo() *RepoWrapper {
 	if err != nil {
 		panic(err)
 	}
-	r.repo = WrapRepo(repo)
+	r.repo = WrapRepo(r, repo)
 	return r.repo
 }
 
