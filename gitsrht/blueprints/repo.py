@@ -353,7 +353,7 @@ def resolve_blob(git_repo, ref, path):
 def resolve_mimetype(path, blob):
     filename = path[-1]
     mimetype, enc = mimetypes.guess_type(filename)
-    if mimetype.startswith('image/'):
+    if mimetype and mimetype.startswith('image/'):
         return mimetype
     if not blob.is_binary:
         return "text/plain"
