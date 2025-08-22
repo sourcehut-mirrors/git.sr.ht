@@ -501,6 +501,8 @@ type TreeEntry {
 interface Blob {
   id: String!
   content: URL!
+  "Size of the blob in bytes"
+  size: Int!
 }
 
 type TextBlob implements Object & Blob {
@@ -509,6 +511,8 @@ type TextBlob implements Object & Blob {
   shortId: String!
   raw: String!
   content: URL!
+  "Size of the blob in bytes"
+  size: Int!
 
   """
   Returns up to 128 KiB of text content. Use the content field if you need more.
@@ -522,6 +526,8 @@ type BinaryBlob implements Object & Blob {
   shortId: String!
   raw: String!
   content: URL!
+  "Size of the blob in bytes"
+  size: Int!
 
   """
   Returns up to 32 KiB of binary content.

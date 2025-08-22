@@ -11,6 +11,7 @@ type BinaryBlob struct {
 	ID      string     `json:"id"`
 	ShortID string     `json:"shortId"`
 	Raw     string     `json:"raw"`
+	Size    int64      `json:"size"`
 
 	Repo *RepoWrapper
 	Blob *object.Blob
@@ -24,6 +25,7 @@ type TextBlob struct {
 	ID      string     `json:"id"`
 	ShortID string     `json:"shortId"`
 	Raw     string     `json:"raw"`
+	Size    int64      `json:"size"`
 
 	Repo *RepoWrapper
 	Blob *object.Blob
@@ -53,6 +55,7 @@ func BlobFromObject(repo *RepoWrapper, obj *object.Blob) Object {
 			Type:    ObjectTypeBlob,
 			ID:      obj.ID().String(),
 			ShortID: obj.ID().String()[:7],
+			Size:    obj.Size,
 			Repo:    repo,
 			Blob:    obj,
 		}
@@ -61,6 +64,7 @@ func BlobFromObject(repo *RepoWrapper, obj *object.Blob) Object {
 			Type:    ObjectTypeBlob,
 			ID:      obj.ID().String(),
 			ShortID: obj.ID().String()[:7],
+			Size:    obj.Size,
 			Repo:    repo,
 			Blob:    obj,
 		}
