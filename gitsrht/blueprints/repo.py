@@ -1,5 +1,6 @@
 import binascii
 import json
+import mimetypes
 import os
 import pygit2
 import pygments
@@ -349,21 +350,11 @@ def resolve_blob(git_repo, ref, path):
 
     return orig_commit, ref, path, blob, entry
 
-MIME_TYPES = {
-    "avif": "image/avif",
-    "gif": "image/gif",
-    "jpeg": "image/jpeg",
-    "jpg": "image/jpeg",
-    "png": "image/png",
-    "svg": "image/svg+xml",
-    "webp": "image/webp",
-}
-
 def resolve_mimetype(path, blob):
     filename = path[-1]
-    for ext, mimetype in MIME_TYPES.items():
-        if filename.endswith('.' + ext):
-            return mimetype
+    mimetype, enc = mimetypes.guess_type(filename)
+    if mimetype.startswith('image/'):
+        return mimetype
     if not blob.is_binary:
         return "text/plain"
     return None
