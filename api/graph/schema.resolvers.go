@@ -65,7 +65,7 @@ func (r *aCLResolver) Entity(ctx context.Context, obj *model.ACL) (model.Entity,
 // URL is the resolver for the url field.
 func (r *artifactResolver) URL(ctx context.Context, obj *model.Artifact) (string, error) {
 	conf := config.ForContext(ctx)
-	origin := config.GetOrigin(conf, "git.sr.ht", true)
+	origin := config.GetAPI(conf, "git.sr.ht", true)
 	return fmt.Sprintf("%s/query/artifact/%s/%s",
 		origin, obj.Checksum, obj.Filename), nil
 }
@@ -73,7 +73,7 @@ func (r *artifactResolver) URL(ctx context.Context, obj *model.Artifact) (string
 // Content is the resolver for the content field.
 func (r *binaryBlobResolver) Content(ctx context.Context, obj *model.BinaryBlob) (string, error) {
 	conf := config.ForContext(ctx)
-	origin := config.GetOrigin(conf, "git.sr.ht", true)
+	origin := config.GetAPI(conf, "git.sr.ht", true)
 	return fmt.Sprintf("%s/query/blob/%d/%s",
 		origin, obj.Repo.Obj.ID, obj.ID), nil
 }
@@ -1774,7 +1774,7 @@ func (r *repositoryResolver) RepoPath(ctx context.Context, obj *model.Repository
 // Content is the resolver for the content field.
 func (r *textBlobResolver) Content(ctx context.Context, obj *model.TextBlob) (string, error) {
 	conf := config.ForContext(ctx)
-	origin := config.GetOrigin(conf, "git.sr.ht", true)
+	origin := config.GetAPI(conf, "git.sr.ht", true)
 	return fmt.Sprintf("%s/query/blob/%d/%s",
 		origin, obj.Repo.Obj.ID, obj.ID), nil
 }
