@@ -1,6 +1,7 @@
 package model
 
 import (
+	"io"
 	"unicode/utf8"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -45,12 +46,14 @@ func BlobFromObject(repo *RepoWrapper, obj *object.Blob) Object {
 	// the blob and assume the rest is similar.
 	var data [512]byte
 	n, err := reader.Read(data[:])
-	if err != nil {
+	if err == io.EOF {
+		n = 0
+	} else if err != nil {
 		panic(err)
 	}
 
 	text := string(data[:n])
-	if utf8.ValidString(text) {
+	if len(text) == 0 || utf8.ValidString(text) {
 		return &TextBlob{
 			Type:    ObjectTypeBlob,
 			ID:      obj.ID().String(),
