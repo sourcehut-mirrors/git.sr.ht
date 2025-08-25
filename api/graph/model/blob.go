@@ -11,7 +11,6 @@ type BinaryBlob struct {
 	Type    ObjectType `json:"type"`
 	ID      string     `json:"id"`
 	ShortID string     `json:"shortId"`
-	Raw     string     `json:"raw"`
 	Size    int64      `json:"size"`
 
 	Repo *RepoWrapper
@@ -25,7 +24,6 @@ type TextBlob struct {
 	Type    ObjectType `json:"type"`
 	ID      string     `json:"id"`
 	ShortID string     `json:"shortId"`
-	Raw     string     `json:"raw"`
 	Size    int64      `json:"size"`
 
 	Repo *RepoWrapper

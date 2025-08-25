@@ -19,7 +19,6 @@ func (r *Reference) Follow() Object {
 	}
 	obj, err := LookupObject(repo, ref.Hash())
 	if err != nil {
-		println(err)
 		panic(err)
 	}
 	return obj

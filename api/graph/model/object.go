@@ -27,11 +27,7 @@ func LookupObject(repo *RepoWrapper, hash plumbing.Hash) (Object, error) {
 	case *object.Blob:
 		return BlobFromObject(repo, obj), nil
 	case *object.Tag:
-		commit, err := obj.Commit()
-		if err != nil {
-			return nil, err
-		}
-		return CommitFromObject(repo, commit), nil
+		return TagFromObject(repo, obj), nil
 	default:
 		return nil, fmt.Errorf("Unknown object type %T", obj)
 	}

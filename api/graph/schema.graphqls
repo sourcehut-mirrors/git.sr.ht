@@ -456,8 +456,6 @@ interface Object {
   type: ObjectType!
   id: String!
   shortId: String!
-  "Raw git object, base64 encoded"
-  raw: String!
 }
 
 type Signature {
@@ -470,7 +468,6 @@ type Commit implements Object {
   type: ObjectType!
   id: String!
   shortId: String!
-  raw: String!
   author: Signature!
   committer: Signature!
   message: String!
@@ -483,7 +480,6 @@ type Tree implements Object {
   type: ObjectType!
   id: String!
   shortId: String!
-  raw: String!
   # TODO: add globbing
   entries(cursor: Cursor): TreeEntryCursor!
 
@@ -509,7 +505,6 @@ type TextBlob implements Object & Blob {
   type: ObjectType!
   id: String!
   shortId: String!
-  raw: String!
   content: URL!
   "Size of the blob in bytes"
   size: Int!
@@ -524,7 +519,6 @@ type BinaryBlob implements Object & Blob {
   type: ObjectType!
   id: String!
   shortId: String!
-  raw: String!
   content: URL!
   "Size of the blob in bytes"
   size: Int!
@@ -537,15 +531,17 @@ type BinaryBlob implements Object & Blob {
   base64: String!
 }
 
+"""
+An annotated git tag.
+"""
 type Tag implements Object {
   type: ObjectType!
   id: String!
   shortId: String!
-  raw: String!
   target: Object!
   name: String!
   tagger: Signature!
-  message: String
+  message: String!
 }
 
 input Filter {

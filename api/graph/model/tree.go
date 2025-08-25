@@ -11,7 +11,6 @@ type Tree struct {
 	Type    ObjectType `json:"type"`
 	ID      string     `json:"id"`
 	ShortID string     `json:"shortId"`
-	Raw     string     `json:"raw"`
 
 	tree *object.Tree
 	repo *RepoWrapper
