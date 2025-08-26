@@ -42,9 +42,11 @@ def commit_title_description(commit):
     return str(commit.id), ""
 
 def tag_title_description(tag):
+    commit = tag.get_object()
+
     """Split the tag message to title (first line) and the description
     (remaining lines)."""
-    lines = tag.message.strip().split("\n")
+    lines = tag.message.strip().split("\n") if tag.message else None
     if lines:
         title = lines[0]
         description = "\n".join(lines[1:]).strip().replace("\n", "<br />")
