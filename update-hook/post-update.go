@@ -181,8 +181,6 @@ func postUpdate() {
 		logger.Fatalf("unmarshal SRHT_PUSH_CTX: %v", err)
 	}
 
-	initSubmitter()
-
 	newDescription, newVisibility := parseUpdatables()
 	if pcontext.Repo.Autocreated && newVisibility == nil {
 		printAutocreateInfo(pcontext)

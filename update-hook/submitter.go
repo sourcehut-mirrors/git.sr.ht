@@ -14,35 +14,12 @@ import (
 
 	"git.sr.ht/~sircmpwn/core-go/client"
 	"git.sr.ht/~turminal/go-fnmatch"
-	"github.com/fernet/fernet-go"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/pkg/errors"
 )
-
-var (
-	fernetKey *fernet.Key
-	clientId  string
-)
-
-// TODO: Consider moving Fernet code to a shared SourceHut Go module
-func initSubmitter() {
-	netkey, ok := config.Get("sr.ht", "network-key")
-	if !ok {
-		logger.Fatal("Configuration error: [sr.ht].network-key missing")
-	}
-	var err error
-	fernetKey, err = fernet.DecodeKey(netkey)
-	if err != nil {
-		logger.Fatalf("Error decoding [sr.ht].network-key: %v", err)
-	}
-	clientId, ok = config.Get("git.sr.ht", "oauth-client-id")
-	if !ok {
-		logger.Fatal("Configuration error: [git.sr.ht].oauth-client-id missing")
-	}
-}
 
 type InternalRequestAuthorization struct {
 	ClientID string `json:"client_id"`
