@@ -4,7 +4,7 @@ from flask import send_file, abort, url_for
 from gitsrht.git import Repository as GitRepository, strip_pgp_signature
 from gitsrht.access import check_access, UserAccess
 from srht.crypto import encrypt_request_authorization
-from srht.graphql import exec_gql, GraphQLUpload
+from srht.graphql import exec_gql, GraphQLUpload, GraphQLError, Error
 from srht.oauth import loginrequired
 from srht.validation import Validation
 
@@ -61,25 +61,30 @@ def ref_download(owner, repo, ref, filename):
         "filename": filename,
     }
 
-    r = exec_gql("git.sr.ht", """
-    query GetArtifactURL(
-        $owner: String!,
-        $repo: String!,
-        $ref: String!,
-        $filename: String!,
-    ) {
-        user(username: $owner) {
-            repository(name: $repo) {
-                reference(name: $ref) {
-                    artifact(filename: $filename) {
-                        filename
-                        url
+    try:
+        r = exec_gql("git.sr.ht", """
+        query GetArtifactURL(
+            $owner: String!,
+            $repo: String!,
+            $ref: String!,
+            $filename: String!,
+        ) {
+            user(username: $owner) {
+                repository(name: $repo) {
+                    reference(name: $ref) {
+                        artifact(filename: $filename) {
+                            filename
+                            url
+                        }
                     }
                 }
             }
         }
-    }
-    """, user=owner, **params)
+        """, user=owner, **params)
+    except GraphQLError as err:
+        if err.has(Error.NOT_FOUND):
+            abort(404)
+        raise
 
     ref = r["user"]["repository"]["reference"]
     if ref is None:
@@ -107,29 +112,31 @@ def ref_delete(owner, repo, ref, filename):
         "ref": f"refs/tags/{ref}",
         "filename": filename,
     }
-    r = exec_gql("git.sr.ht", """
-    query GetArtifact(
-        $owner: String!,
-        $repo: String!,
-        $ref: String!,
-        $filename: String!,
-    ) {
-        user(username: $owner) {
-            repository(name: $repo) {
-                reference(name: $ref) {
-                    artifact(filename: $filename) {
-                        id
+    try:
+        r = exec_gql("git.sr.ht", """
+        query GetArtifact(
+            $owner: String!,
+            $repo: String!,
+            $ref: String!,
+            $filename: String!,
+        ) {
+            user(username: $owner) {
+                repository(name: $repo) {
+                    reference(name: $ref) {
+                        artifact(filename: $filename) {
+                            id
+                        }
                     }
                 }
             }
         }
-    }
-    """, **params)
+        """, **params)
+    except GraphQLError as err:
+        if err.has(Error.NOT_FOUND):
+            abort(404)
+        raise
 
     artifact = r["user"]["repository"]["reference"]["artifact"]
-    if not artifact:
-        abort(404)
-
     exec_gql("git.sr.ht", """
     mutation DeleteArtifact($id: Int!) {
         deleteArtifact(id: $id) {

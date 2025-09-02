@@ -28,6 +28,7 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/auth"
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/database"
+	gerrors "git.sr.ht/~sircmpwn/core-go/errors"
 	coremodel "git.sr.ht/~sircmpwn/core-go/model"
 	"git.sr.ht/~sircmpwn/core-go/objects"
 	"git.sr.ht/~sircmpwn/core-go/server"
@@ -1400,7 +1401,9 @@ func (r *referenceResolver) Artifact(ctx context.Context, obj *model.Reference, 
 		return nil, err
 	}
 	o, err := repo.Object(plumbing.TagObject, ref.Hash())
-	if err != nil {
+	if err == plumbing.ErrObjectNotFound {
+		return nil, gerrors.ErrNotFound
+	} else if err != nil {
 		return nil, err
 	}
 	tag, ok := o.(*object.Tag)
