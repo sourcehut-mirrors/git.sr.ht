@@ -303,7 +303,7 @@ def tree(owner, repo, ref, path):
                         markdown=md, force_source=force_source, pygit2=pygit2)
             tree = git_repo.get(entry.id)
 
-        if not tree:
+        if not tree or tree.type != pygit2.GIT_OBJECT_TREE:
             abort(404)
         tree = annotate_tree(git_repo, tree, commit)
         tree = sorted(tree, key=lambda e: e.name)
