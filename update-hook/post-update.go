@@ -87,7 +87,7 @@ func fetchInfoForPush(db *sql.DB, username string, repoId int, repoName string,
 	//    webhooks then we can defer looking them up until after we've sent the
 	//    user on their way.
 
-	query, err := db.Prepare(`
+	query := db.QueryRow(`
 		WITH owner AS (
 			SELECT "user".username, "user".oauth_token
 			FROM "user"
@@ -106,14 +106,10 @@ func fetchInfoForPush(db *sql.DB, username string, repoId int, repoName string,
 			webhooks.sync_count,
 			webhooks.async_count
 		FROM owner, webhooks;
-	`)
-	if err != nil {
-		return dbinfo, err
-	}
-	defer query.Close()
+	`, repoId)
 
 	var nasync, nsync int
-	if err = query.QueryRow(repoId).Scan(&dbinfo.OwnerUsername,
+	if err = query.Scan(&dbinfo.OwnerUsername,
 		&dbinfo.OwnerToken, &nsync, &nasync); err != nil {
 
 		return dbinfo, err
