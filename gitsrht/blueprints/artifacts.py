@@ -42,7 +42,7 @@ def ref_upload(owner, repo, ref):
                 valid=valid)
             if not valid.ok:
                 return render_template("ref.html", view="refs",
-                        owner=owner, repo=repo, git_repo=git_repo, tag=tag,
+                        owner=owner, repo=repo, git_repo=git_repo, tag=ref,
                         strip_pgp_signature=strip_pgp_signature,
                         default_branch=default_branch, **valid.kwargs)
         return redirect(url_for("repo.ref",
