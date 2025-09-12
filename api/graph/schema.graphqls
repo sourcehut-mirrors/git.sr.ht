@@ -496,6 +496,7 @@ type TreeEntry {
 
 interface Blob {
   id: String!
+  type: ObjectType!
   content: URL!
   "Size of the blob in bytes"
   size: Int!
