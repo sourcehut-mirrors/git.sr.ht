@@ -9,7 +9,7 @@ type Reference struct {
 	Ref  *plumbing.Reference
 }
 
-func (r *Reference) Follow() Object {
+func (r *Reference) Follow() (Object, error) {
 	repo := r.Repo.Repo()
 	repo.Lock()
 	ref, err := repo.Reference(r.Ref.Name(), true)
@@ -19,9 +19,9 @@ func (r *Reference) Follow() Object {
 	}
 	obj, err := LookupObject(repo, ref.Hash())
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	return obj
+	return obj, nil
 }
 
 func (r *Reference) Name() string {
