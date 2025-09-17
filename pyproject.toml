@@ -24,15 +24,12 @@ repository = "https://git.sr.ht/~sircmpwn/git.sr.ht"
 include-package-data = false
 packages = [
     "gitsrht",
-    "gitsrht.alembic",
-    "gitsrht.alembic.versions",
     "gitsrht.blueprints",
     "gitsrht.blueprints.api",
     "gitsrht.templates",
     "gitsrht.types",
 ]
 script-files = [
-    "git.sr.ht-migrate",
     "git.sr.ht-periodic",
 ]
 [tool.setuptools.package-data]
