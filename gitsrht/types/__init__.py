@@ -1,13 +1,14 @@
 import os
 import sqlalchemy as sa
-from sqlalchemy import event
 import sqlalchemy_utils as sau
-from sqlalchemy.ext.declarative import declared_attr
+from enum import Enum
+from gitsrht.git import Repository as GitRepository
+from gitsrht.graphql import Visibility
+from sqlalchemy import event
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.ext.declarative import declared_attr
 from srht.database import Base
 from srht.oauth import ExternalUserMixin, ExternalOAuthTokenMixin
-from gitsrht.git import Repository as GitRepository
-from enum import Enum
 
 class User(Base, ExternalUserMixin):
     pass
@@ -15,6 +16,7 @@ class User(Base, ExternalUserMixin):
 class OAuthToken(Base, ExternalOAuthTokenMixin):
     pass
 
+# TODO: Make me into a postgresql ENUM type
 class AccessMode(Enum):
     ro = 'ro'
     rw = 'rw'
@@ -88,13 +90,6 @@ class Redirect(Base):
     @declared_attr
     def new_repo(cls):
         return sa.orm.relationship('Repository')
-
-class Visibility(Enum):
-    # NOTE: SQLAlchemy uses the enum member names, not the values.
-    # The values are used by templates. Therfore, we capitalize both.
-    PUBLIC = 'PUBLIC'
-    PRIVATE = 'PRIVATE'
-    UNLISTED = 'UNLISTED'
 
 class Repository(Base):
     @declared_attr

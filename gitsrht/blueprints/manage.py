@@ -1,18 +1,12 @@
-import pygit2
 from flask import Blueprint, current_app, request, render_template, abort
 from flask import redirect, url_for
-import gitsrht.repos as repos
-from gitsrht.git import Repository as GitRepository
-from srht.config import cfg
 from srht.database import db
 from srht.flask import session
-from srht.graphql import exec_gql
 from srht.oauth import current_user, loginrequired, UserType
 from srht.validation import Validation
 from gitsrht.access import check_access, UserAccess, AccessMode
+from gitsrht.graphql import Client, Visibility, RepoInput
 from gitsrht.types import Access, User, Redirect
-import shutil
-import os
 
 manage = Blueprint('manage', __name__)
 
@@ -28,38 +22,25 @@ def create_GET():
 def create_POST():
     valid = Validation(request)
     name = valid.require("name", friendly_name="Name")
-    description = valid.optional("description")
-    visibility = valid.require("visibility")
+    desc = valid.optional("description")
+    vis = valid.require("visibility", cls=Visibility)
     if not valid.ok:
         return render_template("create.html", **valid.kwargs)
-    if description == "":
-        description = None
+    if desc == "":
+        desc = None
 
-    resp = exec_gql(current_app.site, """
-        mutation CreateRepository(
-                $name: String!,
-                $visibility: Visibility!,
-                $description: String) {
-            createRepository(
-                    name: $name,
-                    visibility: $visibility,
-                    description: $description) {
-                name
-            }
-        }
-    """, valid=valid, name=name, description=description, visibility=visibility)
-
+    with valid:
+        repo = Client().create_repository(name, vis, desc).repository
     if not valid.ok:
         return render_template("create.html", **valid.kwargs)
-
-    resp = resp["createRepository"]
 
     another = valid.optional("another")
     if another == "on":
         return redirect("/create?another")
     else:
         return redirect(url_for("repo.summary",
-            owner=current_user.canonical_name, repo=resp["name"]))
+            owner=current_user.canonical_name,
+            repo=repo.name))
 
 @manage.route("/clone")
 @loginrequired
@@ -71,35 +52,20 @@ def clone():
 @loginrequired
 def clone_POST():
     valid = Validation(request)
-    cloneUrl = valid.require("cloneUrl", friendly_name="Clone URL")
+    clone_url = valid.require("cloneUrl", friendly_name="Clone URL")
     name = valid.require("name", friendly_name="Name")
-    description = valid.optional("description")
-    visibility = valid.require("visibility")
+    desc = valid.optional("description")
+    vis = valid.require("visibility", cls=Visibility)
     if not valid.ok:
         return render_template("clone.html", **valid.kwargs)
 
-    resp = exec_gql(current_app.site, """
-        mutation CloneRepository(
-                $name: String!,
-                $visibility: Visibility!,
-                $description: String,
-                $cloneUrl: String!) {
-            createRepository(name: $name,
-                    visibility: $visibility,
-                    description: $description,
-                    cloneUrl: $cloneUrl) {
-                name
-            }
-        }
-    """, valid=valid, name=name, visibility=visibility,
-        description=description, cloneUrl=cloneUrl)
-
+    with valid:
+        repo = Client().clone_repository(clone_url, name, vis, desc).repository
     if not valid.ok:
         return render_template("clone.html", **valid.kwargs)
 
-    resp = resp["createRepository"]
     return redirect(url_for("repo.summary",
-        owner=current_user.canonical_name, repo=resp["name"]))
+        owner=current_user.canonical_name, repo=repo.name))
 
 @manage.route("/<owner_name>/<repo_name>/settings/info")
 @loginrequired
@@ -118,19 +84,16 @@ def settings_info_POST(owner_name, repo_name):
         repo = repo.new_repo
 
     valid = Validation(request)
+    desc = valid.optional("description")
+    updates = RepoInput(
+        visibility=valid.require("visibility", cls=Visibility),
+        head=valid.require("HEAD"),
+    )
+    if desc:
+        updates.description = desc
 
-    rewrite = lambda value: None if value == "" else value
-    input = {
-        key: rewrite(valid.source[key]) for key in [
-            "description", "visibility", "HEAD",
-        ] if valid.source.get(key) is not None
-    }
-
-    resp = exec_gql(current_app.site, """
-        mutation UpdateRepository($id: Int!, $input: RepoInput!) {
-            updateRepository(id: $id, input: $input) { id }
-        }
-    """, valid=valid, id=repo.id, input=input)
+    with valid:
+        Client().update_repository(repo.id, updates)
     if not valid.ok:
         return render_template("settings_info.html",
                 owner=owner, repo=repo, **valid.kwargs)
@@ -160,20 +123,13 @@ def settings_rename_POST(owner_name, repo_name):
         return render_template("settings_rename.html", owner=owner, repo=repo,
                 **valid.kwargs)
 
-    resp = exec_gql(current_app.site, """
-        mutation RenameRepository($id: Int!, $name: String!) {
-            updateRepository(id: $id, input: {name: $name}) {
-                name
-            }
-        }
-    """, valid=valid, id=repo.id, name=name)
-
+    with valid:
+        repo = Client().rename_repository(repo.id, name).repository
     if not valid.ok:
-        return render_template("settings_rename.html", owner=owner, repo=repo,
-                **valid.kwargs)
-    resp = resp["updateRepository"]
+        return render_template("settings_rename.html",
+                owner=owner, repo=repo, **valid.kwargs)
     return redirect(url_for("repo.summary",
-        owner=owner_name, repo=resp["name"]))
+        owner=owner_name, repo=repo.name))
 
 @manage.route("/<owner_name>/<repo_name>/settings/access")
 @loginrequired
@@ -259,12 +215,7 @@ def settings_delete_POST(owner_name, repo_name):
     if isinstance(repo, Redirect):
         # Normally we'd redirect but we don't want to fuck up some other repo
         abort(404)
-    repo_id = repo.id
-    exec_gql(current_app.site, """
-        mutation DeleteRepository($id: Int!) {
-            deleteRepository(id: $id) { id }
-        }
-    """, id=repo.id)
+    repo = Client().delete_repository(repo.id).repository
     session["notice"] = "{}/{} was deleted.".format(
-        owner.canonical_name, repo.name)
-    return redirect("/" + owner.canonical_name)
+        repo.owner.canonical_name, repo.name)
+    return redirect(url_for("public.user_index", username=repo.owner.username))

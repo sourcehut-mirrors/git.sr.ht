@@ -1,15 +1,16 @@
-from flask import Blueprint, Response, current_app, request
 import gitsrht.repos as repos
+from flask import Blueprint, Response, current_app, request
 from gitsrht.access import UserAccess
-from gitsrht.types import Access, Repository, User, Visibility
-from gitsrht.webhooks import UserWebhook
 from gitsrht.blueprints.api import get_user, get_repo
+from gitsrht.graphql import Visibility
+from gitsrht.types import Access, Repository, User
+from gitsrht.webhooks import UserWebhook
+from sqlalchemy import and_, or_
 from srht.api import paginated_response
 from srht.database import db
 from srht.graphql import exec_gql
 from srht.oauth import current_token, oauth
 from srht.validation import Validation
-from sqlalchemy import and_, or_
 
 info = Blueprint("api_info", __name__)
 

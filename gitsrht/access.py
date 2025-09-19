@@ -1,13 +1,14 @@
-from datetime import datetime
-from enum import IntFlag
-from flask import abort, current_app, request, redirect, url_for
-from gitsrht.types import Access, AccessMode, Repository, Redirect, User, Visibility
-from srht.database import db
-from srht.oauth import current_user
 import sqlalchemy as sa
 import sqlalchemy_utils as sau
-from sqlalchemy.ext.declarative import declared_attr
+from datetime import datetime
 from enum import Enum
+from enum import IntFlag
+from flask import abort, current_app, request, redirect, url_for
+from gitsrht.graphql import Visibility
+from gitsrht.types import Access, AccessMode, Repository, Redirect, User
+from sqlalchemy.ext.declarative import declared_attr
+from srht.database import db
+from srht.oauth import current_user
 
 class UserAccess(IntFlag):
     none = 0
