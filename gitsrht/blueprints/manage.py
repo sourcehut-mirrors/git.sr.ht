@@ -85,12 +85,13 @@ def settings_info_POST(owner_name, repo_name):
 
     valid = Validation(request)
     desc = valid.optional("description")
-    updates = RepoInput(
-        visibility=valid.require("visibility", cls=Visibility),
-        head=valid.require("HEAD"),
-    )
+    head = valid.optional("HEAD")
+    vis = valid.require("visibility", cls=Visibility)
+    updates = RepoInput(visibility=vis)
     if desc:
         updates.description = desc
+    if head:
+        updates.head = head
 
     with valid:
         Client().update_repository(repo.id, updates)
