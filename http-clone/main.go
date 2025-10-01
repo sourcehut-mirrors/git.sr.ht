@@ -29,7 +29,7 @@ func handle(rw http.ResponseWriter, req *http.Request) {
 	user, repo := repo_split[1], repo_split[2]
 	path := gopath.Join(os.Getenv("GIT_PROJECT_ROOT"), user, repo)
 
-	config := coreconfig.LoadFiles()
+	config := coreconfig.LoadConfig()
 
 	origin, ok := config.Get("git.sr.ht", "origin")
 	if !ok {

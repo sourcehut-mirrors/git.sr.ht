@@ -86,15 +86,7 @@ func main() {
 	}
 	pusherName = os.Args[2]
 
-	for _, path := range []string{os.Getenv("SRHT_CONFIG"), "/etc/sr.ht/config.ini"} {
-		config, err = ini.LoadFile(path)
-		if err == nil {
-			break
-		}
-	}
-	if err != nil {
-		logger.Fatalf("Failed to load config file: %v", err)
-	}
+	config = coreconfig.LoadConfig()
 
 	origin, ok := config.Get("git.sr.ht", "origin")
 	if !ok {

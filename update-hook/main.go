@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	coreconfig "git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/crypto"
 	"github.com/vaughan0/go-ini"
 )
@@ -49,15 +50,7 @@ func init() {
 		logger = log.New(logf, os.Args[0]+" ", log.LstdFlags)
 	}
 
-	for _, path := range []string{os.Getenv("SRHT_CONFIG"), "/etc/sr.ht/config.ini"} {
-		config, err = ini.LoadFile(path)
-		if err == nil {
-			break
-		}
-	}
-	if err != nil {
-		logger.Fatalf("Failed to load config file: %v", err)
-	}
+	config = coreconfig.LoadConfig()
 
 	var ok bool
 	origin, ok = config.Get("git.sr.ht", "origin")

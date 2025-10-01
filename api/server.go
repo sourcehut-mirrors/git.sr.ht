@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"path"
 	"strconv"
 
@@ -32,7 +33,7 @@ import (
 )
 
 func main() {
-	appConfig := config.LoadConfig(":5101")
+	appConfig := config.LoadConfig()
 
 	gqlConfig := api.Config{Resolvers: &graph.Resolver{}}
 	gqlConfig.Directives.Private = server.Private
@@ -59,7 +60,7 @@ func main() {
 	webhookQueue := webhooks.NewQueue(schema, appConfig)
 	legacyWebhooks := webhooks.NewLegacyQueue(appConfig)
 
-	srv := server.NewServer("git.sr.ht", appConfig).
+	srv := server.New("git.sr.ht", ":5101", appConfig, os.Args).
 		WithDefaultMiddleware().
 		WithMiddleware(
 			loaders.Middleware,
