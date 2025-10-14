@@ -7,6 +7,7 @@ toolchain go1.24.0
 require (
 	git.sr.ht/~sircmpwn/core-go v0.0.0-20251001134638-898f2e950ea0
 	git.sr.ht/~sircmpwn/dowork v0.0.0-20241216125407-2b00aa42322c
+	git.sr.ht/~sircmpwn/sourcehut-ssh v0.0.0-20251014065653-ff37129c25fe
 	git.sr.ht/~turminal/go-fnmatch v0.0.0-20211021204744-1a55764af6de
 	github.com/99designs/gqlgen v0.17.64
 	github.com/Masterminds/squirrel v1.5.4

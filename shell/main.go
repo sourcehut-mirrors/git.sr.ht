@@ -11,13 +11,13 @@ import (
 	gopath "path"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"syscall"
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
 	"git.sr.ht/~sircmpwn/core-go/client"
 	coreconfig "git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/crypto"
+	"git.sr.ht/~sircmpwn/sourcehut-ssh/shell"
 	"github.com/google/shlex"
 	_ "github.com/lib/pq"
 	"github.com/vaughan0/go-ini"
@@ -52,9 +52,6 @@ func main() {
 		err    error
 		logger *log.Logger
 
-		pusherId   int
-		pusherName string
-
 		origin         string
 		repos          string
 		siteOwnerName  string
@@ -76,15 +73,11 @@ func main() {
 		logger = log.New(logf, "", log.LstdFlags)
 	}
 
-	if len(os.Args) < 3 {
-		logger.Fatalf("Expected two arguments from SSH")
+	args, err := shell.ParseShellArgs()
+	if err != nil {
+		logger.Fatalf("error parsing args %v: %s", os.Args, err.Error())
 	}
-	logger.Printf("os.Args: %v", os.Args)
-
-	if pusherId, err = strconv.Atoi(os.Args[1]); err != nil {
-		logger.Fatalf("Couldn't interpret user ID: %v", err)
-	}
-	pusherName = os.Args[2]
+	pusher := args.User
 
 	config = coreconfig.LoadConfig()
 
@@ -104,10 +97,6 @@ func main() {
 	cmdstr, ok = os.LookupEnv("SSH_ORIGINAL_COMMAND")
 	if !ok {
 		cmdstr = ""
-	}
-
-	if pushUuid, ok := os.LookupEnv("SRHT_PUSH"); ok {
-		logger.Printf("Running shell for push %s", pushUuid)
 	}
 
 	// Grab the command the user is trying to execute
@@ -130,7 +119,7 @@ func main() {
 	if !valid {
 		logger.Printf("Not permitting unacceptable command: %v", cmd)
 		log.Printf("Hi %s! You've successfully authenticated, "+
-			"but I do not provide an interactive shell. Bye!", pusherName)
+			"but I do not provide an interactive shell. Bye!", pusher.Username)
 		os.Exit(128)
 	}
 
@@ -142,6 +131,9 @@ func main() {
 		logger.Fatalf("filepath.Abs(%s): %v", path, err)
 	}
 	cmd[len(cmd)-1] = absPath
+
+	pushUuid, _ := os.LookupEnv("SRHT_PUSH")
+	logger.Printf("SRHT_PUSH=%s pusher ID %d, repo path %s", pushUuid, pusher.Id, path)
 
 	// Check what kind of access they're interested in
 	needsAccess := ACCESS_READ
@@ -177,7 +169,6 @@ func main() {
 		accessGrant    *string
 		autocreated    bool
 	)
-	logger.Printf("Looking up repo: pusher ID %d, repo path %s", pusherId, path)
 	row := db.QueryRow(`
 		SELECT
 			repo.id,
@@ -192,7 +183,7 @@ func main() {
 			ON (access.repo_id = repo.id AND access.user_id = $1)
 		WHERE
 			repo.path = $2;
-	`, pusherId, path)
+	`, pusher.Id, path)
 	if err := row.Scan(&repoId, &repoName, &repoOwnerId, &repoOwnerName,
 		&repoVisibility, &accessGrant); err != nil {
 
@@ -217,7 +208,7 @@ func main() {
 				ON (access.repo_id = repo.id AND access.user_id = $1)
 			WHERE
 				redirect.path = $2;
-		`, pusherId, path)
+		`, pusher.Id, path)
 
 		if err := row.Scan(&repoId, &repoName, &repoOwnerId, &repoOwnerName,
 			&repoVisibility, &accessGrant); err == sql.ErrNoRows {
@@ -245,7 +236,7 @@ func main() {
 				os.Exit(128)
 			}
 
-			if needsAccess == ACCESS_READ || repoOwnerName != pusherName {
+			if needsAccess == ACCESS_READ || repoOwnerName != pusher.Username {
 				notFound("access", nil)
 			}
 
@@ -257,8 +248,8 @@ func main() {
 					notFound("name policy", nil)
 				}
 
-				repoOwnerId = pusherId
-				repoOwnerName = pusherName
+				repoOwnerId = pusher.Id
+				repoOwnerName = pusher.Username
 				repoVisibility = "PRIVATE"
 
 				query := client.GraphQLQuery{
@@ -279,7 +270,7 @@ func main() {
 					} `json:"createRepository"`
 				}{}
 
-				err := client.Do(ctx, pusherName, "git.sr.ht", query, &resp)
+				err := client.Do(ctx, pusher.Username, "git.sr.ht", query, &resp)
 				if err != nil {
 					notFound("create repository", err)
 				}
@@ -291,7 +282,7 @@ func main() {
 			log.Println("A temporary error has occured. Please try again.")
 			logger.Fatalf("Error occured looking up repo: %v", err)
 		} else {
-			if repoVisibility == "PRIVATE" && repoOwnerName != pusherName && accessGrant == nil {
+			if repoVisibility == "PRIVATE" && repoOwnerName != pusher.Username && accessGrant == nil {
 				eacces(logger)
 			}
 			log.Printf("\033[93mNOTICE\033[0m: This repository has moved.")
@@ -319,7 +310,7 @@ func main() {
 			SuspensionNotice *string `json:"suspensionNotice"`
 		} `json:"me"`
 	}
-	if err := client.Do(ctx, pusherName, "meta.sr.ht", query, &resp); err != nil {
+	if err := client.Do(ctx, pusher.Username, "meta.sr.ht", query, &resp); err != nil {
 		log.Println("A temporary error has occured. Please try again.")
 		logger.Fatalf("Error occured looking up pusher: %v", err)
 	}
@@ -342,7 +333,7 @@ func main() {
 	// We have everything we need, now we find out if the user is allowed to do
 	// what they're trying to do.
 	hasAccess := ACCESS_NONE
-	if pusherId == repoOwnerId {
+	if pusher.Id == repoOwnerId {
 		hasAccess = ACCESS_READ | ACCESS_WRITE | ACCESS_MANAGE
 	} else {
 		if accessGrant == nil {
@@ -418,8 +409,8 @@ func main() {
 			Autocreated:  autocreated,
 		},
 		User: UserContext{
-			CanonicalName: "~" + pusherName,
-			Name:          pusherName,
+			CanonicalName: "~" + pusher.Username,
+			Name:          pusher.Username,
 		},
 	})
 

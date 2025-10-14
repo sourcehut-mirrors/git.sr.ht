@@ -9,6 +9,8 @@ git.sr.ht/~sircmpwn/go-bare v0.0.0-20210406120253-ab86bc2846d9 h1:Ahny8Ud1LjVMMA
 git.sr.ht/~sircmpwn/go-bare v0.0.0-20210406120253-ab86bc2846d9/go.mod h1:BVJwbDfVjCjoFiKrhkei6NdGcZYpkDkdyCdg1ukytRA=
 git.sr.ht/~sircmpwn/go-git/v5 v5.0.0-20221206091532-7155ffca4d7a h1:q8m/o43r+putz/5SY812BBAhihGzTcu7IFsaDRF+VZg=
 git.sr.ht/~sircmpwn/go-git/v5 v5.0.0-20221206091532-7155ffca4d7a/go.mod h1:gQ1kArt6d+n+BGd+/B/I74HwRTLhth2+zti4ihgckDc=
+git.sr.ht/~sircmpwn/sourcehut-ssh v0.0.0-20251014065653-ff37129c25fe h1:OxmYCHaNriWb7+F6kqFos+lI893LdDlM9g2JoMLJN/Y=
+git.sr.ht/~sircmpwn/sourcehut-ssh v0.0.0-20251014065653-ff37129c25fe/go.mod h1:AnMzcwIZwCn+YWTEsA5HQD4uE3QxM4UHA8lvE0h2Oz8=
 git.sr.ht/~turminal/go-fnmatch v0.0.0-20211021204744-1a55764af6de h1:+8IzUB1KFZP7yt5PcRRjPFuI4u41alt6VVYMnLZUaYw=
 git.sr.ht/~turminal/go-fnmatch v0.0.0-20211021204744-1a55764af6de/go.mod h1:je8GvUMI6JGQ/vxOnkZSj9iOR3oAUaJnJMp+JJi8wTA=
 github.com/99designs/gqlgen v0.17.64 h1:BzpqO5ofQXyy2XOa93Q6fP1BHLRjTOeU35ovTEsbYlw=
