@@ -5,7 +5,7 @@ from gitsrht.access import check_access, UserAccess
 from gitsrht.git import Repository as GitRepository, strip_pgp_signature
 from gitsrht.graphql import Client, Upload, GraphQLClientGraphQLMultiError
 from srht.crypto import encrypt_request_authorization
-from srht.graphql import InternalAuth
+from srht.graphql import InternalAuth, has_error
 from srht.oauth import loginrequired
 from srht.validation import Validation
 
@@ -49,10 +49,8 @@ def ref_download(owner, repo, ref, filename):
         ref = Client(auth).get_artifact_url(owner.username, repo.name,
             f"refs/tags/{ref}", filename).user.repository.reference
     except GraphQLClientGraphQLMultiError as err:
-        # TODO: https://github.com/mirumee/ariadne-codegen/issues/373
-        for err in err.errors:
-            if err.extensions.get("code") == Error.NOT_FOUND:
-                abort(404)
+        if has_error(err, Error.NOT_FOUND):
+            abort(404)
         raise
 
     if ref is None or ref.artifact is None:
@@ -77,10 +75,8 @@ def ref_delete(owner, repo, ref, filename):
         reference = client.get_artifact(owner, repo, f"refs/tags/{ref}",
             filename).user.repository.reference
     except GraphQLClientGraphQLMultiError as err:
-        # TODO: https://github.com/mirumee/ariadne-codegen/issues/373
-        for err in err.errors:
-            if err.extensions.get("code") == Error.NOT_FOUND:
-                abort(404)
+        if has_error(err, Error.NOT_FOUND):
+            abort(404)
         raise
 
     if not reference or not reference.artifact:
