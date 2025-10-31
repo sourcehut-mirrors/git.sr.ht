@@ -70,7 +70,7 @@ CREATE TABLE repository (
 	name character varying(256) NOT NULL,
 	description character varying(1024),
 	owner_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
-	path character varying(1024),
+	path character varying(1024) NOT NULL UNIQUE,
 	visibility visibility NOT NULL,
 	readme character varying,
 	clone_status clone_status NOT NULL,
