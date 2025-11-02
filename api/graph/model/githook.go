@@ -64,7 +64,7 @@ func (ref *UpdatedRef) Old() (Object, error) {
 }
 
 func (ref *UpdatedRef) New() (Object, error) {
-	if ref.newHash == nil || ref.oldHash.IsZero() {
+	if ref.newHash == nil || ref.newHash.IsZero() {
 		return nil, nil
 	}
 	return LookupObject(ref.repo.Repo(), *ref.newHash)
