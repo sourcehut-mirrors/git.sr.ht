@@ -54,11 +54,7 @@ CREATE TABLE "user" (
 	url character varying(256),
 	location character varying(256),
 	bio character varying(4096),
-	suspension_notice character varying(4096),
-	-- TODO: Delete these
-	oauth_token character varying(256),
-	oauth_token_expires timestamp without time zone,
-	oauth_token_scopes character varying DEFAULT ''::character varying
+	suspension_notice character varying(4096)
 );
 
 CREATE INDEX ix_user_username ON "user" USING btree (username);
@@ -199,67 +195,4 @@ CREATE TABLE gql_git_wh_delivery (
 	response_body character varying,
 	response_headers character varying,
 	response_status integer
-);
-
--- Legacy OAuth (TODO: Remove)
-CREATE TABLE oauthtoken (
-	id serial PRIMARY KEY,
-	created timestamp without time zone NOT NULL,
-	updated timestamp without time zone NOT NULL,
-	expires timestamp without time zone NOT NULL,
-	user_id integer REFERENCES "user"(id) ON DELETE CASCADE,
-	token_hash character varying(128) NOT NULL,
-	token_partial character varying(8) NOT NULL,
-	scopes character varying(512) NOT NULL
-);
-
--- Legacy webhooks (TODO: Remove)
-CREATE TABLE user_webhook_subscription (
-	id serial PRIMARY KEY,
-	created timestamp without time zone NOT NULL,
-	url character varying(2048) NOT NULL,
-	events character varying NOT NULL,
-	user_id integer REFERENCES "user"(id) ON DELETE CASCADE,
-	token_id integer REFERENCES oauthtoken(id) ON DELETE CASCADE
-);
-
-CREATE TABLE user_webhook_delivery (
-	id serial PRIMARY KEY,
-	uuid uuid NOT NULL,
-	created timestamp without time zone NOT NULL,
-	event character varying(256) NOT NULL,
-	url character varying(2048) NOT NULL,
-	payload character varying(65536) NOT NULL,
-	payload_headers character varying(16384) NOT NULL,
-	response character varying(65536),
-	response_status integer NOT NULL,
-	response_headers character varying(16384),
-	subscription_id integer NOT NULL
-		REFERENCES user_webhook_subscription(id) ON DELETE CASCADE
-);
-
-CREATE TABLE repo_webhook_subscription (
-	id serial PRIMARY KEY,
-	created timestamp without time zone NOT NULL,
-	url character varying(2048) NOT NULL,
-	events character varying NOT NULL,
-	user_id integer REFERENCES "user"(id) ON DELETE CASCADE,
-	token_id integer REFERENCES oauthtoken(id) ON DELETE CASCADE,
-	repo_id integer REFERENCES repository(id) ON DELETE CASCADE,
-	sync boolean DEFAULT false NOT NULL
-);
-
-CREATE TABLE repo_webhook_delivery (
-	id serial PRIMARY KEY,
-	uuid uuid NOT NULL,
-	created timestamp without time zone NOT NULL,
-	event character varying(256) NOT NULL,
-	url character varying(2048) NOT NULL,
-	payload character varying(65536) NOT NULL,
-	payload_headers character varying(16384) NOT NULL,
-	response character varying(65536),
-	response_status integer NOT NULL,
-	response_headers character varying(16384),
-	subscription_id integer NOT NULL
-		REFERENCES repo_webhook_subscription(id) ON DELETE CASCADE
 );

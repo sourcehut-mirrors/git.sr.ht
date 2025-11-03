@@ -24,21 +24,3 @@ class Artifact(Base):
 
     def __repr__(self):
         return '<Artifact {} {}>'.format(self.id, self.filename)
-
-    def to_dict(self):
-        s3_upstream = cfg("objects", "s3-upstream")
-        s3_bucket = cfg("git.sr.ht", "s3-bucket")
-        s3_prefix = cfg("git.sr.ht", "s3-prefix")
-        prefix = os.path.join(s3_prefix, "artifacts",
-                self.repo.owner.canonical_name, self.repo.name)
-        proto = "https"
-        if cfg("objects", "s3-insecure", default="no") == "yes":
-            proto = "http"
-        url = f"{proto}://{s3_upstream}/{s3_bucket}/{prefix}/{self.filename}"
-        return {
-            "created": self.created,
-            "checksum": self.checksum,
-            "size": self.size,
-            "filename": self.filename,
-            "url": url,
-        }

@@ -8,12 +8,9 @@ from sqlalchemy import event
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.declarative import declared_attr
 from srht.database import Base
-from srht.oauth import ExternalUserMixin, ExternalOAuthTokenMixin
+from srht.oauth import UserMixin
 
-class User(Base, ExternalUserMixin):
-    pass
-
-class OAuthToken(Base, ExternalOAuthTokenMixin):
+class User(Base, UserMixin):
     pass
 
 # TODO: Make me into a postgresql ENUM type
@@ -123,19 +120,6 @@ class Repository(Base):
     @declared_attr
     def owner(cls):
         return sa.orm.relationship('User', backref=sa.orm.backref('repos'))
-
-    # This is only used by the REST API
-    # TODO: Remove this when the REST API is phased out
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "created": self.created,
-            "updated": self.updated,
-            "name": self.name,
-            "owner": self.owner.to_dict(short=True),
-            "description": self.description,
-            "visibility": self.visibility.value.lower(),
-        }
 
     @property
     def git_repo(self):

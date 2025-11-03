@@ -4,7 +4,7 @@ import stat
 from functools import lru_cache
 from gitsrht import urls
 from gitsrht.git import commit_time, commit_links, trim_commit, signature_time
-from gitsrht.types import User, OAuthToken
+from gitsrht.types import User
 from srht.config import cfg
 from srht.database import db, DbSession
 from srht.flask import SrhtFlask, session
@@ -16,8 +16,7 @@ db.init()
 
 class GitApp(SrhtFlask):
     def __init__(self):
-        super().__init__("git.sr.ht", __name__,
-                user_class=User, legacy_oauthtoken_class=OAuthToken)
+        super().__init__("git.sr.ht", __name__, user_class=User)
 
         self.url_map.strict_slashes = False
 
