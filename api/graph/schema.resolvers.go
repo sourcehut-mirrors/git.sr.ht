@@ -363,7 +363,6 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 		}
 
 		webhooks.DeliverRepoEvent(ctx, model.WebhookEventRepoCreated, &repo)
-		webhooks.DeliverLegacyRepoCreate(ctx, &repo)
 		return nil
 	}); err != nil {
 		return nil, err
@@ -556,7 +555,6 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 		}
 
 		webhooks.DeliverRepoEvent(ctx, model.WebhookEventRepoUpdate, &repo)
-		webhooks.DeliverLegacyRepoUpdate(ctx, &repo)
 		return nil
 	}); err != nil {
 		return nil, err
@@ -606,7 +604,6 @@ func (r *mutationResolver) DeleteRepository(ctx context.Context, id int) (*model
 		}
 
 		webhooks.DeliverRepoEvent(ctx, model.WebhookEventRepoDeleted, &repo)
-		webhooks.DeliverLegacyRepoDeleted(ctx, &repo)
 
 		go func(ctx context.Context, path string) {
 			if err := os.RemoveAll(path); err != nil {

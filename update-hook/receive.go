@@ -13,6 +13,18 @@ import (
 	coreconfig "git.sr.ht/~sircmpwn/core-go/config"
 )
 
+type UpdatedRefInput struct {
+	Ref string `json:"ref"`
+	Old string `json:"old"`
+	New string `json:"new"`
+}
+
+type GitEventInput struct {
+	RepositoryID int               `json:"repositoryID"`
+	Event        string            `json:"event"`
+	Updates      []UpdatedRefInput `json:"updates"`
+}
+
 func receiveHook(event string) {
 	// TODO: We should consider moving our internal post-update logic to
 	// post-receive instead. We can ditch the update hook as well if we go

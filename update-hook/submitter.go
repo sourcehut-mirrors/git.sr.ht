@@ -40,7 +40,6 @@ type GitBuildSubmitter struct {
 	Commit      *object.Commit
 	GitOrigin   string
 	OwnerName   string
-	OwnerToken  *string
 	PusherName  string
 	RepoName    string
 	Repository  *git.Repository
@@ -222,7 +221,6 @@ type BuildSubmission struct {
 	Url  string
 }
 
-// TODO: Move this to scm.sr.ht
 var submitBuildSkipCiPrinted bool
 
 func SubmitBuild(ctx context.Context, submitter *GitBuildSubmitter) ([]BuildSubmission, error) {

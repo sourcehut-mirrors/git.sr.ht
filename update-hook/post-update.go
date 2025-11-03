@@ -7,9 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"git.sr.ht/~sircmpwn/core-go/client"
@@ -39,9 +37,6 @@ type DbInfo struct {
 	RepoName      string
 	Visibility    string
 	OwnerUsername string
-	OwnerToken    *string
-	AsyncWebhooks []WebhookSubscription
-	SyncWebhooks  []WebhookSubscription
 }
 
 func fetchInfoForPush(db *sql.DB, username string, repoId int, repoName string,
@@ -59,6 +54,12 @@ func fetchInfoForPush(db *sql.DB, username string, repoId int, repoName string,
 
 	input := RepoInput{newDescription, newVisibility}
 
+	// TODO:
+	// This should probably run through a special code path that touches
+	// the repository updated timestamp and returns the info we need to
+	// submit builds (e.g. repo owner username), which will save us a
+	// database round-trip. As it is this does not work if the pusher is
+	// not the repo owner.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	ctx = coreconfig.Context(ctx, config, "git.sr.ht")
@@ -81,69 +82,18 @@ func fetchInfoForPush(db *sql.DB, username string, repoId int, repoName string,
 		dbinfo.Visibility = *newVisibility
 	}
 
-	// With this query, we:
-	// 1. Fetch the owner's username and OAuth token
-	// 2. Determine how many webhooks this repo has: if there are zero sync
-	//    webhooks then we can defer looking them up until after we've sent the
-	//    user on their way.
-
+	// Looking up the owner's username is required to submit build jobs on
+	// their behalf for this push (their username may differ from the
+	// pusher name).
 	query := db.QueryRow(`
-		WITH owner AS (
-			SELECT "user".username, "user".oauth_token
-			FROM "user"
-			JOIN repository r ON r.owner_id = "user".id
-			WHERE r.id = $1
-		), webhooks AS (
-			SELECT
-				COUNT(*) FILTER(WHERE rws.sync = true) sync_count,
-				COUNT(*) FILTER(WHERE rws.sync = false) async_count
-			FROM repo_webhook_subscription rws
-			WHERE rws.repo_id = $1 AND rws.events LIKE '%repo:post-update%'
-		)
-		SELECT
-			owner.username,
-			owner.oauth_token,
-			webhooks.sync_count,
-			webhooks.async_count
-		FROM owner, webhooks;
+		SELECT "user".username
+		FROM "user"
+		JOIN repository r ON r.owner_id = "user".id
+		WHERE r.id = $1
 	`, repoId)
 
-	var nasync, nsync int
-	if err = query.Scan(&dbinfo.OwnerUsername,
-		&dbinfo.OwnerToken, &nsync, &nasync); err != nil {
-
-		return dbinfo, err
-	}
-
-	dbinfo.AsyncWebhooks = make([]WebhookSubscription, nasync)
-	dbinfo.SyncWebhooks = make([]WebhookSubscription, nsync)
-	if nsync == 0 {
-		// Don't fetch webhooks, we don't need to waste the user's time
-		return dbinfo, nil
-	}
-
-	var rows *sql.Rows
-	if rows, err = db.Query(`
-			SELECT id, url, events
-			FROM repo_webhook_subscription rws
-			WHERE rws.repo_id = $1
-				AND rws.events LIKE '%repo:post-update%'
-				AND rws.sync = true
-		`, repoId); err != nil {
-
-		return dbinfo, err
-	}
-	defer rows.Close()
-
-	for i := 0; rows.Next(); i++ {
-		var whs WebhookSubscription
-		if err = rows.Scan(&whs.Id, &whs.Url, &whs.Events); err != nil {
-			return dbinfo, err
-		}
-		dbinfo.SyncWebhooks[i] = whs
-	}
-
-	return dbinfo, nil
+	err = query.Scan(&dbinfo.OwnerUsername)
+	return dbinfo, err
 }
 
 func parseUpdatables() (*string, *string) {
@@ -184,14 +134,6 @@ func postUpdate() {
 
 	loadOptions()
 
-	// Legacy webhook payload
-	payload := WebhookPayload{
-		Push:     pushUuid,
-		PushOpts: options,
-		Pusher:   pcontext.User,
-		Refs:     make([]UpdatedRef, len(refs)),
-	}
-
 	oids := make(map[string]interface{})
 	repo, err := git.PlainOpen(pcontext.Repo.AbsolutePath)
 	if err != nil {
@@ -209,7 +151,6 @@ func postUpdate() {
 		logger.Fatalf("Failed to fetch info from database: %v", err)
 	}
 
-	refsDeleted := false
 	redisHost, ok := config.Get("sr.ht", "redis-host")
 	if !ok {
 		redisHost = "redis://localhost:6379"
@@ -220,9 +161,9 @@ func postUpdate() {
 	}
 	nbuilds := 0
 	redis := goredis.NewClient(ropts)
-	for i, refname := range refs {
-		var oldref, newref string
-		var oldobj, newobj object.Object
+	for _, refname := range refs {
+		var newref string
+		var newobj object.Object
 		updateKey := fmt.Sprintf("update.%s.%s", pushUuid, refname)
 		update, err := redis.Get(context.Background(), updateKey).Result()
 		if update == "" || err != nil {
@@ -230,39 +171,15 @@ func postUpdate() {
 			continue
 		} else {
 			parts := strings.Split(update, ":")
-			oldref = parts[0]
 			newref = parts[1]
-		}
-		oldobj, err = repo.Object(plumbing.AnyObject, plumbing.NewHash(oldref))
-		if err == plumbing.ErrObjectNotFound {
-			oldobj = nil
-		} else if tag, ok := oldobj.(*object.Tag); ok {
-			oldobj, err = repo.CommitObject(tag.Target)
-			if err != nil {
-				logger.Printf("old tag cannot be resolved: %v", err)
-				continue
-			}
 		}
 
 		newobj, err = repo.Object(plumbing.AnyObject, plumbing.NewHash(newref))
 		if err == plumbing.ErrObjectNotFound {
-			payload.Refs[i] = UpdatedRef{
-				Name: refname,
-				New:  nil,
-			}
-			if oldcommit, ok := oldobj.(*object.Commit); ok {
-				payload.Refs[i].Old = GitCommitToWebhookCommit(oldcommit)
-			}
-			refsDeleted = true
 			continue
 		}
 
-		var atag *AnnotatedTag = nil
 		if tag, ok := newobj.(*object.Tag); ok {
-			atag = &AnnotatedTag{
-				Name:    tag.Name,
-				Message: tag.Message,
-			}
 			newobj, err = repo.CommitObject(tag.Target)
 			if err != nil {
 				logger.Printf("new tag cannot be resovled: %v", err)
@@ -276,21 +193,6 @@ func postUpdate() {
 			continue
 		}
 
-		payload.Refs[i] = UpdatedRef{
-			Tag:  atag,
-			Name: refname,
-			New:  GitCommitToWebhookCommit(commit),
-		}
-
-		if oldobj != nil {
-			oldcommit, ok := oldobj.(*object.Commit)
-			if !ok {
-				logger.Println("Skipping non-commit old ref")
-			} else {
-				payload.Refs[i].Old = GitCommitToWebhookCommit(oldcommit)
-			}
-		}
-
 		if _, ok := oids[commit.Hash.String()]; ok {
 			continue
 		}
@@ -302,7 +204,6 @@ func postUpdate() {
 				Commit:      commit,
 				GitOrigin:   origin,
 				OwnerName:   dbinfo.OwnerUsername,
-				OwnerToken:  dbinfo.OwnerToken,
 				PusherName:  pcontext.User.Name,
 				RepoName:    dbinfo.RepoName,
 				Repository:  repo,
@@ -379,61 +280,4 @@ func postUpdate() {
 			}
 		}
 	}
-
-	payloadBytes, err := json.Marshal(&payload)
-	if err != nil {
-		logger.Fatalf("Failed to marshal webhook payload: %v", err)
-	}
-
-	deliveries := deliverWebhooks(dbinfo.SyncWebhooks, payloadBytes, true)
-	deliveriesJson, err := json.Marshal(deliveries)
-	if err != nil {
-		logger.Fatalf("Failed to marshal webhook deliveries: %v", err)
-	}
-
-	hook, ok := config.Get("git.sr.ht", "post-update-script")
-	if !ok {
-		logger.Fatal("No post-update script configured, cannot run stage 3")
-	}
-
-	if len(deliveries) == 0 && len(dbinfo.AsyncWebhooks) == 0 && !refsDeleted {
-		logger.Println("Skipping stage 3, no work")
-		return
-	}
-
-	// Run stage 3 asynchronously - the last few tasks can be done without
-	// blocking the pusher's terminal.
-	var stage3Pipe [2]int
-	if err := syscall.Pipe(stage3Pipe[:]); err != nil {
-		log.Fatalf("Failed to execute stage 3: %v", err)
-	}
-	syscall.CloseOnExec(stage3Pipe[1])
-
-	procAttr := syscall.ProcAttr{
-		Dir:   "",
-		Files: []uintptr{uintptr(stage3Pipe[0]), os.Stdout.Fd(), os.Stderr.Fd()},
-		Env:   os.Environ(),
-		Sys: &syscall.SysProcAttr{
-			Foreground: false,
-		},
-	}
-	pid, err := syscall.ForkExec(hook, []string{
-		"hooks/stage-3",
-		strconv.Itoa(len(deliveriesJson)), strconv.Itoa(len(payloadBytes)),
-	}, &procAttr)
-	if err != nil {
-		log.Fatalf("Failed to execute stage 3: %v", err)
-	}
-
-	stage3File := os.NewFile(uintptr(stage3Pipe[1]), "stage3 IPC")
-	if _, err = stage3File.Write(deliveriesJson); err != nil {
-		log.Fatalf("Failed to execute stage 3: %v", err)
-	}
-	if _, err = stage3File.Write(payloadBytes); err != nil {
-		log.Fatalf("Failed to execute stage 3: %v", err)
-	}
-
-	logger.Printf("Executing stage 3 to record %d sync deliveries and make "+
-		"%d async deliveries (pid %d)", len(deliveries),
-		len(dbinfo.AsyncWebhooks), pid)
 }

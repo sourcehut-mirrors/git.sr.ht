@@ -32,8 +32,6 @@ func main() {
 		postUpdate()
 	} else if os.Args[0] == "hooks/post-receive" {
 		receiveHook("GIT_POST_RECEIVE")
-	} else if os.Args[0] == "hooks/stage-3" {
-		stage3()
 	} else {
 		log.Fatalf("Unknown git hook %s", os.Args[0])
 	}
