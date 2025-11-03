@@ -136,6 +136,7 @@ CREATE TABLE gql_user_wh_sub (
 	CONSTRAINT gql_user_wh_sub_events_check
 		CHECK ((array_length(events, 1) > 0))
 );
+CREATE INDEX gql_user_wh_sub_user_id_idx ON gql_user_wh_sub USING btree(user_id);
 
 CREATE INDEX gql_user_wh_sub_token_hash_idx
 	ON gql_user_wh_sub
@@ -180,6 +181,8 @@ CREATE TABLE gql_git_wh_sub (
 	CONSTRAINT gql_git_wh_sub_events_check
 		CHECK ((array_length(events, 1) > 0))
 );
+CREATE INDEX gql_git_wh_sub_repo_id_idx ON gql_git_wh_sub USING btree(repo_id);
+CREATE INDEX gql_git_wh_sub_user_id_idx ON gql_git_wh_sub USING btree(user_id);
 
 CREATE INDEX gql_git_wh_sub_token_hash_idx
 	ON gql_git_wh_sub
