@@ -22,9 +22,6 @@ class GitApp(SrhtFlask):
         self.url_map.strict_slashes = False
 
         from gitsrht.blueprints.public import public
-        from gitsrht.blueprints.api import register_api
-        from gitsrht.blueprints.api.plumbing import plumbing
-        from gitsrht.blueprints.api.porcelain import porcelain
         from gitsrht.blueprints.artifacts import artifacts
         from gitsrht.blueprints.email import mail
         from gitsrht.blueprints.manage import manage
@@ -33,9 +30,6 @@ class GitApp(SrhtFlask):
 
         self.register_blueprint(public)
 
-        register_api(self)
-        self.register_blueprint(plumbing)
-        self.register_blueprint(porcelain)
         self.register_blueprint(mail)
         self.register_blueprint(manage)
         self.register_blueprint(repo)
@@ -50,9 +44,6 @@ class GitApp(SrhtFlask):
         self.add_template_filter(urls.refs_rss_url)
         self.add_template_filter(url_quote, name="url_quote")
         self.add_template_filter(commit_links)
-
-        from gitsrht.webhooks import webhook_metrics_collector
-        self.metrics_registry.register(webhook_metrics_collector)
 
         @self.context_processor
         def inject():

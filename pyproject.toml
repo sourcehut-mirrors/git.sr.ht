@@ -25,7 +25,6 @@ include-package-data = false
 packages = [
     "gitsrht",
     "gitsrht.blueprints",
-    "gitsrht.blueprints.api",
     "gitsrht.graphql",
     "gitsrht.templates",
     "gitsrht.types",
