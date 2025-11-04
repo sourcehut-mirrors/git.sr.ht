@@ -43,4 +43,3 @@ tasks:
       ssh $master doas /sbin/apk upgrade -Ua
       ssh $master doas /sbin/service $project restart
       ssh $master doas /sbin/service $project-api restart
-      ssh $master doas /sbin/service $project-webhooks restart
