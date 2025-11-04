@@ -1000,6 +1000,9 @@ func (r *mutationResolver) CreateGitWebhook(ctx context.Context, config model.Gi
 	if err != nil {
 		return nil, err
 	}
+	if repo == nil {
+		return nil, gerrors.ErrNotFound
+	}
 
 	var sub model.GitWebhookSubscription
 	if len(config.Events) == 0 {
