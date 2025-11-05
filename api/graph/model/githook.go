@@ -119,8 +119,9 @@ func (ref *UpdatedRef) Diff(ctx context.Context) (*string, error) {
 	oldCommit := oldObject.(*object.Commit)
 	newCommit := newObject.(*object.Commit)
 
-	newctx, _ := context.WithTimeout(ctx, 1*time.Second)
+	newctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	patch, err := oldCommit.PatchContext(newctx, newCommit)
+	cancel()
 	if err == context.DeadlineExceeded {
 		return nil, nil
 	} else if err != nil {
