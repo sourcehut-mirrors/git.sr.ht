@@ -3,6 +3,7 @@ package account
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -34,7 +35,7 @@ func Middleware(queue *work.Queue) func(next http.Handler) http.Handler {
 func Delete(ctx context.Context, userID int, username string) {
 	queue, ok := ctx.Value(ctxKey).(*work.Queue)
 	if !ok {
-		panic("No account worker for this context")
+		panic(errors.New("No account worker for this context"))
 	}
 
 	type Artifact struct {
@@ -44,6 +45,9 @@ func Delete(ctx context.Context, userID int, username string) {
 
 	conf := config.ForContext(ctx)
 	repoStore, ok := conf.Get("git.sr.ht", "repos")
+	if !ok || repoStore == "" {
+		panic(errors.New("configuration error: [git.sr.ht]repos is unset"))
+	}
 
 	task := work.NewTask(func(ctx context.Context) error {
 		log.Printf("Processing deletion of user account %d %s", userID, username)
