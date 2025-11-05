@@ -330,9 +330,11 @@ func main() {
 		"access grant '%s'", repoId, repoName, repoOwnerId, repoOwnerName,
 		repoVisibility, pusherType, snotice, agrant)
 
-	// We have everything we need, now we find out if the user is allowed to do
-	// what they're trying to do.
-	hasAccess := ACCESS_NONE
+	// We have everything we need, now we find out if the user is allowed
+	// to do what they're trying to do. Suppressing the lint on the initial
+	// assignment to clearly express the safe default in case the
+	// if-else-nesting below ever contains a logic error.
+	hasAccess := ACCESS_NONE //nolint:ineffassign
 	if pusher.Id == repoOwnerId {
 		hasAccess = ACCESS_READ | ACCESS_WRITE | ACCESS_MANAGE
 	} else {
