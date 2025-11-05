@@ -341,7 +341,7 @@ func Middleware(next http.Handler) http.Handler {
 func ForContext(ctx context.Context) *Loaders {
 	raw, ok := ctx.Value(loadersCtxKey).(*Loaders)
 	if !ok {
-		panic(errors.New("Invalid data loaders context"))
+		panic(errors.New("invalid data loaders context"))
 	}
 	return raw
 }

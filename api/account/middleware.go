@@ -35,7 +35,7 @@ func Middleware(queue *work.Queue) func(next http.Handler) http.Handler {
 func Delete(ctx context.Context, userID int, username string) {
 	queue, ok := ctx.Value(ctxKey).(*work.Queue)
 	if !ok {
-		panic(errors.New("No account worker for this context"))
+		panic(errors.New("no account worker for this context"))
 	}
 
 	type Artifact struct {

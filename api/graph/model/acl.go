@@ -30,7 +30,7 @@ type ACL struct {
 func (acl *ACL) Mode() AccessMode {
 	mode := AccessMode(strings.ToUpper(acl.RawAccessMode))
 	if !mode.IsValid() {
-		panic(fmt.Errorf("Invalid access mode '%s'", acl.RawAccessMode)) // Invariant
+		panic(fmt.Errorf("invalid access mode '%s'", acl.RawAccessMode)) // Invariant
 	}
 	return mode
 }

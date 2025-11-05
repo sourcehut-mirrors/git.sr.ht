@@ -29,6 +29,6 @@ func LookupObject(repo *RepoWrapper, hash plumbing.Hash) (Object, error) {
 	case *object.Tag:
 		return TagFromObject(repo, obj), nil
 	default:
-		return nil, fmt.Errorf("Unknown object type %T", obj)
+		return nil, fmt.Errorf("unknown object type %T", obj)
 	}
 }

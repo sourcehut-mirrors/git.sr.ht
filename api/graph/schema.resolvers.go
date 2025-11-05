@@ -224,11 +224,11 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 	conf := config.ForContext(ctx)
 	repoStore, ok := conf.Get("git.sr.ht", "repos")
 	if !ok || repoStore == "" {
-		panic(fmt.Errorf("Configuration error: [git.sr.ht]repos is unset"))
+		panic(fmt.Errorf("configuration error: [git.sr.ht]repos is unset"))
 	}
 	postUpdate, ok := conf.Get("git.sr.ht", "post-update-script")
 	if !ok {
-		panic(fmt.Errorf("Configuration error: [git.sr.ht]post-update is unset"))
+		panic(fmt.Errorf("configuration error: [git.sr.ht]post-update is unset"))
 	}
 
 	user := auth.ForContext(ctx)
@@ -456,7 +456,7 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 			conf := config.ForContext(ctx)
 			repoStore, ok := conf.Get("git.sr.ht", "repos")
 			if !ok || repoStore == "" {
-				panic(fmt.Errorf("Configuration error: [git.sr.ht]repos is unset"))
+				panic(fmt.Errorf("configuration error: [git.sr.ht]repos is unset"))
 			}
 
 			repoPath := path.Join(repoStore, "~"+user.Username, name)
@@ -511,7 +511,7 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 			&repo.Name, &repo.Description, &repo.Visibility,
 			&repo.Path, &repo.OwnerID); err != nil {
 			if err == sql.ErrNoRows {
-				return fmt.Errorf("No repository by ID %d found for this user", id)
+				return fmt.Errorf("no repository by ID %d found for this user", id)
 			}
 			return err
 		}
@@ -597,7 +597,7 @@ func (r *mutationResolver) DeleteRepository(ctx context.Context, id int) (*model
 			&repo.Name, &repo.Description, &repo.Visibility,
 			&repo.Path, &repo.OwnerID); err != nil {
 			if err == sql.ErrNoRows {
-				return fmt.Errorf("No repository by ID %d found for this user", id)
+				return fmt.Errorf("no repository by ID %d found for this user", id)
 			}
 			return err
 		}
@@ -625,12 +625,12 @@ func (r *mutationResolver) DeleteRepository(ctx context.Context, id int) (*model
 // UpdateACL is the resolver for the updateACL field.
 func (r *mutationResolver) UpdateACL(ctx context.Context, repoID int, mode model.AccessMode, entity string) (*model.ACL, error) {
 	if len(entity) == 0 || entity[0] != '~' {
-		return nil, fmt.Errorf("Unknown entity '%s'", entity)
+		return nil, fmt.Errorf("unknown entity '%s'", entity)
 	}
 	entity = entity[1:]
 
 	if entity == auth.ForContext(ctx).Username {
-		return nil, fmt.Errorf("Cannot edit your own access modes")
+		return nil, fmt.Errorf("cannot edit your own access modes")
 	}
 
 	var acl model.ACL
@@ -655,7 +655,7 @@ func (r *mutationResolver) UpdateACL(ctx context.Context, repoID int, mode model
 			&acl.RepoID, &acl.UserID); err != nil {
 			if err == sql.ErrNoRows {
 				// TODO: Fetch user details from meta.sr.ht
-				return fmt.Errorf("No such repository or user found")
+				return fmt.Errorf("no such repository or user found")
 			}
 			return err
 		}
@@ -680,7 +680,7 @@ func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.ACL, e
 		if err := row.Scan(&acl.ID, &acl.Created, &acl.RawAccessMode,
 			&acl.RepoID, &acl.UserID); err != nil {
 			if err == sql.ErrNoRows {
-				return fmt.Errorf("No such repository or ACL entry found")
+				return fmt.Errorf("no such repository or ACL entry found")
 			}
 			return err
 		}
@@ -806,7 +806,7 @@ func (r *mutationResolver) UploadArtifact(ctx context.Context, repoID int, revsp
 		if err := row.Scan(&artifact.ID, &artifact.Created, &artifact.Filename,
 			&artifact.Checksum, &artifact.Size, &artifact.Commit); err != nil {
 			if err.Error() == "pq: duplicate key value violates unique constraint \"repo_artifact_filename_unique\"" {
-				return fmt.Errorf("An artifact by this name already exists for this repository (artifact names must be unique for within each repository)")
+				return fmt.Errorf("an artifact by this name already exists for this repository (artifact names must be unique for within each repository)")
 			}
 			return err
 		}
@@ -859,7 +859,7 @@ func (r *mutationResolver) DeleteArtifact(ctx context.Context, id int) (*model.A
 			&artifact.Checksum, &artifact.Size, &artifact.Commit,
 			&repoName); err != nil {
 			if err == sql.ErrNoRows {
-				return fmt.Errorf("No such artifact for this user")
+				return fmt.Errorf("no such artifact for this user")
 			}
 			return err
 		}
@@ -892,7 +892,7 @@ func (r *mutationResolver) CreateUserWebhook(ctx context.Context, config model.U
 
 	var sub model.UserWebhookSubscription
 	if len(config.Events) == 0 {
-		return nil, fmt.Errorf("Must specify at least one event")
+		return nil, fmt.Errorf("must specify at least one event")
 	}
 	events := make([]string, len(config.Events))
 	for i, ev := range config.Events {
@@ -906,10 +906,10 @@ func (r *mutationResolver) CreateUserWebhook(ctx context.Context, config model.U
 			model.WebhookEventRepoDeleted:
 			access = "REPOSITORIES"
 		default:
-			return nil, fmt.Errorf("Unsupported event %s", ev.String())
+			return nil, fmt.Errorf("unsupported event %s", ev.String())
 		}
 		if !user.Grants.Has(access, auth.RO) {
-			return nil, fmt.Errorf("Insufficient access granted for webhook event %s", ev.String())
+			return nil, fmt.Errorf("insufficient access granted for webhook event %s", ev.String())
 		}
 	}
 
@@ -917,9 +917,9 @@ func (r *mutationResolver) CreateUserWebhook(ctx context.Context, config model.U
 	if err != nil {
 		return nil, err
 	} else if u.Host == "" {
-		return nil, fmt.Errorf("Cannot use URL without host")
+		return nil, fmt.Errorf("cannot use URL without host")
 	} else if u.Scheme != "http" && u.Scheme != "https" {
-		return nil, fmt.Errorf("Cannot use non-HTTP or HTTPS URL")
+		return nil, fmt.Errorf("cannot use non-HTTP or HTTPS URL")
 	}
 
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
@@ -975,7 +975,7 @@ func (r *mutationResolver) DeleteUserWebhook(ctx context.Context, id int) (model
 		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("No user webhook by ID %d found for this user", id)
+			return nil, fmt.Errorf("no user webhook by ID %d found for this user", id)
 		}
 		return nil, err
 	}
@@ -1005,7 +1005,7 @@ func (r *mutationResolver) CreateGitWebhook(ctx context.Context, config model.Gi
 
 	var sub model.GitWebhookSubscription
 	if len(config.Events) == 0 {
-		return nil, fmt.Errorf("Must specify at least one event")
+		return nil, fmt.Errorf("must specify at least one event")
 	}
 	events := make([]string, len(config.Events))
 	for i, ev := range config.Events {
@@ -1019,10 +1019,10 @@ func (r *mutationResolver) CreateGitWebhook(ctx context.Context, config model.Gi
 			model.WebhookEventGitPostReceive:
 			access = "OBJECTS"
 		default:
-			return nil, fmt.Errorf("Unsupported event %s", ev.String())
+			return nil, fmt.Errorf("unsupported event %s", ev.String())
 		}
 		if !user.Grants.Has(access, auth.RO) {
-			return nil, fmt.Errorf("Insufficient access granted for webhook event %s", ev.String())
+			return nil, fmt.Errorf("insufficient access granted for webhook event %s", ev.String())
 		}
 	}
 
@@ -1030,9 +1030,9 @@ func (r *mutationResolver) CreateGitWebhook(ctx context.Context, config model.Gi
 	if err != nil {
 		return nil, err
 	} else if u.Host == "" {
-		return nil, fmt.Errorf("Cannot use URL without host")
+		return nil, fmt.Errorf("cannot use URL without host")
 	} else if u.Scheme != "http" && u.Scheme != "https" {
-		return nil, fmt.Errorf("Cannot use non-HTTP or HTTPS URL")
+		return nil, fmt.Errorf("cannot use non-HTTP or HTTPS URL")
 	}
 
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
@@ -1090,7 +1090,7 @@ func (r *mutationResolver) DeleteGitWebhook(ctx context.Context, id int) (model.
 		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("No git webhook by ID %d found", id)
+			return nil, fmt.Errorf("no git webhook by ID %d found", id)
 		}
 		return nil, err
 	}
@@ -1407,7 +1407,7 @@ func (r *referenceResolver) Artifact(ctx context.Context, obj *model.Reference, 
 	}
 	tag, ok := o.(*object.Tag)
 	if !ok {
-		panic(fmt.Errorf("Expected artifact to be attached to tag"))
+		panic(fmt.Errorf("expected artifact to be attached to tag"))
 	}
 
 	var artifact model.Artifact
@@ -1472,7 +1472,7 @@ func (r *referenceResolver) Artifacts(ctx context.Context, obj *model.Reference,
 	}
 	tag, ok := o.(*object.Tag)
 	if !ok {
-		panic(fmt.Errorf("Expected artifact to be attached to tag"))
+		panic(fmt.Errorf("expected artifact to be attached to tag"))
 	}
 
 	var arts []*model.Artifact
@@ -1530,7 +1530,7 @@ func (r *repositoryResolver) Access(ctx context.Context, obj *model.Repository) 
 
 		mode = model.AccessMode(strings.ToUpper(rawAccessMode))
 		if !mode.IsValid() {
-			panic(fmt.Errorf("Invalid access mode '%s'", rawAccessMode))
+			panic(fmt.Errorf("invalid access mode '%s'", rawAccessMode))
 		}
 		return nil
 	}); err != nil {
@@ -1677,7 +1677,7 @@ func (r *repositoryResolver) Log(ctx context.Context, obj *model.Repository, cur
 			return nil, err
 		}
 		if rev == nil {
-			return nil, fmt.Errorf("No such revision")
+			return nil, fmt.Errorf("no such revision")
 		}
 		opts.From = *rev
 	}
@@ -1726,7 +1726,7 @@ func (r *repositoryResolver) Path(ctx context.Context, obj *model.Repository, re
 		return nil, err
 	}
 	if hash == nil {
-		return nil, fmt.Errorf("No such object")
+		return nil, fmt.Errorf("no such object")
 	}
 	repo.Lock()
 	defer repo.Unlock()
@@ -1758,7 +1758,7 @@ func (r *repositoryResolver) RevparseSingle(ctx context.Context, obj *model.Repo
 		return nil, err
 	}
 	if hash == nil {
-		return nil, fmt.Errorf("No such object")
+		return nil, fmt.Errorf("no such object")
 	}
 	o, err := model.LookupObject(repo, *hash)
 	if err != nil {
@@ -1797,7 +1797,7 @@ func (r *textBlobResolver) Text(ctx context.Context, obj *model.TextBlob) (strin
 
 	text := string(data)
 	if !utf8.ValidString(text) {
-		return "", fmt.Errorf("File contains invalid UTF-8 data")
+		return "", fmt.Errorf("file contains invalid UTF-8 data")
 	}
 
 	return text, nil
