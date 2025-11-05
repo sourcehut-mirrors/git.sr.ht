@@ -9,18 +9,18 @@ import (
 )
 
 type Manifest struct {
-	Arch         *string                  `yaml:"arch",omitempty`
-	Artifacts    []string                 `yaml:"artifacts",omitempty`
-	Environment  map[string]interface{}   `yaml:"environment",omitempty`
+	Arch         *string                  `yaml:"arch,omitempty"`
+	Artifacts    []string                 `yaml:"artifacts,omitempty"`
+	Environment  map[string]interface{}   `yaml:"environment,omitempty"`
 	Image        string                   `yaml:"image"`
-	Packages     []string                 `yaml:"packages",omitempty`
-	Repositories map[string]string        `yaml:"repositories",omitempty`
-	Secrets      []string                 `yaml:"secrets",omitempty`
-	Shell        bool                     `yaml:"shell",omitempty`
-	Sources      []string                 `yaml:"sources",omitempty`
+	Packages     []string                 `yaml:"packages,omitempty"`
+	Repositories map[string]string        `yaml:"repositories,omitempty"`
+	Secrets      []string                 `yaml:"secrets,omitempty"`
+	Shell        bool                     `yaml:"shell,omitempty"`
+	Sources      []string                 `yaml:"sources,omitempty"`
 	Tasks        []map[string]string      `yaml:"tasks"`
-	Triggers     []map[string]interface{} `yaml:"triggers",omitempty`
-	OAuth        string                   `yaml:"oauth",omitempty`
+	Triggers     []map[string]interface{} `yaml:"triggers,omitempty"`
+	OAuth        string                   `yaml:"oauth,omitempty"`
 }
 
 func ManifestFromYAML(src string) (Manifest, error) {
