@@ -24,15 +24,16 @@ func main() {
 	// also runs a third stage directly. The first two stages are
 	// performance critical and take place while the user is blocked at
 	// their terminal. The third stage is done in the background.
-	if os.Args[0] == "hooks/pre-receive" {
+	switch os.Args[0] {
+	case "hooks/pre-receive":
 		receiveHook("GIT_PRE_RECEIVE")
-	} else if os.Args[0] == "hooks/update" {
+	case "hooks/update":
 		update()
-	} else if os.Args[0] == "hooks/post-update" {
+	case "hooks/post-update":
 		postUpdate()
-	} else if os.Args[0] == "hooks/post-receive" {
+	case "hooks/post-receive":
 		receiveHook("GIT_POST_RECEIVE")
-	} else {
+	default:
 		log.Fatalf("Unknown git hook %s", os.Args[0])
 	}
 }

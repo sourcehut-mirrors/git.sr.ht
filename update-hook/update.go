@@ -13,9 +13,9 @@ import (
 // lots of refs, it might be expensive. Needs to be tested.
 func update() {
 	var (
-		refname string = os.Args[1]
-		oldref  string = os.Args[2]
-		newref  string = os.Args[3]
+		refname = os.Args[1]
+		oldref  = os.Args[2]
+		newref  = os.Args[3]
 	)
 	pushUuid, ok := os.LookupEnv("SRHT_PUSH")
 	if !ok {

@@ -41,7 +41,7 @@ type DbInfo struct {
 
 func fetchInfoForPush(db *sql.DB, username string, repoId int, repoName string,
 	repoVisibility string, newDescription *string, newVisibility *string) (DbInfo, error) {
-	var dbinfo DbInfo = DbInfo{
+	var dbinfo = DbInfo{
 		RepoId:     repoId,
 		RepoName:   repoName,
 		Visibility: repoVisibility,
