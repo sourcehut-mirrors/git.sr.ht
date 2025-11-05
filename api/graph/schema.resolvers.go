@@ -135,7 +135,7 @@ func (r *gitWebhookSubscriptionResolver) Deliveries(ctx context.Context, obj *mo
 		return nil, err
 	}
 
-	return &model.WebhookDeliveryCursor{deliveries, cursor}, nil
+	return &model.WebhookDeliveryCursor{Results: deliveries, Cursor: cursor}, nil
 }
 
 // Sample is the resolver for the sample field.
@@ -352,7 +352,7 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 					return valid.Error(ctx, "cloneUrl", "Invalid username")
 				}
 				repo, err := loaders.ForContext(ctx).
-					RepositoriesByOwnerRepoName.Load(loaders.OwnerRepoName{entity, repoName})
+					RepositoriesByOwnerRepoName.Load(loaders.OwnerRepoName{Owner: entity, RepoName: repoName})
 				if err != nil {
 					panic(err)
 				} else if repo == nil {
@@ -1180,7 +1180,7 @@ func (r *queryResolver) Repositories(ctx context.Context, cursor *coremodel.Curs
 		return nil, err
 	}
 
-	return &model.RepositoryCursor{repos, cursor}, nil
+	return &model.RepositoryCursor{Results: repos, Cursor: cursor}, nil
 }
 
 // UserWebhooks is the resolver for the userWebhooks field.
@@ -1210,7 +1210,7 @@ func (r *queryResolver) UserWebhooks(ctx context.Context, cursor *coremodel.Curs
 		return nil, err
 	}
 
-	return &model.WebhookSubscriptionCursor{subs, cursor}, nil
+	return &model.WebhookSubscriptionCursor{Results: subs, Cursor: cursor}, nil
 }
 
 // UserWebhook is the resolver for the userWebhook field.
@@ -1277,7 +1277,7 @@ func (r *queryResolver) GitWebhooks(ctx context.Context, repositoryID int, curso
 		return nil, err
 	}
 
-	return &model.WebhookSubscriptionCursor{subs, cursor}, nil
+	return &model.WebhookSubscriptionCursor{Results: subs, Cursor: cursor}, nil
 }
 
 // GitWebhook is the resolver for the gitWebhook field.
@@ -1467,7 +1467,7 @@ func (r *referenceResolver) Artifacts(ctx context.Context, obj *model.Reference,
 	}
 	o, err := repo.Object(plumbing.TagObject, ref.Hash())
 	if err == plumbing.ErrObjectNotFound {
-		return &model.ArtifactCursor{nil, cursor}, nil
+		return &model.ArtifactCursor{Results: nil, Cursor: cursor}, nil
 	} else if err != nil {
 		return nil, err
 	}
@@ -1493,7 +1493,7 @@ func (r *referenceResolver) Artifacts(ctx context.Context, obj *model.Reference,
 		return nil, err
 	}
 
-	return &model.ArtifactCursor{arts, cursor}, nil
+	return &model.ArtifactCursor{Results: arts, Cursor: cursor}, nil
 }
 
 // Owner is the resolver for the owner field.
@@ -1567,7 +1567,7 @@ func (r *repositoryResolver) Acls(ctx context.Context, obj *model.Repository, cu
 		return nil, err
 	}
 
-	return &model.ACLCursor{acls, cursor}, nil
+	return &model.ACLCursor{Results: acls, Cursor: cursor}, nil
 }
 
 // Objects is the resolver for the objects field.
@@ -1607,7 +1607,7 @@ func (r *repositoryResolver) References(ctx context.Context, obj *model.Reposito
 
 	var refs []*model.Reference
 	iter.ForEach(func(ref *plumbing.Reference) error {
-		refs = append(refs, &model.Reference{obj, ref})
+		refs = append(refs, &model.Reference{Repo: obj, Ref: ref})
 		return nil
 	})
 
@@ -1637,7 +1637,7 @@ func (r *repositoryResolver) References(ctx context.Context, obj *model.Reposito
 		cursor = nil
 	}
 
-	return &model.ReferenceCursor{refs, cursor}, nil
+	return &model.ReferenceCursor{Results: refs, Cursor: cursor}, nil
 }
 
 // Reference is the resolver for the reference field.
@@ -1654,7 +1654,7 @@ func (r *repositoryResolver) Reference(ctx context.Context, obj *model.Repositor
 		return nil, err
 	}
 
-	return &model.Reference{obj, ref}, nil
+	return &model.Reference{Repo: obj, Ref: ref}, nil
 }
 
 // Log is the resolver for the log field.
@@ -1710,7 +1710,7 @@ func (r *repositoryResolver) Log(ctx context.Context, obj *model.Repository, cur
 		cursor = nil
 	}
 
-	return &model.CommitCursor{commits, cursor}, nil
+	return &model.CommitCursor{Results: commits, Cursor: cursor}, nil
 }
 
 // Path is the resolver for the path field.
@@ -1835,12 +1835,12 @@ func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *cor
 		cursor = nil
 	}
 
-	return &model.TreeEntryCursor{entries, cursor}, nil
+	return &model.TreeEntryCursor{Results: entries, Cursor: cursor}, nil
 }
 
 // Repository is the resolver for the repository field.
 func (r *userResolver) Repository(ctx context.Context, obj *model.User, name string) (*model.Repository, error) {
-	return loaders.ForContext(ctx).RepositoriesByOwnerIDRepoName.Load(loaders.OwnerIDRepoName{obj.ID, name})
+	return loaders.ForContext(ctx).RepositoriesByOwnerIDRepoName.Load(loaders.OwnerIDRepoName{OwnerID: obj.ID, RepoName: name})
 }
 
 // Repositories is the resolver for the repositories field.
@@ -1876,7 +1876,7 @@ func (r *userResolver) Repositories(ctx context.Context, obj *model.User, cursor
 	}); err != nil {
 		return nil, err
 	}
-	return &model.RepositoryCursor{repos, cursor}, nil
+	return &model.RepositoryCursor{Results: repos, Cursor: cursor}, nil
 }
 
 // Client is the resolver for the client field.
@@ -1913,7 +1913,7 @@ func (r *userWebhookSubscriptionResolver) Deliveries(ctx context.Context, obj *m
 		return nil, err
 	}
 
-	return &model.WebhookDeliveryCursor{deliveries, cursor}, nil
+	return &model.WebhookDeliveryCursor{Results: deliveries, Cursor: cursor}, nil
 }
 
 // Sample is the resolver for the sample field.

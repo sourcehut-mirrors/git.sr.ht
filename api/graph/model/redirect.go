@@ -38,16 +38,16 @@ func (r *Redirect) Fields() *database.ModelFields {
 	}
 	r.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{"id", "id", &r.ID},
-			{"created", "created", &r.Created},
-			{"name", "name", &r.Name},
-			{"name", "name", &r.Name},
-			{"path", "originalPath", &r.Path},
+			{SQL: "id", GQL: "id", Ptr: &r.ID},
+			{SQL: "created", GQL: "created", Ptr: &r.Created},
+			{SQL: "name", GQL: "name", Ptr: &r.Name},
+			{SQL: "name", GQL: "name", Ptr: &r.Name},
+			{SQL: "path", GQL: "originalPath", Ptr: &r.Path},
 
 			// Always fetch:
-			{"id", "", &r.ID},
-			{"owner_id", "", &r.OwnerID},
-			{"new_repo_id", "", &r.RepositoryID},
+			{SQL: "id", GQL: "", Ptr: &r.ID},
+			{SQL: "owner_id", GQL: "", Ptr: &r.OwnerID},
+			{SQL: "new_repo_id", GQL: "", Ptr: &r.RepositoryID},
 		},
 	}
 	return r.fields

@@ -45,15 +45,15 @@ func (a *Artifact) Fields() *database.ModelFields {
 	}
 	a.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{"created", "created", &a.Created},
-			{"size", "size", &a.Size},
+			{SQL: "created", GQL: "created", Ptr: &a.Created},
+			{SQL: "size", GQL: "size", Ptr: &a.Size},
 
 			// Always fetch:
-			{"id", "", &a.ID},
-			{"checksum", "", &a.Checksum},
-			{"commit", "", &a.Commit},
-			{"filename", "", &a.Filename},
-			{"repo_id", "", &a.RepoID},
+			{SQL: "id", GQL: "", Ptr: &a.ID},
+			{SQL: "checksum", GQL: "", Ptr: &a.Checksum},
+			{SQL: "commit", GQL: "", Ptr: &a.Commit},
+			{SQL: "filename", GQL: "", Ptr: &a.Filename},
+			{SQL: "repo_id", GQL: "", Ptr: &a.RepoID},
 		},
 	}
 	return a.fields

@@ -54,17 +54,17 @@ func (whd *WebhookDelivery) Fields() *database.ModelFields {
 	}
 	whd.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{"uuid", "uuid", &whd.UUID},
-			{"date", "date", &whd.Date},
-			{"event", "event", &whd.Event},
-			{"request_body", "requestBody", &whd.RequestBody},
-			{"response_body", "responseBody", &whd.ResponseBody},
-			{"response_headers", "responseHeaders", &whd.ResponseHeaders},
-			{"response_status", "responseStatus", &whd.ResponseStatus},
+			{SQL: "uuid", GQL: "uuid", Ptr: &whd.UUID},
+			{SQL: "date", GQL: "date", Ptr: &whd.Date},
+			{SQL: "event", GQL: "event", Ptr: &whd.Event},
+			{SQL: "request_body", GQL: "requestBody", Ptr: &whd.RequestBody},
+			{SQL: "response_body", GQL: "responseBody", Ptr: &whd.ResponseBody},
+			{SQL: "response_headers", GQL: "responseHeaders", Ptr: &whd.ResponseHeaders},
+			{SQL: "response_status", GQL: "responseStatus", Ptr: &whd.ResponseStatus},
 
 			// Always fetch:
-			{"id", "", &whd.ID},
-			{"subscription_id", "", &whd.SubscriptionID},
+			{SQL: "id", GQL: "", Ptr: &whd.ID},
+			{SQL: "subscription_id", GQL: "", Ptr: &whd.SubscriptionID},
 		},
 	}
 	return whd.fields
@@ -166,19 +166,19 @@ func (sub *UserWebhookSubscription) Fields() *database.ModelFields {
 	}
 	sub.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{"events", "events", pq.Array(&sub.Events)},
-			{"url", "url", &sub.URL},
+			{SQL: "events", GQL: "events", Ptr: pq.Array(&sub.Events)},
+			{SQL: "url", GQL: "url", Ptr: &sub.URL},
 
 			// Always fetch:
-			{"id", "", &sub.ID},
-			{"query", "", &sub.Query},
-			{"user_id", "", &sub.UserID},
-			{"auth_method", "", &sub.AuthMethod},
-			{"token_hash", "", &sub.TokenHash},
-			{"client_id", "", &sub.ClientID},
-			{"grants", "", &sub.Grants},
-			{"expires", "", &sub.Expires},
-			{"node_id", "", &sub.NodeID},
+			{SQL: "id", GQL: "", Ptr: &sub.ID},
+			{SQL: "query", GQL: "", Ptr: &sub.Query},
+			{SQL: "user_id", GQL: "", Ptr: &sub.UserID},
+			{SQL: "auth_method", GQL: "", Ptr: &sub.AuthMethod},
+			{SQL: "token_hash", GQL: "", Ptr: &sub.TokenHash},
+			{SQL: "client_id", GQL: "", Ptr: &sub.ClientID},
+			{SQL: "grants", GQL: "", Ptr: &sub.Grants},
+			{SQL: "expires", GQL: "", Ptr: &sub.Expires},
+			{SQL: "node_id", GQL: "", Ptr: &sub.NodeID},
 		},
 	}
 	return sub.fields
@@ -272,20 +272,20 @@ func (sub *GitWebhookSubscription) Fields() *database.ModelFields {
 	}
 	sub.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{"events", "events", pq.Array(&sub.Events)},
-			{"url", "url", &sub.URL},
+			{SQL: "events", GQL: "events", Ptr: pq.Array(&sub.Events)},
+			{SQL: "url", GQL: "url", Ptr: &sub.URL},
 
 			// Always fetch:
-			{"id", "", &sub.ID},
-			{"query", "", &sub.Query},
-			{"user_id", "", &sub.UserID},
-			{"repo_id", "", &sub.RepoID},
-			{"auth_method", "", &sub.AuthMethod},
-			{"token_hash", "", &sub.TokenHash},
-			{"client_id", "", &sub.ClientID},
-			{"grants", "", &sub.Grants},
-			{"expires", "", &sub.Expires},
-			{"node_id", "", &sub.NodeID},
+			{SQL: "id", GQL: "", Ptr: &sub.ID},
+			{SQL: "query", GQL: "", Ptr: &sub.Query},
+			{SQL: "user_id", GQL: "", Ptr: &sub.UserID},
+			{SQL: "repo_id", GQL: "", Ptr: &sub.RepoID},
+			{SQL: "auth_method", GQL: "", Ptr: &sub.AuthMethod},
+			{SQL: "token_hash", GQL: "", Ptr: &sub.TokenHash},
+			{SQL: "client_id", GQL: "", Ptr: &sub.ClientID},
+			{SQL: "grants", GQL: "", Ptr: &sub.Grants},
+			{SQL: "expires", GQL: "", Ptr: &sub.Expires},
+			{SQL: "node_id", GQL: "", Ptr: &sub.NodeID},
 		},
 	}
 	return sub.fields

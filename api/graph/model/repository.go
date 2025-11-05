@@ -75,19 +75,19 @@ func (r *Repository) Fields() *database.ModelFields {
 	}
 	r.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{"id", "id", &r.ID},
-			{"created", "created", &r.Created},
-			{"updated", "updated", &r.Updated},
-			{"name", "name", &r.Name},
-			{"description", "description", &r.Description},
-			{"visibility", "visibility", &r.Visibility},
-			{"readme", "readme", &r.Readme},
+			{SQL: "id", GQL: "id", Ptr: &r.ID},
+			{SQL: "created", GQL: "created", Ptr: &r.Created},
+			{SQL: "updated", GQL: "updated", Ptr: &r.Updated},
+			{SQL: "name", GQL: "name", Ptr: &r.Name},
+			{SQL: "description", GQL: "description", Ptr: &r.Description},
+			{SQL: "visibility", GQL: "visibility", Ptr: &r.Visibility},
+			{SQL: "readme", GQL: "readme", Ptr: &r.Readme},
 
 			// Always fetch:
-			{"id", "", &r.ID},
-			{"path", "", &r.Path},
-			{"owner_id", "", &r.OwnerID},
-			{"updated", "", &r.Updated},
+			{SQL: "id", GQL: "", Ptr: &r.ID},
+			{SQL: "path", GQL: "", Ptr: &r.Path},
+			{SQL: "owner_id", GQL: "", Ptr: &r.OwnerID},
+			{SQL: "updated", GQL: "", Ptr: &r.Updated},
 		},
 	}
 	return r.fields

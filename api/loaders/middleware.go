@@ -193,7 +193,7 @@ func fetchRepositoriesByOwnerRepoName(ctx context.Context) func([]OwnerRepoName)
 				Select(ctx).
 				Prefix(`WITH owner_repo_names AS (
 					SELECT owner, repo_name
-					FROM unnest(?::owner_repo_name[]))`, pq.GenericArray{ownerRepoNames}).
+					FROM unnest(?::owner_repo_name[]))`, pq.GenericArray{A: ownerRepoNames}).
 				Columns(database.Columns(ctx, (&model.Repository{}).As(`repo`))...).
 				Columns(`o.owner`).
 				Distinct().
@@ -261,7 +261,7 @@ func fetchRepositoriesByOwnerIDRepoName(ctx context.Context) func([]OwnerIDRepoN
 				Select(ctx).
 				Prefix(`WITH owner_id_repo_names AS (
 					SELECT owner_id, repo_name
-					FROM unnest(?::owner_id_repo_name[]))`, pq.GenericArray{ownerIDRepoNames}).
+					FROM unnest(?::owner_id_repo_name[]))`, pq.GenericArray{A: ownerIDRepoNames}).
 				Columns(database.Columns(ctx, (&model.Repository{}).As(`repo`))...).
 				Columns(`o.owner_id`).
 				Distinct().

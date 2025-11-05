@@ -54,14 +54,14 @@ func (acl *ACL) Fields() *database.ModelFields {
 	}
 	acl.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{"id", "id", &acl.ID},
-			{"created", "created", &acl.Created},
-			{"mode", "mode", &acl.RawAccessMode},
+			{SQL: "id", GQL: "id", Ptr: &acl.ID},
+			{SQL: "created", GQL: "created", Ptr: &acl.Created},
+			{SQL: "mode", GQL: "mode", Ptr: &acl.RawAccessMode},
 
 			// Always fetch:
-			{"id", "", &acl.ID},
-			{"repo_id", "", &acl.RepoID},
-			{"user_id", "", &acl.UserID},
+			{SQL: "id", GQL: "", Ptr: &acl.ID},
+			{SQL: "repo_id", GQL: "", Ptr: &acl.RepoID},
+			{SQL: "user_id", GQL: "", Ptr: &acl.UserID},
 		},
 	}
 	return acl.fields
