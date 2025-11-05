@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"path"
 	"strings"
@@ -135,7 +134,7 @@ func (submitter GitBuildSubmitter) FindManifests() (map[string]string, error) {
 		if reader, err = file.Reader(); err != nil {
 			return nil, errors.Wrapf(err, "creating reader for %s", file.Name)
 		}
-		if content, err = ioutil.ReadAll(reader); err != nil {
+		if content, err = io.ReadAll(reader); err != nil {
 			return nil, errors.Wrap(err, "reading build manifest")
 		}
 		if !utf8.Valid(content) {
