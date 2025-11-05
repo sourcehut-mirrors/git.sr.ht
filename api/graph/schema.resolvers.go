@@ -14,7 +14,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/url"
 	"os"
@@ -88,7 +87,7 @@ func (r *binaryBlobResolver) Base64(ctx context.Context, obj *model.BinaryBlob) 
 	defer reader.Close()
 
 	limit := io.LimitReader(reader, 32768) // 32 KiB max for binary
-	data, err := ioutil.ReadAll(limit)
+	data, err := io.ReadAll(limit)
 	if err != nil {
 		return "", err
 	}
@@ -1791,7 +1790,7 @@ func (r *textBlobResolver) Text(ctx context.Context, obj *model.TextBlob) (strin
 	defer reader.Close()
 
 	limit := io.LimitReader(reader, 131072) // 128 KiB max for text
-	data, err := ioutil.ReadAll(limit)
+	data, err := io.ReadAll(limit)
 	if err != nil {
 		return "", err
 	}
