@@ -147,15 +147,15 @@ func (r *gitWebhookSubscriptionResolver) Sample(ctx context.Context, obj *model.
 	// Collect sample data
 	head, err := repo.Repo().Head()
 	if err != nil {
-		return "", fmt.Errorf("Repository does not have enough commits to generate a sample push event")
+		return "", fmt.Errorf("repository does not have enough commits to generate a sample push event")
 	}
 	oldHash, err := repo.Repo().ResolveRevision("HEAD~1")
 	if err != nil {
-		return "", fmt.Errorf("Repository does not have enough commits to generate a sample push event")
+		return "", fmt.Errorf("repository does not have enough commits to generate a sample push event")
 	}
 	newHash, err := repo.Repo().ResolveRevision("HEAD")
 	if err != nil {
-		return "", fmt.Errorf("Repository does not have enough commits to generate a sample push event")
+		return "", fmt.Errorf("repository does not have enough commits to generate a sample push event")
 	}
 
 	update := model.NewUpdatedRef(repo, head, oldHash, newHash)
