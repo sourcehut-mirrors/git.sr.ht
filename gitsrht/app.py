@@ -5,16 +5,16 @@ from functools import lru_cache
 from gitsrht import urls
 from gitsrht.git import commit_time, commit_links, trim_commit, signature_time
 from gitsrht.types import User
+from srht.app import Flask, session
 from srht.config import cfg
 from srht.database import db, DbSession
-from srht.flask import SrhtFlask, session
 from jinja2 import FileSystemLoader, ChoiceLoader
 from urllib.parse import quote as url_quote
 
 db = DbSession(cfg("git.sr.ht", "connection-string"))
 db.init()
 
-class GitApp(SrhtFlask):
+class GitApp(Flask):
     def __init__(self):
         super().__init__("git.sr.ht", __name__, user_class=User)
 

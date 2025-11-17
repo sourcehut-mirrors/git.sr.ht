@@ -3,8 +3,8 @@ from flask import render_template, abort
 from gitsrht.graphql import Visibility
 from gitsrht.types import Access, Repository, User
 from sqlalchemy import and_, or_
+from srht.app import paginate_query
 from srht.config import cfg
-from srht.flask import paginate_query
 from srht.oauth import current_user
 from srht.search import search_by
 

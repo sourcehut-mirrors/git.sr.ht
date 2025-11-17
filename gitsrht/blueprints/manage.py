@@ -1,7 +1,7 @@
 from flask import Blueprint, current_app, request, render_template, abort
 from flask import redirect, url_for
+from srht.app import session
 from srht.database import db
-from srht.flask import session
 from srht.oauth import current_user, loginrequired, UserType
 from srht.validation import Validation
 from gitsrht.access import check_access, UserAccess, AccessMode
