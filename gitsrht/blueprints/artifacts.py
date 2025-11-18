@@ -5,7 +5,7 @@ from gitsrht.access import check_access, UserAccess
 from gitsrht.git import Repository as GitRepository, strip_pgp_signature
 from gitsrht.graphql import Client, Upload, GraphQLClientGraphQLMultiError
 from srht.crypto import encrypt_request_authorization
-from srht.graphql import InternalAuth, has_error
+from srht.graphql import InternalAuth, Error, has_error
 from srht.oauth import loginrequired
 from srht.validation import Validation
 
