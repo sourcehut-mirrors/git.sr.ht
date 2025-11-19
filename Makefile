@@ -50,6 +50,7 @@ install-share: all-share
 	install -Dm644 static/*.css $(STATICDIR)
 	install -Dm644 js/* $(STATICDIR)
 	install -Dm644 api/graph/schema.graphqls $(ASSETS)/$(SERVICE).graphqls
+	install -Dm644 schema.sql $(ASSETS)/$(SERVICE).sql
 	install -Dm644 migrations/*.sql $(MIGRATIONDIR)
 
 clean-bin:
