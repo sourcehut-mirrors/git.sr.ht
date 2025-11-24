@@ -1,7 +1,10 @@
 package model
 
 import (
+	"bufio"
+	"bytes"
 	"context"
+	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
@@ -67,6 +70,27 @@ func (c *Commit) Parents() []*Commit {
 		parents = append(parents, parent)
 	}
 	return parents
+}
+
+func (c *Commit) Trailers() []Trailer {
+	var trailers []Trailer
+
+	rd := bytes.NewBufferString(c.Message())
+	scanner := bufio.NewScanner(rd)
+	for scanner.Scan() {
+		name, value, found := strings.Cut(scanner.Text(), ": ")
+		if !found {
+			// Reset the list
+			trailers = []Trailer{}
+			continue
+		}
+		trailers = append(trailers, Trailer{
+			Name:  name,
+			Value: value,
+		})
+	}
+
+	return trailers
 }
 
 func CommitFromObject(repo *RepoWrapper, obj *object.Commit) *Commit {

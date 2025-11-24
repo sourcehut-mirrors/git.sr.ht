@@ -464,6 +464,11 @@ type Signature {
   time: Time!
 }
 
+type Trailer {
+  name: String!
+  value: String!
+}
+
 type Commit implements Object {
   type: ObjectType!
   id: String!
@@ -474,6 +479,7 @@ type Commit implements Object {
   tree: Tree!
   parents: [Commit!]!
   diff: String!
+  trailers: [Trailer!]!
 }
 
 type Tree implements Object {
