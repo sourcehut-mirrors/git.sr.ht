@@ -222,6 +222,30 @@ type BuildSubmission struct {
 
 var submitBuildSkipCiPrinted bool
 
+func shouldBuildGitRef(gitRef string, submitter *Submitter) bool {
+	if submitter == nil || submitter.Git == nil {
+		// Builds are not constrained => build
+		return true
+	}
+	gitSub := submitter.Git
+	if gitSub.Enabled != nil && !*gitSub.Enabled {
+		// Don't look further and disallow the build if enabled is
+		// explicitly set to false.
+		return false
+	}
+	if len(gitSub.AllowRefs) > 0 {
+		// There is an explicit list of allowed references; only build
+		// if at least one matches gitRef
+		for _, a := range gitSub.AllowRefs {
+			if fnmatch.Match(a, gitRef, 0) {
+				return true
+			}
+		}
+		return false
+	}
+	return true
+}
+
 func SubmitBuild(ctx context.Context, submitter *GitBuildSubmitter) ([]BuildSubmission, error) {
 	manifests, err := submitter.FindManifests()
 	if err != nil || manifests == nil {
@@ -248,6 +272,12 @@ func SubmitBuild(ctx context.Context, submitter *GitBuildSubmitter) ([]BuildSubm
 		if err != nil {
 			return nil, errors.Wrap(err, name)
 		}
+
+		if !shouldBuildGitRef(submitter.Ref, manifest.Submitter) {
+			log.Printf("(skip: ref %s disabled by rule) [%s]", submitter.Ref, name)
+			continue
+		}
+
 		autoSetupManifest(submitter, &manifest)
 
 		yaml, err := manifest.ToYAML()

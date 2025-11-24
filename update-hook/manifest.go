@@ -8,6 +8,15 @@ import (
 	"github.com/goccy/go-yaml"
 )
 
+type GitSubmitter struct {
+	Enabled      *bool    `yaml:"enabled,omitempty"`
+	AllowRefs    []string `yaml:"allow-refs,omitempty"`
+}
+
+type Submitter struct {
+	Git *GitSubmitter `yaml:"git.sr.ht,omitempty"`
+}
+
 type Manifest struct {
 	Arch         *string                  `yaml:"arch,omitempty"`
 	Artifacts    []string                 `yaml:"artifacts,omitempty"`
@@ -18,6 +27,7 @@ type Manifest struct {
 	Secrets      []string                 `yaml:"secrets,omitempty"`
 	Shell        bool                     `yaml:"shell,omitempty"`
 	Sources      []string                 `yaml:"sources,omitempty"`
+	Submitter    *Submitter               `yaml:"submitter,omitempty"`
 	Tasks        []map[string]string      `yaml:"tasks"`
 	Triggers     []map[string]interface{} `yaml:"triggers,omitempty"`
 	OAuth        string                   `yaml:"oauth,omitempty"`
