@@ -294,41 +294,14 @@ func main() {
 		}
 	}
 
-	query := client.GraphQLQuery{
-		Query: `
-			query {
-				me {
-					userType
-					suspensionNotice
-				}
-			}
-		`,
-	}
-	var resp struct {
-		Me struct {
-			UserType         string  `json:"userType"`
-			SuspensionNotice *string `json:"suspensionNotice"`
-		} `json:"me"`
-	}
-	if err := client.Do(ctx, pusher.Username, "meta.sr.ht", query, &resp); err != nil {
-		log.Println("A temporary error has occured. Please try again.")
-		logger.Fatalf("Error occured looking up pusher: %v", err)
-	}
-	pusherType := resp.Me.UserType
-	pusherSuspendNotice := resp.Me.SuspensionNotice
-
 	agrant := ""
-	snotice := ""
 	if accessGrant != nil {
 		agrant = *accessGrant
 	}
-	if pusherSuspendNotice != nil {
-		snotice = *pusherSuspendNotice
-	}
 	logger.Printf("repo ID %d; name '%s'; owner ID %d; owner name '%s'; "+
-		"visibility '%s'; pusher type '%s'; pusher suspension notice '%s'; "+
+		"visibility '%s'; pusher type '%s'; "+
 		"access grant '%s'", repoId, repoName, repoOwnerId, repoOwnerName,
-		repoVisibility, pusherType, snotice, agrant)
+		repoVisibility, pusher.UserType, agrant)
 
 	// We have everything we need, now we find out if the user is allowed
 	// to do what they're trying to do. Suppressing the lint on the initial
@@ -365,10 +338,8 @@ func main() {
 		eacces(logger)
 	}
 
-	if pusherType == auth.USER_TYPE_SUSPENDED {
-		log.Println("Your account has been suspended for the following reason:")
-		log.Println()
-		log.Println("\t" + *pusherSuspendNotice)
+	if pusher.UserType == auth.USER_TYPE_SUSPENDED {
+		log.Println("Your account has been suspended.")
 		log.Println()
 		log.Printf("Please contact support: %s <%s>",
 			siteOwnerName, siteOwnerEmail)

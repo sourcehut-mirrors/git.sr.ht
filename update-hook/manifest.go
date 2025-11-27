@@ -9,8 +9,8 @@ import (
 )
 
 type GitSubmitter struct {
-	Enabled      *bool    `yaml:"enabled,omitempty"`
-	AllowRefs    []string `yaml:"allow-refs,omitempty"`
+	Enabled   *bool    `yaml:"enabled,omitempty"`
+	AllowRefs []string `yaml:"allow-refs,omitempty"`
 }
 
 type Submitter struct {

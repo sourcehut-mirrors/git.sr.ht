@@ -11,8 +11,8 @@ git.sr.ht/~sircmpwn/go-bare v0.0.0-20210406120253-ab86bc2846d9 h1:Ahny8Ud1LjVMMA
 git.sr.ht/~sircmpwn/go-bare v0.0.0-20210406120253-ab86bc2846d9/go.mod h1:BVJwbDfVjCjoFiKrhkei6NdGcZYpkDkdyCdg1ukytRA=
 git.sr.ht/~sircmpwn/go-git/v5 v5.0.0-20251014095328-ebe057883787 h1:bd0GoaJbee6PWhdtK7oUjaPSgkYlpaTOe/hudYf5rWk=
 git.sr.ht/~sircmpwn/go-git/v5 v5.0.0-20251014095328-ebe057883787/go.mod h1:4Ge4alE/5gPs30F2H1esi2gPd69R0C39lolkucHBOp8=
-git.sr.ht/~sircmpwn/sourcehut-ssh v0.0.0-20251014065653-ff37129c25fe h1:OxmYCHaNriWb7+F6kqFos+lI893LdDlM9g2JoMLJN/Y=
-git.sr.ht/~sircmpwn/sourcehut-ssh v0.0.0-20251014065653-ff37129c25fe/go.mod h1:AnMzcwIZwCn+YWTEsA5HQD4uE3QxM4UHA8lvE0h2Oz8=
+git.sr.ht/~sircmpwn/sourcehut-ssh v0.0.0-20251126135358-e81424366dbc h1:GGmSc7kvVd3HbiyJmmxAy3TdDCDOPhMcQmgUXRppuz0=
+git.sr.ht/~sircmpwn/sourcehut-ssh v0.0.0-20251126135358-e81424366dbc/go.mod h1:AnMzcwIZwCn+YWTEsA5HQD4uE3QxM4UHA8lvE0h2Oz8=
 git.sr.ht/~turminal/go-fnmatch v0.0.0-20211021204744-1a55764af6de h1:+8IzUB1KFZP7yt5PcRRjPFuI4u41alt6VVYMnLZUaYw=
 git.sr.ht/~turminal/go-fnmatch v0.0.0-20211021204744-1a55764af6de/go.mod h1:je8GvUMI6JGQ/vxOnkZSj9iOR3oAUaJnJMp+JJi8wTA=
 github.com/99designs/gqlgen v0.17.64 h1:BzpqO5ofQXyy2XOa93Q6fP1BHLRjTOeU35ovTEsbYlw=
