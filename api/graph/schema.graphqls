@@ -140,7 +140,7 @@ type Repository {
   readme: String
 
   "The access that applies to this user for this repository"
-  access: AccessMode! @access(scope: ACLS, kind: RO)
+  access: AccessMode!
 
   # Only available to the repository owner
   acls(cursor: Cursor): ACLCursor! @access(scope: ACLS, kind: RO)
