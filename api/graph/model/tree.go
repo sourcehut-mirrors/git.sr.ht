@@ -30,12 +30,8 @@ func (ent *TreeEntry) ID() string {
 	return ent.hash.String()
 }
 
-func (ent *TreeEntry) Object() Object {
-	obj, err := LookupObject(ent.repo, ent.hash)
-	if err != nil {
-		panic(err)
-	}
-	return obj
+func (ent *TreeEntry) Object() (Object, error) {
+	return LookupObject(ent.repo, ent.hash)
 }
 
 func (tree *Tree) Entry(path string) *TreeEntry {
