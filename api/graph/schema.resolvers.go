@@ -1125,6 +1125,8 @@ func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 		Major:           0,
 		Minor:           0,
 		Patch:           0,
+		BuildVersion:    server.BuildVersion,
+		BuildDate:       server.BuildDate,
 		DeprecationDate: nil,
 
 		Features: &model.Features{
