@@ -940,11 +940,8 @@ func (r *mutationResolver) CreateUserWebhook(ctx context.Context, config model.U
 			ac.NodeID, // INTERNAL
 			user.UserID)
 
-		if err := row.Scan(&sub.ID, &sub.URL,
-			&sub.Query, pq.Array(&sub.Events), &sub.UserID); err != nil {
-			return err
-		}
-		return nil
+		return row.Scan(&sub.ID, &sub.URL,
+			&sub.Query, pq.Array(&sub.Events), &sub.UserID)
 	}); err != nil {
 		return nil, err
 	}
@@ -968,11 +965,8 @@ func (r *mutationResolver) DeleteUserWebhook(ctx context.Context, id int) (model
 			Suffix(`RETURNING id, url, query, events, user_id`).
 			RunWith(tx).
 			QueryRowContext(ctx)
-		if err := row.Scan(&sub.ID, &sub.URL,
-			&sub.Query, pq.Array(&sub.Events), &sub.UserID); err != nil {
-			return err
-		}
-		return nil
+		return row.Scan(&sub.ID, &sub.URL,
+			&sub.Query, pq.Array(&sub.Events), &sub.UserID)
 	}); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("no user webhook by ID %d found for this user", id)
@@ -1054,11 +1048,8 @@ func (r *mutationResolver) CreateGitWebhook(ctx context.Context, config model.Gi
 			ac.NodeID, // INTERNAL
 			user.UserID, repo.ID)
 
-		if err := row.Scan(&sub.ID, &sub.URL,
-			&sub.Query, pq.Array(&sub.Events), &sub.RepoID); err != nil {
-			return err
-		}
-		return nil
+		return row.Scan(&sub.ID, &sub.URL,
+			&sub.Query, pq.Array(&sub.Events), &sub.RepoID)
 	}); err != nil {
 		return nil, err
 	}
@@ -1082,12 +1073,9 @@ func (r *mutationResolver) DeleteGitWebhook(ctx context.Context, id int) (model.
 			Suffix(`RETURNING id, url, query, events, repo_id`).
 			RunWith(tx).
 			QueryRowContext(ctx)
-		if err := row.Scan(&sub.ID, &sub.URL,
+		return row.Scan(&sub.ID, &sub.URL,
 			&sub.Query, pq.Array(&sub.Events),
-			&sub.RepoID); err != nil {
-			return err
-		}
-		return nil
+			&sub.RepoID)
 	}); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("no git webhook by ID %d found", id)
@@ -1233,10 +1221,7 @@ func (r *queryResolver) UserWebhook(ctx context.Context, id int) (model.WebhookS
 			Where(sq.And{sq.Expr(`id = ?`, id), filter}).
 			RunWith(tx).
 			QueryRowContext(ctx)
-		if err := row.Scan(database.Scan(ctx, &sub)...); err != nil {
-			return err
-		}
-		return nil
+		return row.Scan(database.Scan(ctx, &sub)...)
 	}); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -1300,10 +1285,7 @@ func (r *queryResolver) GitWebhook(ctx context.Context, id int) (model.WebhookSu
 			Where(sq.And{sq.Expr(`id = ?`, id), filter}).
 			RunWith(tx).
 			QueryRowContext(ctx)
-		if err := row.Scan(database.Scan(ctx, &sub)...); err != nil {
-			return err
-		}
-		return nil
+		return row.Scan(database.Scan(ctx, &sub)...)
 	}); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil

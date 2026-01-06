@@ -79,11 +79,7 @@ func Delete(ctx context.Context, userID int, username string) {
 					RepoName: repoName,
 				})
 			}
-			if err := rows.Err(); err != nil {
-				return err
-			}
-
-			return nil
+			return rows.Err()
 		}); err != nil {
 			return err
 		}

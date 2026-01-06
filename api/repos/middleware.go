@@ -68,10 +68,7 @@ func Clone(ctx context.Context, repoID int, repo *git.Repository, cloneURL strin
 				UPDATE repository
 				SET clone_status = $2, clone_error = $3
 				WHERE id = $1;`, repoID, cloneStatus, cloneError)
-			if err != nil {
-				return err
-			}
-			return nil
+			return err
 		}); err != nil {
 			panic(err)
 		}
