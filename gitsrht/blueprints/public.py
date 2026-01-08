@@ -3,7 +3,7 @@ from flask import render_template, abort
 from gitsrht.graphql import Visibility
 from gitsrht.types import Access, Repository, User
 from sqlalchemy import and_, or_
-from srht.app import paginate_query
+from srht.app import paginate_query, get_profile
 from srht.config import cfg
 from srht.oauth import current_user
 from srht.search import search_by
@@ -50,6 +50,7 @@ def user_index(username):
     repos = repos.order_by(Repository.updated.desc())
     repos, pagination = paginate_query(repos)
 
-    return render_template("user.html",
+    return render_template("profile-repos.html",
             user=user, repos=repos,
-            search=terms, search_error=search_error, **pagination)
+            search=terms, search_error=search_error,
+            profile=get_profile(user), view="git", **pagination)
