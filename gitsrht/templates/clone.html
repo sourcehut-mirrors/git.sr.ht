@@ -10,9 +10,7 @@
         <div class="form-group">
           <label for="cloneUrl">Clone URL</label>
           <input
-            {% if another %}
             autofocus
-            {% endif %}
             type="text"
             name="cloneUrl"
             id="cloneUrl"
@@ -88,16 +86,6 @@
         <button type="submit" class="btn btn-primary">
           Clone {{icon("caret-right")}}
         </button>
-        <label class="form-check-label" style="margin-left: 2rem">
-          <input
-            class="form-check-input"
-            type="checkbox"
-            name="another"
-            style="position: relative; top: 2px;"
-            {% if another %}
-            checked
-            {% endif %}> Clone another?
-        </label>
       </form>
       {{valid.summary()}}
     </section>

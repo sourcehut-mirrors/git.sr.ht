@@ -45,8 +45,7 @@ def create_POST():
 @manage.route("/clone")
 @loginrequired
 def clone():
-    another = request.args.get("another")
-    return render_template("clone.html", another=another, visibility="UNLISTED")
+    return render_template("clone.html", visibility="UNLISTED")
 
 @manage.route("/clone", methods=["POST"])
 @loginrequired
