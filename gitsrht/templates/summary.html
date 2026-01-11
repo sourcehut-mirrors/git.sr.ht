@@ -10,7 +10,7 @@
 </title>
 {% endblock %}
 {% block content %}
-{% if repo.description %}
+{% if repo.description or len(licenses) > 0 %}
 <div class="header-extension">
   <div class="container">
     <div class="row">
