@@ -292,6 +292,7 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 		gitconfig.Raw.SetOption("srht", "", "repo-id", strconv.Itoa(repo.ID))
 		gitconfig.Raw.SetOption("receive", "", "denyDeleteCurrent", "ignore")
 		gitconfig.Raw.SetOption("receive", "", "advertisePushOptions", "true")
+		gitconfig.Raw.SetOption("http", "", "uploadarchive", "true")
 		if err := gitrepo.Storer.SetConfig(gitconfig); err != nil {
 			return err
 		}
