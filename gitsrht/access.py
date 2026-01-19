@@ -36,10 +36,8 @@ def get_repo(owner_name, repo_name):
 
 def get_repo_or_redir(owner, repo):
     owner, repo = get_repo(owner, repo)
-    if not repo:
+    if not repo or not has_access(repo, UserAccess.read):
         abort(404)
-    if not has_access(repo, UserAccess.read):
-        abort(401)
     if isinstance(repo, Redirect):
         view_args = request.view_args
         if not "repo" in view_args or not "owner" in view_args:
