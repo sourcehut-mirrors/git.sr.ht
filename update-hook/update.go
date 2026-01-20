@@ -1,4 +1,4 @@
-package main
+package updatehook
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 
 // XXX: This is run once for every single ref that's pushed. If someone pushes
 // lots of refs, it might be expensive. Needs to be tested.
-func update() {
+func (h *HookContext) Update() {
 	var (
 		refname = os.Args[1]
 		oldref  = os.Args[2]
@@ -19,17 +19,17 @@ func update() {
 	)
 	pushUuid, ok := os.LookupEnv("SRHT_PUSH")
 	if !ok {
-		logger.Fatal("Missing SRHT_PUSH in environment, configuration error?")
+		h.logger.Fatal("Missing SRHT_PUSH in environment, configuration error?")
 	}
-	logger.Printf("Running update for push %s", pushUuid)
+	h.logger.Printf("Running update for push %s", pushUuid)
 
-	redisHost, ok := config.Get("sr.ht", "redis-host")
+	redisHost, ok := h.config.Get("sr.ht", "redis-host")
 	if !ok {
 		redisHost = "redis://localhost:6379"
 	}
 	ropts, err := goredis.ParseURL(redisHost)
 	if err != nil {
-		logger.Fatalf("Failed to parse redis host: %v", err)
+		h.logger.Fatalf("Failed to parse redis host: %v", err)
 	}
 	redis := goredis.NewClient(ropts)
 	redis.Set(context.Background(), fmt.Sprintf("update.%s.%s", pushUuid, refname),

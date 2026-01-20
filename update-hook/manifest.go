@@ -1,4 +1,4 @@
-package main
+package updatehook
 
 // TODO: Move this into builds.sr.ht
 

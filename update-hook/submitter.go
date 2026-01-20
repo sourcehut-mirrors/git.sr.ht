@@ -1,4 +1,4 @@
-package main
+package updatehook
 
 import (
 	"bufio"
@@ -46,14 +46,14 @@ type GitBuildSubmitter struct {
 	Ref         string
 }
 
-func (submitter GitBuildSubmitter) FindManifests() (map[string]string, error) {
+func (h *HookContext) FindManifests(submitter *GitBuildSubmitter) (map[string]string, error) {
 	rootTree, err := submitter.Repository.TreeObject(submitter.Commit.TreeHash)
 	if err != nil {
 		return nil, errors.Wrap(err, "root tree lookup failed")
 	}
 
 	var files []*object.File
-	loadOptions()
+	loadOptions(h.logger, h.config)
 	pattern := ".build.yml,.builds/*.yml,.build.yaml,.builds/*.yaml"
 	if pat, ok := options["submit"]; ok {
 		pattern = pat
@@ -195,12 +195,12 @@ func (submitter GitBuildSubmitter) GetEnv() map[string]string {
 	}
 }
 
-func (submitter GitBuildSubmitter) GetCloneUrl() string {
+func (h *HookContext) GetCloneUrl(submitter GitBuildSubmitter) string {
 	if submitter.Visibility == "PRIVATE" {
 		origin := strings.ReplaceAll(submitter.GitOrigin, "http://", "")
 		origin = strings.ReplaceAll(origin, "https://", "")
 		// Use SSH URL
-		git_user, ok := config.Get("git.sr.ht", "ssh-user")
+		git_user, ok := h.config.Get("git.sr.ht", "ssh-user")
 		if !ok {
 			git_user = "git"
 		}
@@ -246,13 +246,13 @@ func shouldBuildGitRef(gitRef string, submitter *Submitter) bool {
 	return true
 }
 
-func SubmitBuild(ctx context.Context, submitter *GitBuildSubmitter) ([]BuildSubmission, error) {
-	manifests, err := submitter.FindManifests()
+func (h *HookContext) SubmitBuild(ctx context.Context, submitter *GitBuildSubmitter) ([]BuildSubmission, error) {
+	manifests, err := h.FindManifests(submitter)
 	if err != nil || manifests == nil {
 		return nil, err
 	}
 
-	loadOptions()
+	loadOptions(h.logger, h.config)
 	if _, ok := options["skip-ci"]; ok {
 		if !submitBuildSkipCiPrinted {
 			log.Println("skip-ci was requested - not submitting build jobs")
@@ -278,7 +278,7 @@ func SubmitBuild(ctx context.Context, submitter *GitBuildSubmitter) ([]BuildSubm
 			continue
 		}
 
-		autoSetupManifest(submitter, &manifest)
+		h.autoSetupManifest(submitter, &manifest)
 
 		yaml, err := manifest.ToYAML()
 		if err != nil {
@@ -321,7 +321,7 @@ func SubmitBuild(ctx context.Context, submitter *GitBuildSubmitter) ([]BuildSubm
 
 		err = client.Do(ctx, submitter.PusherName, "builds.sr.ht", query, &resp)
 		if err != nil {
-			logger.Printf("Error submitting build: %v", err)
+			h.logger.Printf("Error submitting build: %v", err)
 			return nil, err
 		}
 
@@ -337,9 +337,9 @@ func SubmitBuild(ctx context.Context, submitter *GitBuildSubmitter) ([]BuildSubm
 	return results, nil
 }
 
-func autoSetupManifest(submitter *GitBuildSubmitter, manifest *Manifest) {
+func (h *HookContext) autoSetupManifest(submitter *GitBuildSubmitter, manifest *Manifest) {
 	var hasSelf bool
-	cloneUrl := submitter.GetCloneUrl() + "#" + submitter.GetCommitId()
+	cloneUrl := h.GetCloneUrl(*submitter) + "#" + submitter.GetCommitId()
 	for i, src := range manifest.Sources {
 		if path.Base(src) == submitter.RepoName {
 			manifest.Sources[i] = cloneUrl

@@ -1,19 +1,21 @@
-package main
+package updatehook
 
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
 	goredis "github.com/go-redis/redis/v8"
+	"github.com/vaughan0/go-ini"
 )
 
 var options map[string]string
 
-func loadOptions() {
+func loadOptions(logger *log.Logger, config ini.File) {
 	if options != nil {
 		return
 	}

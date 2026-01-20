@@ -84,16 +84,16 @@ api/graph/api/generated.go: api/graph/schema.graphqls api/graph/generate.go go.s
 	cd api && go generate ./graph
 
 $(SERVICE)-api: api/graph/api/generated.go api/loaders/*_gen.go
-	go build -o $@ $(GO_LDFLAGS) ./api
+	go build -o $@ $(GO_LDFLAGS) ./cmd/api
 
 $(SERVICE)-shell: api/graph/api/generated.go
-	go build -o $@ ./shell
+	go build -o $@ ./cmd/shell
 
 $(SERVICE)-http-clone:
-	go build -o $@ ./http-clone
+	go build -o $@ ./cmd/http-clone
 
 $(SERVICE)-update-hook:
-	go build -o $@ ./update-hook
+	go build -o $@ ./cmd/update-hook
 
 # Always rebuild
 .PHONY: $(BINARIES)

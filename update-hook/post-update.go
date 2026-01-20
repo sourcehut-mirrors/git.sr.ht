@@ -1,4 +1,4 @@
-package main
+package updatehook
 
 import (
 	"context"
@@ -20,7 +20,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func printAutocreateInfo(context PushContext) {
+func (h *HookContext) printAutocreateInfo(context PushContext) {
 	log.Println("\n\t\033[93mNOTICE\033[0m")
 	log.Printf(`
 	You have pushed to a repository which did not exist. %[2]s/%[3]s
@@ -29,7 +29,7 @@ func printAutocreateInfo(context PushContext) {
 
 	%[1]s/%[2]s/%[3]s/settings/info
 
-`, origin, context.User.CanonicalName, context.Repo.Name)
+`, h.origin, context.User.CanonicalName, context.Repo.Name)
 }
 
 type DbInfo struct {
@@ -39,7 +39,7 @@ type DbInfo struct {
 	OwnerUsername string
 }
 
-func fetchInfoForPush(db *sql.DB, username string, repoId int, repoName string,
+func (h *HookContext) fetchInfoForPush(db *sql.DB, username string, repoId int, repoName string,
 	repoVisibility string, newDescription *string, newVisibility *string) (DbInfo, error) {
 	var dbinfo = DbInfo{
 		RepoId:     repoId,
@@ -62,7 +62,7 @@ func fetchInfoForPush(db *sql.DB, username string, repoId int, repoName string,
 	// not the repo owner.
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	ctx = coreconfig.Context(ctx, config, "git.sr.ht")
+	ctx = coreconfig.Context(ctx, h.config, "git.sr.ht")
 	err := client.Do(ctx, username, "git.sr.ht", client.GraphQLQuery{
 		Query: `
 		mutation UpdateRepository($id: Int!, $input: RepoInput!) {
@@ -74,7 +74,7 @@ func fetchInfoForPush(db *sql.DB, username string, repoId int, repoName string,
 		},
 	}, struct{}{})
 	if err != nil {
-		logger.Printf("Error updating repository: %v", err)
+		h.logger.Printf("Error updating repository: %v", err)
 		return dbinfo, fmt.Errorf("failed to update repository: %v", err)
 	}
 
@@ -96,8 +96,8 @@ func fetchInfoForPush(db *sql.DB, username string, repoId int, repoName string,
 	return dbinfo, err
 }
 
-func parseUpdatables() (*string, *string) {
-	loadOptions()
+func (h *HookContext) parseUpdatables() (*string, *string) {
+	loadOptions(h.logger, h.config)
 	var desc, vis *string
 
 	if newDescription, ok := options["description"]; ok {
@@ -110,54 +110,54 @@ func parseUpdatables() (*string, *string) {
 	return desc, vis
 }
 
-func postUpdate() {
+func (h *HookContext) PostUpdate() {
 	var pcontext PushContext
 	refs := os.Args[1:]
 
 	contextJson, ctxOk := os.LookupEnv("SRHT_PUSH_CTX")
 	pushUuid, pushOk := os.LookupEnv("SRHT_PUSH")
 	if !ctxOk || !pushOk {
-		logger.Fatal("Missing required variables in environment, " +
+		h.logger.Fatal("Missing required variables in environment, " +
 			"configuration error?")
 	}
 
-	logger.Printf("Running post-update for push %s", pushUuid)
+	h.logger.Printf("Running post-update for push %s", pushUuid)
 
 	if err := json.Unmarshal([]byte(contextJson), &pcontext); err != nil {
-		logger.Fatalf("unmarshal SRHT_PUSH_CTX: %v", err)
+		h.logger.Fatalf("unmarshal SRHT_PUSH_CTX: %v", err)
 	}
 
-	newDescription, newVisibility := parseUpdatables()
+	newDescription, newVisibility := h.parseUpdatables()
 	if pcontext.Repo.Autocreated && newVisibility == nil {
-		printAutocreateInfo(pcontext)
+		h.printAutocreateInfo(pcontext)
 	}
 
-	loadOptions()
+	loadOptions(h.logger, h.config)
 
 	oids := make(map[string]interface{})
 	repo, err := git.PlainOpen(pcontext.Repo.AbsolutePath)
 	if err != nil {
-		logger.Fatalf("git.PlainOpen(%q): %v", pcontext.Repo.AbsolutePath, err)
+		h.logger.Fatalf("git.PlainOpen(%q): %v", pcontext.Repo.AbsolutePath, err)
 	}
 
-	db, err := sql.Open("postgres", pgcs)
+	db, err := sql.Open("postgres", h.pgcs)
 	if err != nil {
-		logger.Fatalf("Failed to open a database connection: %v", err)
+		h.logger.Fatalf("Failed to open a database connection: %v", err)
 	}
 	defer db.Close()
 
-	dbinfo, err := fetchInfoForPush(db, pcontext.Repo.OwnerName, pcontext.Repo.Id, pcontext.Repo.Name, pcontext.Repo.Visibility, newDescription, newVisibility)
+	dbinfo, err := h.fetchInfoForPush(db, pcontext.Repo.OwnerName, pcontext.Repo.Id, pcontext.Repo.Name, pcontext.Repo.Visibility, newDescription, newVisibility)
 	if err != nil {
-		logger.Fatalf("Failed to fetch info from database: %v", err)
+		h.logger.Fatalf("Failed to fetch info from database: %v", err)
 	}
 
-	redisHost, ok := config.Get("sr.ht", "redis-host")
+	redisHost, ok := h.config.Get("sr.ht", "redis-host")
 	if !ok {
 		redisHost = "redis://localhost:6379"
 	}
 	ropts, err := goredis.ParseURL(redisHost)
 	if err != nil {
-		logger.Fatalf("Failed to parse redis host: %v", err)
+		h.logger.Fatalf("Failed to parse redis host: %v", err)
 	}
 	nbuilds := 0
 	redis := goredis.NewClient(ropts)
@@ -167,7 +167,7 @@ func postUpdate() {
 		updateKey := fmt.Sprintf("update.%s.%s", pushUuid, refname)
 		update, err := redis.Get(context.Background(), updateKey).Result()
 		if update == "" || err != nil {
-			logger.Println("redis.Get: missing key")
+			h.logger.Println("redis.Get: missing key")
 			continue
 		} else {
 			parts := strings.Split(update, ":")
@@ -182,14 +182,14 @@ func postUpdate() {
 		if tag, ok := newobj.(*object.Tag); ok {
 			newobj, err = repo.CommitObject(tag.Target)
 			if err != nil {
-				logger.Printf("new tag cannot be resovled: %v", err)
+				h.logger.Printf("new tag cannot be resovled: %v", err)
 				continue
 			}
 		}
 
 		commit, ok := newobj.(*object.Commit)
 		if !ok {
-			logger.Println("Skipping non-commit new ref")
+			h.logger.Println("Skipping non-commit new ref")
 			continue
 		}
 
@@ -198,11 +198,11 @@ func postUpdate() {
 		}
 		oids[commit.Hash.String()] = nil
 
-		if buildOrigin != "" && nbuilds < 4 {
+		if h.buildOrigin != "" && nbuilds < 4 {
 			submitter := &GitBuildSubmitter{
-				BuildOrigin: buildOrigin,
+				BuildOrigin: h.buildOrigin,
 				Commit:      commit,
-				GitOrigin:   origin,
+				GitOrigin:   h.origin,
 				OwnerName:   dbinfo.OwnerUsername,
 				PusherName:  pcontext.User.Name,
 				RepoName:    dbinfo.RepoName,
@@ -213,10 +213,10 @@ func postUpdate() {
 
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
-			ctx = coreconfig.Context(ctx, config, "git.sr.ht")
-			results, err := SubmitBuild(ctx, submitter)
+			ctx = coreconfig.Context(ctx, h.config, "git.sr.ht")
+			results, err := h.SubmitBuild(ctx, submitter)
 			if err != nil {
-				logger.Printf("Error submitting build job: %v", err)
+				h.logger.Printf("Error submitting build job: %v", err)
 				log.Printf("Error submitting build job: %v", err)
 				continue
 			}
@@ -227,7 +227,7 @@ func postUpdate() {
 			} else {
 				log.Println("\033[1mBuilds started:\033[0m")
 			}
-			logger.Printf("Submitted %d builds for %s",
+			h.logger.Printf("Submitted %d builds for %s",
 				len(results), refname)
 			for _, result := range results {
 				log.Printf("\033[94m%s\033[0m [%s]", result.Url, result.Name)
@@ -241,7 +241,7 @@ func postUpdate() {
 	// if none were found, set the first branch in iteration order as default
 	head, err := repo.Reference("HEAD", false)
 	if err != nil {
-		logger.Fatalf("repo.Reference(\"HEAD\"): %v", err)
+		h.logger.Fatalf("repo.Reference(\"HEAD\"): %v", err)
 	}
 
 	danglingHead := false
@@ -250,14 +250,14 @@ func postUpdate() {
 	}
 
 	if danglingHead {
-		logger.Printf("HEAD dangling at %s", head.Target())
+		h.logger.Printf("HEAD dangling at %s", head.Target())
 
 		cbk := func(ref *plumbing.Reference) error {
 			if ref == nil {
 				return nil
 			}
 
-			logger.Printf("Setting HEAD to %s", ref.Name())
+			h.logger.Printf("Setting HEAD to %s", ref.Name())
 			log.Printf("Default branch updated to %s", ref.Name()[len("refs/heads/"):])
 			repo.Storer.SetReference(plumbing.NewSymbolicReference("HEAD", ref.Name()))
 			danglingHead = false
