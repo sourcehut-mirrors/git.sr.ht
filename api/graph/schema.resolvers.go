@@ -652,7 +652,7 @@ func (r *mutationResolver) UpdateACL(ctx context.Context, repoID int, mode model
 			RETURNING id, created, mode, repo_id, user_id;`,
 			repoID, auth.ForContext(ctx).UserID,
 			entity, strings.ToLower(string(mode)))
-		if err := row.Scan(&acl.ID, &acl.Created, &acl.RawAccessMode,
+		if err := row.Scan(&acl.ID, &acl.Created, &acl.Mode,
 			&acl.RepoID, &acl.UserID); err != nil {
 			if err == sql.ErrNoRows {
 				// TODO: Fetch user details from meta.sr.ht
@@ -678,7 +678,7 @@ func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.ACL, e
 			WHERE repo_id = repo.id AND repo.owner_id = $1 AND access.id = $2
 			RETURNING access.id, access.created, mode, repo_id, user_id;
 		`, auth.ForContext(ctx).UserID, id)
-		if err := row.Scan(&acl.ID, &acl.Created, &acl.RawAccessMode,
+		if err := row.Scan(&acl.ID, &acl.Created, &acl.Mode,
 			&acl.RepoID, &acl.UserID); err != nil {
 			if err == sql.ErrNoRows {
 				return fmt.Errorf("no such repository or ACL entry found")
@@ -1497,7 +1497,6 @@ func (r *repositoryResolver) Access(ctx context.Context, obj *model.Repository) 
 		Isolation: 0,
 		ReadOnly:  true,
 	}, func(tx *sql.Tx) error {
-		var rawAccessMode string
 		row := tx.QueryRowContext(ctx, `
 			SELECT mode
 			FROM access
@@ -1506,16 +1505,11 @@ func (r *repositoryResolver) Access(ctx context.Context, obj *model.Repository) 
 				access.user_id = $2;
 		`, obj.ID, currentUser.UserID)
 
-		if err := row.Scan(&rawAccessMode); err != nil {
+		if err := row.Scan(&mode); err != nil {
 			if err == sql.ErrNoRows {
 				return nil
 			}
 			return err
-		}
-
-		mode = model.AccessMode(strings.ToUpper(rawAccessMode))
-		if !mode.IsValid() {
-			panic(fmt.Errorf("invalid access mode '%s'", rawAccessMode))
 		}
 		return nil
 	}); err != nil {

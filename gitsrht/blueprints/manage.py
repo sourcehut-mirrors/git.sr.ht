@@ -4,8 +4,8 @@ from srht.app import session
 from srht.database import db
 from srht.oauth import current_user, loginrequired, UserType
 from srht.validation import Validation
-from gitsrht.access import check_access, UserAccess, AccessMode
-from gitsrht.graphql import Client, Visibility, RepoInput
+from gitsrht.access import check_access, UserAccess
+from gitsrht.graphql import AccessMode, Client, Visibility, RepoInput
 from gitsrht.types import Access, User, Redirect
 
 manage = Blueprint('manage', __name__)
@@ -148,7 +148,7 @@ def settings_access_POST(owner_name, repo_name):
         repo = repo.new_repo
     valid = Validation(request)
     username = valid.require("user", friendly_name="User")
-    mode = valid.optional("access", cls=AccessMode, default=AccessMode.ro)
+    mode = valid.optional("access", cls=AccessMode, default=AccessMode.RO)
     if not valid.ok:
         return render_template("settings_access.html",
                 owner=owner, repo=repo, **valid.kwargs)

@@ -73,8 +73,8 @@
               class="form-check-input"
               type="radio"
               name="access"
-              value="ro"
-              {{ "checked" if not access or access.value == "ro" else "" }}
+              value="RO"
+              {{ "checked" if not access or access.value == "RO" else "" }}
             > Read only
           </label>
         </div>
@@ -87,8 +87,8 @@
               class="form-check-input"
               type="radio"
               name="access"
-              value="rw"
-              {{ "checked" if access and access.value == "rw" else "" }}
+              value="RW"
+              {{ "checked" if access and access.value == "RW" else "" }}
             > Read/write
           </label>
         </div>

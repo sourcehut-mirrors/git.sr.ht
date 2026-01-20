@@ -3,9 +3,7 @@ package model
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -19,20 +17,12 @@ type ACL struct {
 	ID      int       `json:"id"`
 	Created time.Time `json:"created"`
 
-	RawAccessMode string
-	RepoID        int
-	UserID        int
+	Mode   AccessMode
+	RepoID int
+	UserID int
 
 	alias  string
 	fields *database.ModelFields
-}
-
-func (acl *ACL) Mode() AccessMode {
-	mode := AccessMode(strings.ToUpper(acl.RawAccessMode))
-	if !mode.IsValid() {
-		panic(fmt.Errorf("invalid access mode '%s'", acl.RawAccessMode)) // Invariant
-	}
-	return mode
 }
 
 func (acl *ACL) As(alias string) *ACL {
@@ -56,7 +46,7 @@ func (acl *ACL) Fields() *database.ModelFields {
 		Fields: []*database.FieldMap{
 			{SQL: "id", GQL: "id", Ptr: &acl.ID},
 			{SQL: "created", GQL: "created", Ptr: &acl.Created},
-			{SQL: "mode", GQL: "mode", Ptr: &acl.RawAccessMode},
+			{SQL: "mode", GQL: "mode", Ptr: &acl.Mode},
 
 			// Always fetch:
 			{SQL: "id", GQL: "", Ptr: &acl.ID},

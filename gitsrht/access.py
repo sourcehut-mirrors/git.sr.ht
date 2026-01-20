@@ -4,8 +4,8 @@ from datetime import datetime
 from enum import Enum
 from enum import IntFlag
 from flask import abort, current_app, request, redirect, url_for
-from gitsrht.graphql import Visibility
-from gitsrht.types import Access, AccessMode, Repository, Redirect, User
+from gitsrht.graphql import AccessMode, Visibility
+from gitsrht.types import Access, Repository, Redirect, User
 from sqlalchemy.ext.declarative import declared_attr
 from srht.database import db
 from srht.oauth import current_user
@@ -71,7 +71,7 @@ def get_access(repo, user=None):
     if acl:
         acl.updated = datetime.utcnow()
         db.session.commit()
-        if acl.mode == AccessMode.ro:
+        if acl.mode == AccessMode.RO:
             return UserAccess.read
         else:
             return UserAccess.read | UserAccess.write

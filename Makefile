@@ -86,7 +86,7 @@ api/graph/api/generated.go: api/graph/schema.graphqls api/graph/generate.go go.s
 $(SERVICE)-api: api/graph/api/generated.go api/loaders/*_gen.go
 	go build -o $@ $(GO_LDFLAGS) ./api
 
-$(SERVICE)-shell:
+$(SERVICE)-shell: api/graph/api/generated.go
 	go build -o $@ ./shell
 
 $(SERVICE)-http-clone:

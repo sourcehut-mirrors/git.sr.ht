@@ -17,6 +17,7 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/client"
 	coreconfig "git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/crypto"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/sourcehut-ssh/shell"
 	"github.com/google/shlex"
 	_ "github.com/lib/pq"
@@ -166,7 +167,7 @@ func main() {
 		repoOwnerId    int
 		repoOwnerName  string
 		repoVisibility string
-		accessGrant    *string
+		accessGrant    *model.AccessMode
 		autocreated    bool
 	)
 	row := db.QueryRow(`
@@ -296,7 +297,7 @@ func main() {
 
 	agrant := ""
 	if accessGrant != nil {
-		agrant = *accessGrant
+		agrant = accessGrant.String()
 	}
 	logger.Printf("repo ID %d; name '%s'; owner ID %d; owner name '%s'; "+
 		"visibility '%s'; pusher type '%s'; "+
@@ -324,12 +325,10 @@ func main() {
 			}
 		} else {
 			switch *accessGrant {
-			case "ro":
+			case model.AccessModeRo:
 				hasAccess = ACCESS_READ
-			case "rw":
+			case model.AccessModeRw:
 				hasAccess = ACCESS_READ | ACCESS_WRITE
-			default:
-				hasAccess = ACCESS_NONE
 			}
 		}
 	}

@@ -3,7 +3,7 @@ import sqlalchemy as sa
 import sqlalchemy_utils as sau
 from enum import Enum
 from gitsrht.git import Repository as GitRepository
-from gitsrht.graphql import Visibility
+from gitsrht.graphql import AccessMode, Visibility
 from sqlalchemy import event
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.ext.declarative import declared_attr
@@ -12,11 +12,6 @@ from srht.oauth import UserMixin
 
 class User(Base, UserMixin):
     pass
-
-# TODO: Make me into a postgresql ENUM type
-class AccessMode(Enum):
-    ro = 'ro'
-    rw = 'rw'
 
 class Access(Base):
     @declared_attr
@@ -34,7 +29,7 @@ class Access(Base):
     created = sa.Column(sa.DateTime, nullable=False)
     updated = sa.Column(sa.DateTime, nullable=False)
     mode = sa.Column(sau.ChoiceType(AccessMode, impl=sa.String()),
-            nullable=False, default=AccessMode.ro)
+            nullable=False, default=AccessMode.RO)
 
     @declared_attr
     def user_id(cls):

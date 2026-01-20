@@ -34,6 +34,11 @@ CREATE TYPE user_type AS ENUM (
 	'SUSPENDED'
 );
 
+CREATE TYPE access_mode AS ENUM (
+	'RO',
+	'RW'
+);
+
 CREATE TYPE owner_repo_name AS (
 	owner text,
 	repo_name text
@@ -82,7 +87,7 @@ CREATE TABLE access (
 	updated timestamp without time zone NOT NULL,
 	repo_id integer NOT NULL REFERENCES repository(id) ON DELETE CASCADE,
 	user_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
-	mode character varying NOT NULL,
+	mode access_mode NOT NULL,
 	CONSTRAINT uq_access_user_id_repo_id UNIQUE (user_id, repo_id)
 );
 
