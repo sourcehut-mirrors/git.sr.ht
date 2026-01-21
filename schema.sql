@@ -1,3 +1,19 @@
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- Note: PostgreSQL 18 includes native support for UUID v7
+-- Replace this when we roll it out
+CREATE FUNCTION gen_uuidv7() RETURNS uuid
+    AS $$
+        SELECT (
+		lpad(to_hex(floor(extract(epoch FROM clock_timestamp()) * 1000)::bigint), 12, '0')
+		|| '7'
+		|| substring(encode(gen_random_bytes(2), 'hex') from 2)
+		|| '8'
+		|| substring(encode(gen_random_bytes(2), 'hex') from 2)
+		|| encode(gen_random_bytes(6), 'hex')
+	)::uuid;
+    $$ LANGUAGE SQL;
+
 CREATE TYPE auth_method AS ENUM (
 	'OAUTH_LEGACY',
 	'OAUTH2',
@@ -66,6 +82,7 @@ CREATE INDEX ix_user_username ON "user" USING btree (username);
 
 CREATE TABLE repository (
 	id serial PRIMARY KEY,
+	rid uuid UNIQUE NOT NULL DEFAULT gen_uuidv7(),
 	created timestamp without time zone NOT NULL,
 	updated timestamp without time zone NOT NULL,
 	name character varying(256) NOT NULL,

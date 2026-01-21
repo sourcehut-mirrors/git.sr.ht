@@ -1148,6 +1148,39 @@ func (r *queryResolver) User(ctx context.Context, username string) (*model.User,
 	return loaders.ForContext(ctx).UsersByName.Load(username)
 }
 
+// Repository is the resolver for the repository field.
+func (r *queryResolver) Repository(ctx context.Context, rid coremodel.RID) (*model.Repository, error) {
+	user := auth.ForContext(ctx)
+	repo := (&model.Repository{}).As(`repo`)
+
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		row := database.
+			Select(ctx, repo).
+			From(`repository repo`).
+			LeftJoin(`access ON repo.id = access.repo_id`).
+			Where(sq.And{
+				sq.Expr(`repo.rid = ?`, rid),
+				sq.Or{
+					sq.Expr(`? IN (access.user_id, repo.owner_id)`, user.UserID),
+					sq.Expr(`repo.visibility != 'PRIVATE'`),
+				},
+			}).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		return row.Scan(database.Scan(ctx, repo)...)
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return repo, nil
+}
+
 // Repositories is the resolver for the repositories field.
 func (r *queryResolver) Repositories(ctx context.Context, cursor *coremodel.Cursor, filter *coremodel.Filter) (*model.RepositoryCursor, error) {
 	if cursor == nil {

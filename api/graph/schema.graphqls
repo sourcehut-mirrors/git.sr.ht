@@ -136,6 +136,7 @@ type User implements Entity {
 
 type Repository {
   id: Int!
+  rid: ID!
   created: Time!
   updated: Time!
   owner: Entity! @access(scope: PROFILE, kind: RO)
@@ -584,6 +585,9 @@ type Query {
   "Returns a specific user."
   user(username: String!): User @access(scope: PROFILE, kind: RO)
 
+  "Looks up a repository based on its resource ID."
+  repository(rid: ID!): Repository @access(scope: REPOSITORIES, kind: RO)
+
   """
   Returns repositories that the authenticated user has access to.
 
@@ -696,7 +700,7 @@ type Mutation {
   deleteRepository(id: Int!): Repository @access(scope: REPOSITORIES, kind: RW)
 
   "Adds or updates a user in the access control list"
-  updateACL(repoId: Int!, mode: AccessMode!, entity: ID!): ACL! @access(scope: ACLS, kind: RW)
+  updateACL(repoId: Int!, mode: AccessMode!, entity: String!): ACL! @access(scope: ACLS, kind: RW)
 
   "Deletes an entry from the access control list"
   deleteACL(id: Int!): ACL @access(scope: ACLS, kind: RW)

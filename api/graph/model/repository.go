@@ -16,6 +16,7 @@ import (
 
 type Repository struct {
 	ID          int       `json:"id"`
+	RID         model.RID `json:"rid"`
 	Created     time.Time `json:"created"`
 	Updated     time.Time `json:"updated"`
 	Name        string    `json:"name"`
@@ -85,6 +86,7 @@ func (r *Repository) Fields() *database.ModelFields {
 
 			// Always fetch:
 			{SQL: "id", GQL: "", Ptr: &r.ID},
+			{SQL: "rid", GQL: "", Ptr: &r.RID},
 			{SQL: "path", GQL: "", Ptr: &r.Path},
 			{SQL: "owner_id", GQL: "", Ptr: &r.OwnerID},
 			{SQL: "updated", GQL: "", Ptr: &r.Updated},
