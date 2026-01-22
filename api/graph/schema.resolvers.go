@@ -264,10 +264,13 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 				NOW() at time zone 'utc',
 				$1, $2, $3, $4, $5, $6
 			) RETURNING
-				id, created, updated, name, description, visibility,
+				id, rid,
+				created, updated, name,
+				description, visibility,
 				path, owner_id;
 		`, name, description, repoPath, visibility, user.UserID, cloneStatus)
-		if err := row.Scan(&repo.ID, &repo.Created, &repo.Updated, &repo.Name,
+		if err := row.Scan(&repo.ID, &repo.RID,
+			&repo.Created, &repo.Updated, &repo.Name,
 			&repo.Description, &repo.Visibility,
 			&repo.Path, &repo.OwnerID); err != nil {
 			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
