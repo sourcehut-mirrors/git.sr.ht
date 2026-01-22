@@ -13,10 +13,10 @@ query {
       # into repositories(cursor:"...") in a subsequent request, you'll get the
       # next page.
       cursor
-      # These are the actual results. Grab the id, name, and updated fields
-      # from each repository.
+      # These are the actual results. Grab the resource id, name, and updated
+      # fields from each repository.
       results {
-        id, name, updated
+        rid, name, updated
       }
     }
   }
