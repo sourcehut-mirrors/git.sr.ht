@@ -1,5 +1,5 @@
 -- +brant Up
-CREATE EXTENSION pgcrypto;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- +brant StatementBegin
 CREATE FUNCTION gen_uuidv7() RETURNS uuid
