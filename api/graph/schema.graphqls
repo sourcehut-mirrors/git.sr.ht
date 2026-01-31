@@ -158,6 +158,9 @@ type Repository {
   # Only available to the repository owner
   acls(cursor: Cursor): ACLCursor! @access(scope: ACLS, kind: RO)
 
+  # Only available to the repository owner
+  deployKeys(cursor: Cursor): SSHKeyCursor! @access(scope: ACLS, kind: RO)
+
   ## Plumbing API:
 
   """
@@ -206,6 +209,25 @@ type Repository {
 
   ## For internal use
   repoPath: String! @anoninternal
+}
+
+"""
+An SSH key associated with a repository, not an account. Often referred to as
+deploy key. Provides access to this repository, but only vie SSH. Can have
+read-only or read-write access.
+"""
+type SSHKey {
+  id: Int!
+  rid: ID!
+  created: Time!
+  lastUsed: Time
+  repo: Repository! @access(scope: REPOSITORIES, kind: RO)
+  key: String!
+  keyType: String!
+  fingerprintSHA256: String!
+  comment: String
+  "The access that applies to this key for this repository"
+  access: AccessMode!
 }
 
 # For internal use
@@ -407,6 +429,18 @@ there are no remaining results to return.
 """
 type ArtifactCursor {
   results: [Artifact!]!
+  cursor: Cursor
+}
+
+"""
+A cursor for enumerating a list of SSH keys
+
+If there are additional results available, the cursor object may be passed
+back into the same endpoint to retrieve another page. If the cursor is null,
+there are no remaining results to return.
+"""
+type SSHKeyCursor {
+  results: [SSHKey!]!
   cursor: Cursor
 }
 
@@ -640,6 +674,12 @@ type Query {
 
   # Looks up a redirect by its (original) path on disk
   redirectByDiskPath(path: String!): Redirect @anoninternal
+
+  """
+  Returns true if the service wants to accept an incoming SSH connection
+  with the given key even though it can not be mapped to a user.
+  """
+  acceptSSHKey(fingerprint: String!): Boolean! @anoninternal
 }
 
 input RepoInput {
@@ -707,6 +747,9 @@ type Mutation {
 
   "Deletes an entry from the access control list"
   deleteACL(id: Int!): ACL @access(scope: ACLS, kind: RW)
+
+  createDeployKey(repo: ID!, mode: AccessMode!, key: String!): SSHKey! @access(scope: ACLS, kind: RW)
+  deleteDeployKey(rid: ID!): SSHKey @access(scope: ACLS, kind: RW)
 
   """
   Uploads an artifact. revspec must match a specific git tag, and the

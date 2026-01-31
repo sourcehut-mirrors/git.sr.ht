@@ -50,6 +50,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"golang.org/x/crypto/ssh"
 )
 
 // Repository is the resolver for the repository field.
@@ -693,6 +694,110 @@ func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.ACL, e
 		return nil, err
 	}
 	return &acl, nil
+}
+
+// CreateDeployKey is the resolver for the createDeployKey field.
+func (r *mutationResolver) CreateDeployKey(ctx context.Context, repo coremodel.RID, mode model.AccessMode, key string) (*model.SSHKey, error) {
+	valid := valid.New(ctx)
+	pkey, comment, _, _, err := ssh.ParseAuthorizedKey([]byte(key))
+	valid.
+		Expect(err == nil, "Invalid SSH key format: %s", err).
+		WithField("key")
+	if !valid.Ok() {
+		return nil, nil
+	}
+
+	fingerprint := ssh.FingerprintSHA256(pkey)
+
+	var (
+		id       int
+		rid      coremodel.RID
+		created  time.Time
+		repoID   int
+		repoName string
+	)
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			WITH repo AS (
+				SELECT id, name
+				FROM repository
+				WHERE repository.rid = $1 AND repository.owner_id = $2
+			), new_key AS (
+				INSERT INTO sshkey (
+					created, repo_id, key, key_type, fingerprint_sha256, comment, access
+				) SELECT
+					NOW() at time zone 'utc', repo.id, $3, $4, $5, $6, $7
+				FROM repo
+				RETURNING id, rid, created, repo_id
+			)
+			SELECT new_key.id, new_key.rid, new_key.created, new_key.repo_id, repo.name 
+			FROM new_key JOIN repo ON new_key.repo_id = repo.id
+		`, repo, auth.ForContext(ctx).UserID, key, pkey.Type(), fingerprint, comment, mode)
+		if err := row.Scan(&id, &rid, &created, &repoID, &repoName); err != nil {
+			if err == sql.ErrNoRows {
+				return gerrors.ErrNotFound
+			}
+			if err, ok := err.(*pq.Error); ok &&
+				err.Code == "23505" && // unique_violation
+				err.Constraint == "sshkey_repo_id_fingerprint_sha256_key" {
+				return fmt.Errorf("SSH key already in use for this repository, and duplicates are not allowed")
+			}
+			return err
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	sendDeployKeyEvent(ctx, repoName, "removed", fingerprint)
+
+	var c *string
+	if comment != "" {
+		c = &comment
+	}
+
+	mkey := &model.SSHKey{
+		ID:                id,
+		RID:               rid,
+		Created:           created,
+		Key:               key,
+		KeyType:           pkey.Type(),
+		FingerprintSHA256: fingerprint,
+		Comment:           c,
+		RepoID:            repoID,
+	}
+	return mkey, nil
+}
+
+// DeleteDeployKey is the resolver for the deleteDeployKey field.
+func (r *mutationResolver) DeleteDeployKey(ctx context.Context, rid coremodel.RID) (*model.SSHKey, error) {
+	var (
+		result   model.SSHKey
+		repoName string
+	)
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			DELETE FROM sshkey
+			USING repository repo
+			WHERE repo_id = repo.id AND repo.owner_id = $1 AND sshkey.rid = $2
+			RETURNING
+				sshkey.id, sshkey.rid, sshkey.created, sshkey.last_used,
+				sshkey.repo_id, sshkey.key, sshkey.key_type, sshkey.fingerprint_sha256,
+				sshkey.comment, sshkey.access, repo.name;
+			`, auth.ForContext(ctx).UserID, rid)
+		return row.Scan(&result.ID, &result.RID, &result.Created, &result.LastUsed,
+			&result.RepoID, &result.Key, &result.KeyType, &result.FingerprintSHA256,
+			&result.Comment, &result.Access, &repoName)
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, gerrors.ErrNotFound
+		}
+		return nil, err
+	}
+
+	sendDeployKeyEvent(ctx, repoName, "removed", result.FingerprintSHA256)
+	return &result, nil
 }
 
 // UploadArtifact is the resolver for the uploadArtifact field.
@@ -1396,6 +1501,25 @@ func (r *queryResolver) RedirectByDiskPath(ctx context.Context, path string) (*m
 	return &redir, nil
 }
 
+// AcceptSSHKey is the resolver for the acceptSSHKey field.
+func (r *queryResolver) AcceptSSHKey(ctx context.Context, fingerprint string) (bool, error) {
+	var id int
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+				SELECT id FROM sshkey
+				WHERE fingerprint_sha256 = $1
+				LIMIT 1;
+			`, fingerprint)
+		return row.Scan(&id)
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
 // Owner is the resolver for the owner field.
 func (r *redirectResolver) Owner(ctx context.Context, obj *model.Redirect) (model.Entity, error) {
 	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
@@ -1582,6 +1706,39 @@ func (r *repositoryResolver) Acls(ctx context.Context, obj *model.Repository, cu
 	}
 
 	return &model.ACLCursor{Results: acls, Cursor: cursor}, nil
+}
+
+// DeployKeys is the resolver for the deployKeys field.
+func (r *repositoryResolver) DeployKeys(ctx context.Context, obj *model.Repository, cursor *coremodel.Cursor) (*model.SSHKeyCursor, error) {
+	if obj.OwnerID != auth.ForContext(ctx).UserID {
+		return nil, gerrors.ErrAccessDenied
+	}
+
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var keys []*model.SSHKey
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		key := (&model.SSHKey{}).As(`key`)
+		query := database.
+			Select(ctx, key).
+			From(`sshkey key`).
+			Join(`repository ON repository.id = key.repo_id`).
+			Where(sq.And{
+				sq.Expr(`key.repo_id = ?`, obj.ID),
+				sq.Expr(`repository.owner_id = ?`, auth.ForContext(ctx).UserID),
+			})
+		keys, cursor = key.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.SSHKeyCursor{Results: keys, Cursor: cursor}, nil
 }
 
 // Objects is the resolver for the objects field.
@@ -1804,6 +1961,11 @@ func (r *repositoryResolver) RevparseSingle(ctx context.Context, obj *model.Repo
 // RepoPath is the resolver for the repoPath field.
 func (r *repositoryResolver) RepoPath(ctx context.Context, obj *model.Repository) (string, error) {
 	return obj.Path, nil
+}
+
+// Repo is the resolver for the repo field.
+func (r *sSHKeyResolver) Repo(ctx context.Context, obj *model.SSHKey) (*model.Repository, error) {
+	return loaders.ForContext(ctx).RepositoriesByID.Load(obj.RepoID)
 }
 
 // Content is the resolver for the content field.
@@ -2051,6 +2213,9 @@ func (r *Resolver) Reference() api.ReferenceResolver { return &referenceResolver
 // Repository returns api.RepositoryResolver implementation.
 func (r *Resolver) Repository() api.RepositoryResolver { return &repositoryResolver{r} }
 
+// SSHKey returns api.SSHKeyResolver implementation.
+func (r *Resolver) SSHKey() api.SSHKeyResolver { return &sSHKeyResolver{r} }
+
 // TextBlob returns api.TextBlobResolver implementation.
 func (r *Resolver) TextBlob() api.TextBlobResolver { return &textBlobResolver{r} }
 
@@ -2078,6 +2243,7 @@ type queryResolver struct{ *Resolver }
 type redirectResolver struct{ *Resolver }
 type referenceResolver struct{ *Resolver }
 type repositoryResolver struct{ *Resolver }
+type sSHKeyResolver struct{ *Resolver }
 type textBlobResolver struct{ *Resolver }
 type treeResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
