@@ -100,7 +100,7 @@
 {% endblock %}
 </div>
 {% block content %}{% endblock %}
-<footer class="container text-center">
+<footer class="container d-flex flex-grow-1 align-items-end justify-content-center">
   <small class="text-muted" title="The resource ID for this repository, used to identify it in the GraphQL API.">
     {{to_rid(repo.rid)}}
   </small>
