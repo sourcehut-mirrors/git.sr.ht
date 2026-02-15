@@ -654,7 +654,7 @@ func (r *mutationResolver) UpdateACL(ctx context.Context, repoID int, mode model
 			DO UPDATE SET mode = $4, updated = NOW() at time zone 'utc'
 			RETURNING id, created, mode, repo_id, user_id;`,
 			repoID, auth.ForContext(ctx).UserID,
-			entity, strings.ToLower(string(mode)))
+			entity, string(mode))
 		if err := row.Scan(&acl.ID, &acl.Created, &acl.Mode,
 			&acl.RepoID, &acl.UserID); err != nil {
 			if err == sql.ErrNoRows {
