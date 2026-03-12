@@ -19,7 +19,6 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/crypto"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/sourcehut-ssh/shell"
-	"github.com/google/shlex"
 	_ "github.com/lib/pq"
 	"github.com/vaughan0/go-ini"
 )
@@ -58,22 +57,11 @@ func main() {
 		siteOwnerName  string
 		siteOwnerEmail string
 
-		cmdstr string
-		cmd    []string
+		cmd []string
 	)
 
 	// Initialization and set up, collect our runtime needs
-	log.SetFlags(0)
-	logf, err := os.OpenFile("/var/log/git.sr.ht/git.sr.ht-shell.log",
-		os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		log.Printf("Warning: unable to open log file: %v "+
-			"(using stderr instead)", err)
-		logger = log.New(os.Stderr, "", log.LstdFlags)
-	} else {
-		logger = log.New(logf, "", log.LstdFlags)
-	}
-
+	logger = shell.SetupShellLogger("git.sr.ht")
 	args, err := shell.ParseShellArgs()
 	if err != nil {
 		logger.Fatalf("error parsing args %v: %s", os.Args, err.Error())
@@ -95,13 +83,8 @@ func main() {
 	siteOwnerName, _ = config.Get("sr.ht", "owner-name")
 	siteOwnerEmail, _ = config.Get("sr.ht", "owner-email")
 
-	cmdstr, ok = os.LookupEnv("SSH_ORIGINAL_COMMAND")
-	if !ok {
-		cmdstr = ""
-	}
-
 	// Grab the command the user is trying to execute
-	cmd, err = shlex.Split(cmdstr)
+	cmd, err = shell.ParseSSHOrigCommand()
 	if err != nil {
 		logger.Fatalf("Unable to parse command: %v", err)
 	}

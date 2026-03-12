@@ -7,7 +7,7 @@ toolchain go1.24.0
 require (
 	git.sr.ht/~sircmpwn/core-go v0.0.0-20260407175657-bbb9e45c5d63
 	git.sr.ht/~sircmpwn/dowork v0.0.0-20241216125407-2b00aa42322c
-	git.sr.ht/~sircmpwn/sourcehut-ssh v0.0.0-20251126135358-e81424366dbc
+	git.sr.ht/~sircmpwn/sourcehut-ssh v0.0.0-20251128105204-cd5fa8796e2a
 	git.sr.ht/~turminal/go-fnmatch v0.0.0-20211021204744-1a55764af6de
 	github.com/99designs/gqlgen v0.17.64
 	github.com/Masterminds/squirrel v1.5.4
@@ -18,7 +18,6 @@ require (
 	github.com/go-git/go-git/v5 v5.11.0
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/goccy/go-yaml v1.18.0
-	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.10.9
 	github.com/pkg/errors v0.9.1
@@ -60,6 +59,7 @@ require (
 	github.com/go-git/go-billy/v5 v5.6.2 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
