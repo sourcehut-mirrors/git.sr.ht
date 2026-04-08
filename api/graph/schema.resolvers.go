@@ -1729,6 +1729,20 @@ func (r *repositoryResolver) Log(ctx context.Context, obj *model.Repository, cur
 
 // Path is the resolver for the path field.
 func (r *repositoryResolver) Path(ctx context.Context, obj *model.Repository, revspec *string, path string) (*model.TreeEntry, error) {
+	t, err := r.Paths(ctx, obj, revspec, []string{path})
+	if err != nil {
+		return nil, err
+	}
+	if len(t) == 0 {
+		return nil, fmt.Errorf("no such object")
+	} else if len(t) > 1 {
+		panic("several entries for single path")
+	}
+	return t[0], nil
+}
+
+// Paths is the resolver for the paths field.
+func (r *repositoryResolver) Paths(ctx context.Context, obj *model.Repository, revspec *string, paths []string) ([]*model.TreeEntry, error) {
 	rev := plumbing.Revision("HEAD")
 	if revspec != nil {
 		rev = plumbing.Revision(*revspec)
@@ -1759,7 +1773,11 @@ func (r *repositoryResolver) Path(ctx context.Context, obj *model.Repository, re
 	} else {
 		tree = model.TreeFromObject(repo, treeObj)
 	}
-	return tree.Entry(path), nil
+	var trees []*model.TreeEntry
+	for _, p := range paths {
+		trees = append(trees, tree.Entry(p))
+	}
+	return trees, nil
 }
 
 // RevparseSingle is the resolver for the revparse_single field.

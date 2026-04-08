@@ -198,6 +198,9 @@ type Repository {
   "Returns a tree entry for a given path, at the given revspec."
   path(revspec: String = "HEAD", path: String!): TreeEntry @access(scope: OBJECTS, kind: RO)
 
+  "Returns tree entres for a collection of paths, at the given revspec."
+  paths(revspec: String = "HEAD", paths: [String!]): [TreeEntry] @access(scope: OBJECTS, kind: RO) @internal
+
   "Returns the commit for a given revspec."
   revparse_single(revspec: String!): Commit @access(scope: OBJECTS, kind: RO)
 
