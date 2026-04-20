@@ -614,7 +614,7 @@ def patch(owner, repo, ref):
                 "--full-index",
                 "--no-signature",
                 "--end-of-options",
-                ref
+                str(commit.id)
             ], timeout=10, stdout=subprocess.PIPE, stderr=sys.stderr)
         except subprocess.TimeoutExpired:
             return "Operation timed out", 500
