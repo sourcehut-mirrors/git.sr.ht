@@ -515,7 +515,7 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 			&repo.Name, &repo.Description, &repo.Visibility,
 			&repo.Path, &repo.OwnerID); err != nil {
 			if err == sql.ErrNoRows {
-				return fmt.Errorf("no repository by ID %d found for this user", id)
+				return gerrors.Errorf(gerrors.NotFound, "no repository by ID %d found for this user", id)
 			}
 			return err
 		}
@@ -601,7 +601,7 @@ func (r *mutationResolver) DeleteRepository(ctx context.Context, id int) (*model
 			&repo.Name, &repo.Description, &repo.Visibility,
 			&repo.Path, &repo.OwnerID); err != nil {
 			if err == sql.ErrNoRows {
-				return fmt.Errorf("no repository by ID %d found for this user", id)
+				return gerrors.Errorf(gerrors.NotFound, "no repository by ID %d found for this user", id)
 			}
 			return err
 		}
@@ -629,12 +629,12 @@ func (r *mutationResolver) DeleteRepository(ctx context.Context, id int) (*model
 // UpdateACL is the resolver for the updateACL field.
 func (r *mutationResolver) UpdateACL(ctx context.Context, repoID int, mode model.AccessMode, entity string) (*model.ACL, error) {
 	if len(entity) == 0 || entity[0] != '~' {
-		return nil, fmt.Errorf("unknown entity '%s'", entity)
+		return nil, valid.Errorf(ctx, "entity", "unknown entity '%s'", entity)
 	}
 	entity = entity[1:]
 
 	if entity == auth.ForContext(ctx).Username {
-		return nil, fmt.Errorf("cannot edit your own access modes")
+		return nil, gerrors.Errorf(gerrors.Unsupported, "cannot edit your own access modes")
 	}
 
 	var acl model.ACL
@@ -659,7 +659,7 @@ func (r *mutationResolver) UpdateACL(ctx context.Context, repoID int, mode model
 			&acl.RepoID, &acl.UserID); err != nil {
 			if err == sql.ErrNoRows {
 				// TODO: Fetch user details from meta.sr.ht
-				return fmt.Errorf("no such repository or user found")
+				return gerrors.Errorf(gerrors.NotFound, "no such repository or user found")
 			}
 			return err
 		}
@@ -684,7 +684,7 @@ func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.ACL, e
 		if err := row.Scan(&acl.ID, &acl.Created, &acl.Mode,
 			&acl.RepoID, &acl.UserID); err != nil {
 			if err == sql.ErrNoRows {
-				return fmt.Errorf("no such repository or ACL entry found")
+				return gerrors.Errorf(gerrors.NotFound, "no such repository or ACL entry found")
 			}
 			return err
 		}
@@ -709,10 +709,10 @@ func (r *mutationResolver) UploadArtifact(ctx context.Context, repoID int, revsp
 
 	repo, err := loaders.ForContext(ctx).RepositoriesByID.Load(repoID)
 	if err != nil {
-		return nil, fmt.Errorf("Repository %d not found", repoID)
+		return nil, gerrors.Errorf(gerrors.NotFound, "Repository %d not found", repoID)
 	}
 	if repo.OwnerID != auth.ForContext(ctx).UserID {
-		return nil, fmt.Errorf("Access denied for repo %d", repoID)
+		return nil, gerrors.Errorf(gerrors.AccessDenied, "Access denied for repo %d", repoID)
 	}
 
 	gitRepo := repo.Repo()
@@ -863,7 +863,7 @@ func (r *mutationResolver) DeleteArtifact(ctx context.Context, id int) (*model.A
 			&artifact.Checksum, &artifact.Size, &artifact.Commit,
 			&repoName); err != nil {
 			if err == sql.ErrNoRows {
-				return fmt.Errorf("no such artifact for this user")
+				return gerrors.Errorf(gerrors.NotFound, "no such artifact for this user")
 			}
 			return err
 		}
@@ -1082,7 +1082,7 @@ func (r *mutationResolver) DeleteGitWebhook(ctx context.Context, id int) (model.
 			&sub.RepoID)
 	}); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("no git webhook by ID %d found", id)
+			return nil, gerrors.Errorf(gerrors.NotFound, "no git webhook by ID %d found", id)
 		}
 		return nil, err
 	}
@@ -1558,7 +1558,7 @@ func (r *repositoryResolver) Access(ctx context.Context, obj *model.Repository) 
 // Acls is the resolver for the acls field.
 func (r *repositoryResolver) Acls(ctx context.Context, obj *model.Repository, cursor *coremodel.Cursor) (*model.ACLCursor, error) {
 	if obj.OwnerID != auth.ForContext(ctx).UserID {
-		return nil, errors.New("Access denied")
+		return nil, gerrors.Errorf(gerrors.AccessDenied, "Access denied")
 	}
 
 	if cursor == nil {
@@ -1755,7 +1755,7 @@ func (r *repositoryResolver) Paths(ctx context.Context, obj *model.Repository, r
 		return nil, err
 	}
 	if hash == nil {
-		return nil, fmt.Errorf("no such object")
+		return nil, gerrors.Errorf(gerrors.NotFound, "no such object")
 	}
 	repo.Lock()
 	defer repo.Unlock()
@@ -1791,7 +1791,7 @@ func (r *repositoryResolver) RevparseSingle(ctx context.Context, obj *model.Repo
 		return nil, err
 	}
 	if hash == nil {
-		return nil, fmt.Errorf("no such object")
+		return nil, gerrors.Errorf(gerrors.NotFound, "no such object")
 	}
 	o, err := model.LookupObject(repo, *hash)
 	if err != nil {
