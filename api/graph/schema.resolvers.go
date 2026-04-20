@@ -1872,7 +1872,39 @@ func (r *treeResolver) Entries(ctx context.Context, obj *model.Tree, cursor *cor
 
 // Repository is the resolver for the repository field.
 func (r *userResolver) Repository(ctx context.Context, obj *model.User, name string) (*model.Repository, error) {
-	return loaders.ForContext(ctx).RepositoriesByOwnerIDRepoName.Load(loaders.OwnerIDRepoName{OwnerID: obj.ID, RepoName: name})
+	repo, err := loaders.ForContext(ctx).RepositoriesByOwnerIDRepoName.Load(loaders.OwnerIDRepoName{OwnerID: obj.ID, RepoName: name})
+	if err != nil {
+		return nil, err
+	}
+	if repo == nil {
+		// Check if it's a redirect
+		var new_owner_name, new_repo_name string
+		if err := database.WithTx(ctx, &sql.TxOptions{
+			Isolation: 0,
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
+			row := database.
+				Select(ctx, `repository.name, "user".username`).
+				From(`redirect`).
+				Join(`repository on repository.id = redirect.new_repo_id`).
+				Join(`"user" on "user".id = repository.owner_id`).
+				Where(sq.And{
+					sq.Expr(`redirect.owner_id = ?`, obj.ID),
+					sq.Expr(`redirect.name = ?`, name),
+				}).
+				RunWith(tx).
+				QueryRowContext(ctx)
+			return row.Scan(&new_repo_name, &new_owner_name)
+		}); err != nil {
+			if err == sql.ErrNoRows {
+				return nil, nil
+			}
+			return nil, err
+		}
+		err := gerrors.RedirectTo([]string{"~" + new_owner_name, new_repo_name})
+		return nil, err
+	}
+	return repo, err
 }
 
 // Repositories is the resolver for the repositories field.

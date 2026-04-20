@@ -5,6 +5,7 @@ from srht.database import db
 from srht.oauth import current_user, loginrequired, UserType
 from srht.validation import Validation
 from gitsrht.access import check_access, UserAccess
+from gitsrht.errors import handle_gql_error
 from gitsrht.graphql import AccessMode, Client, Visibility, RepoInput
 from gitsrht.types import Access, User, Redirect
 
@@ -134,11 +135,14 @@ def settings_rename_POST(owner_name, repo_name):
 @manage.route("/<owner_name>/<repo_name>/settings/access")
 @loginrequired
 def settings_access(owner_name, repo_name):
-    owner, repo = check_access(owner_name, repo_name, UserAccess.manage)
-    if isinstance(repo, Redirect):
-        return redirect(url_for(".settings_access",
-            owner_name=owner_name, repo_name=repo.new_repo.name))
-    return render_template("settings_access.html", owner=owner, repo=repo)
+    cursor = request.args.get("nextacls")
+    username = owner_name[1:]
+    with handle_gql_error():
+        resp = Client().get_repo_access_settings(username, repo_name, cursor)
+    if resp.user is None or resp.user.repository is None:
+        abort(404)
+    return render_template("settings_access.html",
+        owner=resp.user, repo=resp.user.repository)
 
 @manage.route("/<owner_name>/<repo_name>/settings/access", methods=["POST"])
 @loginrequired

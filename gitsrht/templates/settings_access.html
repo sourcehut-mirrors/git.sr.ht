@@ -3,25 +3,23 @@
 {% block content %}
 <div class="row">
   <div class="col-md-12">
-    {% if len(repo.access_grants) > 0 %}
+    {% if len(repo.acls.results) > 0 %}
     <table class="table">
       <thead>
         <tr>
-          <th>user</th>
-          <th>granted</th>
-          <th>last used</th>
-          <th>access</th>
+          <th>User</th>
+          <th>Granted</th>
+          <th>Access</th>
           <th></th>
         </tr>
       </thead>
       <tbody>
-        {% for grant in repo.access_grants %}
+        {% for grant in repo.acls.results %}
         <tr>
           <td>
-            <a href="/~{{ grant.user.username }}">~{{grant.user.username}}</a>
+            <a href="/{{ grant.entity.username }}">~{{grant.entity.username}}</a>
           </td>
           <td>{{ grant.created | date }}</td>
-          <td>{{ grant.updated | date }}</td>
           <td>{{ grant.mode.value }}</td>
           <td style="width: 6rem">
             <form
@@ -38,6 +36,12 @@
         {% endfor %}
       </tbody>
     </table>
+    {% if repo.acls.cursor %}
+    <a
+      href="?nextacls={{repo.acls.cursor}}"
+      class="btn btn-default pull-right"
+    >Next {{icon('caret-right')}}</a>
+    {% endif %}
     {% endif %}
   </div>
 </div>
