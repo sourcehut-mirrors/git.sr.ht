@@ -507,11 +507,11 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 			Where(`owner_id = ?`, auth.ForContext(ctx).UserID).
 			Set(`updated`, sq.Expr(`now() at time zone 'utc'`)).
 			Suffix(`RETURNING
-				id, created, updated, name, description, visibility,
+				id, rid, created, updated, name, description, visibility,
 				path, owner_id`)
 
 		row := query.RunWith(tx).QueryRowContext(ctx)
-		if err := row.Scan(&repo.ID, &repo.Created, &repo.Updated,
+		if err := row.Scan(&repo.ID, &repo.RID, &repo.Created, &repo.Updated,
 			&repo.Name, &repo.Description, &repo.Visibility,
 			&repo.Path, &repo.OwnerID); err != nil {
 			if err == sql.ErrNoRows {
@@ -593,11 +593,11 @@ func (r *mutationResolver) DeleteRepository(ctx context.Context, id int) (*model
 			DELETE FROM repository
 			WHERE id = $1 AND owner_id = $2
 			RETURNING
-				id, created, updated, name, description, visibility,
+				id, rid, created, updated, name, description, visibility,
 				path, owner_id;
 		`, id, auth.ForContext(ctx).UserID)
 
-		if err := row.Scan(&repo.ID, &repo.Created, &repo.Updated,
+		if err := row.Scan(&repo.ID, &repo.RID, &repo.Created, &repo.Updated,
 			&repo.Name, &repo.Description, &repo.Visibility,
 			&repo.Path, &repo.OwnerID); err != nil {
 			if err == sql.ErrNoRows {
