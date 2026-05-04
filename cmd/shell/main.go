@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"os/exec"
 	gopath "path"
@@ -74,10 +75,20 @@ func main() {
 	if !ok {
 		logger.Fatalf("No origin configured for git.sr.ht")
 	}
+	u, err := url.Parse(origin)
+	if err != nil {
+		logger.Fatalf("Invaild [git.sr.ht]origin: %s", err.Error())
+	}
+	origin = u.Host
 
 	repos, ok = config.Get("git.sr.ht", "repos")
 	if !ok {
 		logger.Fatalf("No repo path configured for git.sr.ht")
+	}
+
+	sshUser, ok := config.Get("git.sr.ht", "ssh-user")
+	if !ok {
+		sshUser = "git"
 	}
 
 	siteOwnerName, _ = config.Get("sr.ht", "owner-name")
@@ -272,7 +283,7 @@ func main() {
 			log.Printf("\033[93mNOTICE\033[0m: This repository has moved.")
 			log.Printf("Please update your remote to:")
 			log.Println()
-			log.Printf("\t%s/~%s/%s", origin, repoOwnerName, repoName)
+			log.Printf("\t%s@%s:~%s/%s", sshUser, origin, repoOwnerName, repoName)
 			log.Println()
 			os.Exit(128)
 		}
