@@ -17,7 +17,7 @@
         {% for grant in repo.acls.results %}
         <tr>
           <td>
-            <a href="/{{ grant.entity.username }}">~{{grant.entity.username}}</a>
+            <a href="/~{{ grant.entity.username }}">~{{grant.entity.username}}</a>
           </td>
           <td>{{ grant.created | date }}</td>
           <td>{{ grant.mode.value }}</td>
