@@ -20,9 +20,6 @@ from gitsrht.urls import clone_urls
 from io import BytesIO
 from markupsafe import Markup, escape
 from jinja2.utils import url_quote
-from pygments import highlight
-from pygments.formatters import HtmlFormatter
-from pygments.lexers import guess_lexer, guess_lexer_for_filename, TextLexer
 from gitsrht.access import get_repo, get_repo_or_redir
 from srht.config import cfg, get_origin
 from srht.markdown import markdown, sanitize
