@@ -51,3 +51,49 @@ mutation DeleteRepository($id: Int!) {
     }
   }
 }
+
+fragment acl on ACL {
+  id
+  created
+  mode
+  entity {
+      __typename
+      canonicalName
+
+      ... on User {
+        username
+      }
+  }
+}
+
+query GetDeployKeys($rid: ID!, $cursor: Cursor) {
+  repository(rid: $rid) {
+    deployKeys(cursor: $cursor) {
+      cursor
+      results { ...sshkey }
+    }
+  }
+}
+
+fragment sshkey on SSHKey {
+  rid
+  key
+  keyType
+  fingerprintSHA256
+  comment
+  created
+  lastUsed
+  access
+}
+
+mutation CreateDeployKey($repo: ID!, $mode: AccessMode!, $key: String!) {
+  createDeployKey(repo: $repo, mode: $mode, key: $key) {
+    rid
+  }
+}
+
+mutation DeleteDeployKey($rid: ID!) {
+  deleteDeployKey(rid: $rid) {
+    rid
+  }
+}

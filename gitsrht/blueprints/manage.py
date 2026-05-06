@@ -3,6 +3,7 @@ from flask import redirect, url_for
 from srht.app import session
 from srht.database import db
 from srht.oauth import current_user, loginrequired, UserType
+from srht.rid import to_rid, from_rid
 from srht.validation import Validation
 from gitsrht.access import check_access, UserAccess
 from gitsrht.errors import handle_gql_error
@@ -135,12 +136,15 @@ def settings_rename_POST(owner_name, repo_name):
 @manage.route("/<owner_name>/<repo_name>/settings/access")
 @loginrequired
 def settings_access(owner_name, repo_name):
-    cursor = request.args.get("nextacls")
+    keycursor = request.args.get("nextkeys")
+    aclcursor = request.args.get("nextacls")
     username = owner_name[1:]
     with handle_gql_error():
-        resp = Client().get_repo_access_settings(username, repo_name, cursor)
+        resp = Client().get_repo_access_settings(username, repo_name, aclcursor, keycursor)
     if resp.user is None or resp.user.repository is None:
         abort(404)
+    print(resp)
+
     return render_template("settings_access.html",
         owner=resp.user, repo=resp.user.repository)
 
@@ -148,6 +152,10 @@ def settings_access(owner_name, repo_name):
 @loginrequired
 def settings_access_POST(owner_name, repo_name):
     owner, repo = check_access(owner_name, repo_name, UserAccess.manage)
+    cursor = request.args.get("next_keys")
+    conn = Client().get_deploy_keys(to_rid(repo.rid),
+        cursor).repository.deploy_keys
+    cursor, deploy_keys = conn.cursor, conn.results
     if isinstance(repo, Redirect):
         repo = repo.new_repo
     valid = Validation(request)
@@ -210,6 +218,37 @@ def settings_access_revoke_POST(owner_name, repo_name, grant_id):
     db.session.commit()
     return redirect("/{}/{}/settings/access".format(
         owner.canonical_name, repo.name))
+
+@manage.route("/<owner_name>/<repo_name>/settings/access/deploy-key", methods=["POST"])
+@loginrequired
+def settings_access_deploy_key_POST(owner_name, repo_name):
+    username = owner_name[1:]
+    with handle_gql_error():
+        resp = Client().get_repo_access_settings(username, repo_name, None, None)
+    if resp.user is None or resp.user.repository is None:
+        abort(404)
+
+    valid = Validation(request)
+    key = valid.require("key", friendly_name="SSH key")
+    mode = valid.optional("keyaccess", cls=AccessMode, default=AccessMode.RO)
+    if not valid.ok:
+        return render_template("settings_access.html",
+                owner=resp.user, repo=resp.user.repository, **valid.kwargs)
+    with valid:
+        resp = Client().create_deploy_key(resp.user.repository.rid, mode, key)
+    if not valid.ok:
+        return render_template("settings_access.html",
+                owner=resp.user, repo=resp.user.repository, **valid.kwargs)
+    return redirect(url_for("manage.settings_access",
+            owner_name=owner_name, repo_name=repo_name))
+
+@manage.route("/<owner_name>/<repo_name>/settings/access/revoke-key/<rid>", methods=["POST"])
+@loginrequired
+def settings_access_revoke_key_POST(owner_name, repo_name, rid):
+    owner, repo = check_access(owner_name, repo_name, UserAccess.manage)
+    Client().delete_deploy_key(rid)
+    return redirect(url_for("manage.settings_access",
+            owner_name=owner.canonical_name, repo_name=repo.name))
 
 @manage.route("/<owner_name>/<repo_name>/settings/delete")
 @loginrequired

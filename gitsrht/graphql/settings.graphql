@@ -1,10 +1,11 @@
-query GetRepoAccessSettings($user: String!, $repo: String!, $cursor: Cursor) {
+query GetRepoAccessSettings($user: String!, $repo: String!, $aclCursor: Cursor, $keyCursor: Cursor) {
   user(username: $user) {
     canonicalName
     username
     repository(name: $repo) {
+      rid
       name
-      acls(cursor: $cursor) {
+      acls(cursor: $aclCursor) {
         cursor
         results {
           id
@@ -17,6 +18,19 @@ query GetRepoAccessSettings($user: String!, $repo: String!, $cursor: Cursor) {
                 username
               }
           }
+        }
+      }
+      deployKeys(cursor: $keyCursor) {
+        cursor
+        results {
+          rid
+          key
+          keyType
+          fingerprintSHA256
+          comment
+          created
+          lastUsed
+          access
         }
       }
     }
