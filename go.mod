@@ -3,9 +3,9 @@ module git.sr.ht/~sircmpwn/git.sr.ht
 go 1.24.0
 
 require (
-	git.sr.ht/~sircmpwn/core-go v0.0.0-20260420075935-32f482812bf9
+	git.sr.ht/~sircmpwn/core-go v0.0.0-20260520082310-fdb3662452dc
 	git.sr.ht/~sircmpwn/dowork v0.0.0-20241216125407-2b00aa42322c
-	git.sr.ht/~sircmpwn/sourcehut-ssh v0.0.0-20251128105204-cd5fa8796e2a
+	git.sr.ht/~sircmpwn/sourcehut-ssh v0.0.0-20260512093337-b0f47f7dced0
 	git.sr.ht/~turminal/go-fnmatch v0.0.0-20211021204744-1a55764af6de
 	github.com/99designs/gqlgen v0.17.64
 	github.com/Masterminds/squirrel v1.5.4

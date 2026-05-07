@@ -19,6 +19,7 @@ import (
 	coreconfig "git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/crypto"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
+	"git.sr.ht/~sircmpwn/sourcehut-ssh/meta"
 	"git.sr.ht/~sircmpwn/sourcehut-ssh/shell"
 	_ "github.com/lib/pq"
 	"github.com/vaughan0/go-ini"
@@ -113,8 +114,12 @@ func main() {
 
 	if !valid {
 		logger.Printf("Not permitting unacceptable command: %v", cmd)
+		name := "lonely deploy key"
+		if pusher != nil {
+			name = pusher.Username
+		}
 		log.Printf("Hi %s! You've successfully authenticated, "+
-			"but I do not provide an interactive shell. Bye!", pusher.Username)
+			"but I do not provide an interactive shell. Bye!", name)
 		os.Exit(128)
 	}
 
@@ -128,7 +133,11 @@ func main() {
 	cmd[len(cmd)-1] = absPath
 
 	pushUuid, _ := os.LookupEnv("SRHT_PUSH")
-	logger.Printf("SRHT_PUSH=%s pusher ID %d, repo path %s", pushUuid, pusher.Id, path)
+	if pusher != nil {
+		logger.Printf("SRHT_PUSH=%s pusher ID %d, repo path %s", pushUuid, pusher.Id, path)
+	} else {
+		logger.Printf("SRHT_PUSH=%s deploy key %s, repo path %s", pushUuid, args.Key.Fingerprint, path)
+	}
 
 	// Check what kind of access they're interested in
 	needsAccess := ACCESS_READ
@@ -164,31 +173,9 @@ func main() {
 		accessGrant    *model.AccessMode
 		autocreated    bool
 	)
-	row := db.QueryRow(`
-		SELECT
-			repo.id,
-			repo.name,
-			repo.owner_id,
-			owner.username,
-			repo.visibility,
-			access.mode
-		FROM repository repo
-		JOIN "user" owner ON owner.id  = repo.owner_id
-		LEFT JOIN access
-			ON (access.repo_id = repo.id AND access.user_id = $1)
-		WHERE
-			repo.path = $2;
-	`, pusher.Id, path)
-	if err := row.Scan(&repoId, &repoName, &repoOwnerId, &repoOwnerName,
-		&repoVisibility, &accessGrant); err != nil {
-
-		logger.Printf("Lookup failed: %v", err)
-		logger.Println("Looking up redirect")
-
-		// If looking up the repo failed, it might have been renamed. Look for a
-		// corresponding redirect, and grab all of the same information that we
-		// need for the new repo while we're at it.
-		row = db.QueryRow(`
+	if pusher != nil {
+		// If push is performed by a real user, handle redirects, new repo creation, etc.
+		row := db.QueryRow(`
 			SELECT
 				repo.id,
 				repo.name,
@@ -197,95 +184,163 @@ func main() {
 				repo.visibility,
 				access.mode
 			FROM repository repo
-			JOIN "user" owner  ON owner.id  = repo.owner_id
-			JOIN redirect      ON redirect.new_repo_id = repo.id
+			JOIN "user" owner ON owner.id  = repo.owner_id
 			LEFT JOIN access
 				ON (access.repo_id = repo.id AND access.user_id = $1)
 			WHERE
-				redirect.path = $2;
-		`, pusher.Id, path)
-
+				repo.path = $2;
+			`, pusher.Id, path)
 		if err := row.Scan(&repoId, &repoName, &repoOwnerId, &repoOwnerName,
-			&repoVisibility, &accessGrant); err == sql.ErrNoRows {
+			&repoVisibility, &accessGrant); err != nil {
 
 			logger.Printf("Lookup failed: %v", err)
+			logger.Println("Looking up redirect")
 
-			// There wasn't a repo or a redirect by this name, so maybe the user
-			// is pushing to a repo that doesn't exist. If so, autocreate it.
-			//
-			// If an error occurs at this step, we just log it internally and
-			// tell the user we couldn't find the repo they're asking after.
-			repoName = gopath.Base(path)
-			repoOwnerName = gopath.Base(gopath.Dir(path))
-			if repoOwnerName != "" {
-				repoOwnerName = repoOwnerName[1:]
-			}
+			// If looking up the repo failed, it might have been renamed. Look for a
+			// corresponding redirect, and grab all of the same information that we
+			// need for the new repo while we're at it.
+			row = db.QueryRow(`
+				SELECT
+					repo.id,
+					repo.name,
+					repo.owner_id,
+					owner.username,
+					repo.visibility,
+					access.mode
+				FROM repository repo
+				JOIN "user" owner  ON owner.id  = repo.owner_id
+				JOIN redirect      ON redirect.new_repo_id = repo.id
+				LEFT JOIN access
+					ON (access.repo_id = repo.id AND access.user_id = $1)
+				WHERE
+					redirect.path = $2;
+		`, pusher.Id, path)
 
-			notFound := func(ctx string, errs ...error) {
-				for _, err := range errs {
-					logger.Printf("Error autocreating repo: %s: %v", ctx, err)
+			if err := row.Scan(&repoId, &repoName, &repoOwnerId, &repoOwnerName,
+				&repoVisibility, &accessGrant); err == sql.ErrNoRows {
+
+				logger.Printf("Lookup failed: %v", err)
+
+				// There wasn't a repo or a redirect by this name, so maybe the user
+				// is pushing to a repo that doesn't exist. If so, autocreate it.
+				//
+				// If an error occurs at this step, we just log it internally and
+				// tell the user we couldn't find the repo they're asking after.
+				repoName = gopath.Base(path)
+				repoOwnerName = gopath.Base(gopath.Dir(path))
+				if repoOwnerName != "" {
+					repoOwnerName = repoOwnerName[1:]
 				}
-				logger.Println("Repository not found.")
-				log.Println("Repository not found.")
+
+				notFound := func(ctx string, errs ...error) {
+					for _, err := range errs {
+						logger.Printf("Error autocreating repo: %s: %v", ctx, err)
+					}
+					logger.Println("Repository not found.")
+					log.Println("Repository not found.")
+					log.Println()
+					os.Exit(128)
+				}
+
+				if needsAccess == ACCESS_READ || repoOwnerName != pusher.Username {
+					notFound("access", nil)
+				}
+
+				if needsAccess == ACCESS_WRITE {
+					if matched, _ := regexp.MatchString(
+						`^[A-Za-z0-9._-]+$`, repoName); !matched {
+
+						log.Println("Name must match [A-Za-z0-9._-]+.")
+						notFound("name policy", nil)
+					}
+
+					repoOwnerId = pusher.Id
+					repoOwnerName = pusher.Username
+					repoVisibility = "PRIVATE"
+
+					query := client.GraphQLQuery{
+						Query: `
+							mutation CreateRepository($name: String!) {
+								createRepository(name: $name, visibility: PRIVATE) {
+									id
+								}
+							}
+						`,
+						Variables: map[string]interface{}{
+							"name": repoName,
+						},
+					}
+					resp := struct {
+						CreateRepository struct {
+							ID int `json:"id"`
+						} `json:"createRepository"`
+					}{}
+
+					err := client.Do(ctx, pusher.Username, "git.sr.ht", query, &resp)
+					if err != nil {
+						notFound("create repository", err)
+					}
+					repoId = resp.CreateRepository.ID
+					autocreated = true
+					logger.Printf("Autocreated repo %s", path)
+				}
+			} else if err != nil {
+				log.Println("A temporary error has occured. Please try again.")
+				logger.Fatalf("Error occured looking up repo: %v", err)
+			} else {
+				if repoVisibility == "PRIVATE" && repoOwnerName != pusher.Username && accessGrant == nil {
+					eacces(logger)
+				}
+				log.Printf("\033[93mNOTICE\033[0m: This repository has moved.")
+				log.Printf("Please update your remote to:")
+				log.Println()
+				log.Printf("\t%s@%s:~%s/%s", sshUser, origin, repoOwnerName, repoName)
 				log.Println()
 				os.Exit(128)
 			}
-
-			if needsAccess == ACCESS_READ || repoOwnerName != pusher.Username {
-				notFound("access", nil)
-			}
-
-			if needsAccess == ACCESS_WRITE {
-				if matched, _ := regexp.MatchString(
-					`^[A-Za-z0-9._-]+$`, repoName); !matched {
-
-					log.Println("Name must match [A-Za-z0-9._-]+.")
-					notFound("name policy", nil)
-				}
-
-				repoOwnerId = pusher.Id
-				repoOwnerName = pusher.Username
-				repoVisibility = "PRIVATE"
-
-				query := client.GraphQLQuery{
-					Query: `
-						mutation CreateRepository($name: String!) {
-							createRepository(name: $name, visibility: PRIVATE) {
-								id
-							}
-						}
-					`,
-					Variables: map[string]interface{}{
-						"name": repoName,
-					},
-				}
-				resp := struct {
-					CreateRepository struct {
-						ID int `json:"id"`
-					} `json:"createRepository"`
-				}{}
-
-				err := client.Do(ctx, pusher.Username, "git.sr.ht", query, &resp)
-				if err != nil {
-					notFound("create repository", err)
-				}
-				repoId = resp.CreateRepository.ID
-				autocreated = true
-				logger.Printf("Autocreated repo %s", path)
-			}
-		} else if err != nil {
-			log.Println("A temporary error has occured. Please try again.")
-			logger.Fatalf("Error occured looking up repo: %v", err)
-		} else {
-			if repoVisibility == "PRIVATE" && repoOwnerName != pusher.Username && accessGrant == nil {
-				eacces(logger)
-			}
-			log.Printf("\033[93mNOTICE\033[0m: This repository has moved.")
-			log.Printf("Please update your remote to:")
-			log.Println()
-			log.Printf("\t%s@%s:~%s/%s", sshUser, origin, repoOwnerName, repoName)
+		}
+	} else {
+		// If push is performed by a deploy key, keep it simple. Deploy keys can
+		// only access repositories they were put in place for (no public repo
+		// access) and have no redirect handling. Also, unlike for user keys, the
+		// last_used handling has to be performed here.
+		row := db.QueryRow(`
+			UPDATE sshkey SET last_used = NOW()
+			FROM (
+				SELECT
+					repo.id AS id,
+					repo.name AS name,
+					repo.owner_id AS owner_id,
+					repo.visibility AS visibility, 
+					owner.username AS username
+				FROM repository repo
+				JOIN "user" owner ON owner.id  = repo.owner_id
+				WHERE repo.path = $2
+			) r
+			WHERE
+				sshkey.repo_id = r.id AND sshkey.fingerprint_sha256 = $1
+			RETURNING
+				r.id,
+				r.name,
+				r.owner_id,
+				r.username,
+				r.visibility,
+				sshkey.access;
+		`, args.Key.Fingerprint, path)
+		if err := row.Scan(&repoId, &repoName, &repoOwnerId, &repoOwnerName,
+			&repoVisibility, &accessGrant); err != nil {
+			logger.Println("Repository not found.")
+			log.Println("Repository not found.")
 			log.Println()
 			os.Exit(128)
+		}
+
+		// Once we get here, set the repo owner as "pusher" to facilitate
+		// handling of this action in commit hooks etc.
+		pusher = &meta.User{
+			Id:       repoOwnerId,
+			Username: repoOwnerName,
+			UserType: shell.USER_TYPE_SERVICE_KEY,
 		}
 	}
 
@@ -303,7 +358,7 @@ func main() {
 	// assignment to clearly express the safe default in case the
 	// if-else-nesting below ever contains a logic error.
 	hasAccess := ACCESS_NONE //nolint:ineffassign
-	if pusher.Id == repoOwnerId {
+	if pusher.Id == repoOwnerId && pusher.UserType != shell.USER_TYPE_SERVICE_KEY {
 		hasAccess = ACCESS_READ | ACCESS_WRITE | ACCESS_MANAGE
 	} else {
 		if accessGrant == nil {

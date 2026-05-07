@@ -1,7 +1,7 @@
 dario.cat/mergo v1.0.0 h1:AGCNq9Evsj31mOgNPcLyXc+4PNABt905YmuqPYYpBWk=
 dario.cat/mergo v1.0.0/go.mod h1:uNxQE+84aUszobStD9th8a29P2fMDhsBdgRYvZOxGmk=
-git.sr.ht/~sircmpwn/core-go v0.0.0-20260420075935-32f482812bf9 h1:s9zpsOT2CC6OyuzzrxhzV7iP/azu1QxAbs4HYrzYnNE=
-git.sr.ht/~sircmpwn/core-go v0.0.0-20260420075935-32f482812bf9/go.mod h1:JmathMemB+hBk1IgrMn6RuBGusd+fTg1s/X6rNVKXXU=
+git.sr.ht/~sircmpwn/core-go v0.0.0-20260520082310-fdb3662452dc h1:txQeGOaDKWVsAbnMd8CziM9GxbFn+6ztolA+sNE22T4=
+git.sr.ht/~sircmpwn/core-go v0.0.0-20260520082310-fdb3662452dc/go.mod h1:JmathMemB+hBk1IgrMn6RuBGusd+fTg1s/X6rNVKXXU=
 git.sr.ht/~sircmpwn/dowork v0.0.0-20241216125407-2b00aa42322c h1:v2opuaN0C5ZpuCifRNR9ZQ8V9IG+Ja80otK1MFj5RnI=
 git.sr.ht/~sircmpwn/dowork v0.0.0-20241216125407-2b00aa42322c/go.mod h1:8neHEO3503w/rNtttnR0JFpQgM/GFhaafVwvkPsFIDw=
 git.sr.ht/~sircmpwn/getopt v0.0.0-20191230200459-23622cc906b3/go.mod h1:wMEGFFFNuPos7vHmWXfszqImLppbc0wEhh6JBfJIUgw=
@@ -11,8 +11,8 @@ git.sr.ht/~sircmpwn/go-bare v0.0.0-20210406120253-ab86bc2846d9 h1:Ahny8Ud1LjVMMA
 git.sr.ht/~sircmpwn/go-bare v0.0.0-20210406120253-ab86bc2846d9/go.mod h1:BVJwbDfVjCjoFiKrhkei6NdGcZYpkDkdyCdg1ukytRA=
 git.sr.ht/~sircmpwn/go-git/v5 v5.0.0-20260424084101-f6abeee9448b h1:BfZ7/EWqLVirSNhcA8jtwhm0LOqUw1vZKnlXWAbcTAU=
 git.sr.ht/~sircmpwn/go-git/v5 v5.0.0-20260424084101-f6abeee9448b/go.mod h1:pW/VmeqkanRFqR6AljLcs7EA7FbZaN5MQqO7oZADXpo=
-git.sr.ht/~sircmpwn/sourcehut-ssh v0.0.0-20251128105204-cd5fa8796e2a h1:Wsu1S5nKTlk1FiKZOiQ60hkcPe/GsCQCsPiI9Xbd1Ww=
-git.sr.ht/~sircmpwn/sourcehut-ssh v0.0.0-20251128105204-cd5fa8796e2a/go.mod h1:AnMzcwIZwCn+YWTEsA5HQD4uE3QxM4UHA8lvE0h2Oz8=
+git.sr.ht/~sircmpwn/sourcehut-ssh v0.0.0-20260512093337-b0f47f7dced0 h1:DMvbwUWAHUfqOOX16jzPSL1t2P0gbeVWUNnT5M0s0CQ=
+git.sr.ht/~sircmpwn/sourcehut-ssh v0.0.0-20260512093337-b0f47f7dced0/go.mod h1:PsjzHtX/Ha/bbLXHLswgxUSZO9wQnWAXjAZf2JO3Ajw=
 git.sr.ht/~turminal/go-fnmatch v0.0.0-20211021204744-1a55764af6de h1:+8IzUB1KFZP7yt5PcRRjPFuI4u41alt6VVYMnLZUaYw=
 git.sr.ht/~turminal/go-fnmatch v0.0.0-20211021204744-1a55764af6de/go.mod h1:je8GvUMI6JGQ/vxOnkZSj9iOR3oAUaJnJMp+JJi8wTA=
 github.com/99designs/gqlgen v0.17.64 h1:BzpqO5ofQXyy2XOa93Q6fP1BHLRjTOeU35ovTEsbYlw=
