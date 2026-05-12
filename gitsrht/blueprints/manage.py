@@ -154,8 +154,12 @@ def settings_access_POST(owner_name, repo_name):
     username = valid.require("user", friendly_name="User")
     mode = valid.optional("access", cls=AccessMode, default=AccessMode.RO)
     if not valid.ok:
+        with handle_gql_error():
+            resp = Client().get_repo_access_settings(owner_name[1:], repo_name, None)
+        if resp.user is None or resp.user.repository is None:
+            abort(404)
         return render_template("settings_access.html",
-                owner=owner, repo=repo, **valid.kwargs)
+                owner=resp.user, repo=resp.user.repository, **valid.kwargs)
     # TODO: Group access
     if username[0] == "~":
         username = username[1:]
@@ -172,8 +176,12 @@ def settings_access_POST(owner_name, repo_name):
     valid.expect(not user or user.user_type != UserType.suspended,
             "This account has been suspended.", field="user")
     if not valid.ok:
+        with handle_gql_error():
+            resp = Client().get_repo_access_settings(owner_name[1:], repo_name, None)
+        if resp.user is None or resp.user.repository is None:
+            abort(404)
         return render_template("settings_access.html",
-                owner=owner, repo=repo, **valid.kwargs)
+                owner=resp.user, repo=resp.user.repository, **valid.kwargs)
     grant = (Access.query
         .filter(Access.repo_id == repo.id, Access.user_id == user.id)
     ).first()
