@@ -749,7 +749,7 @@ func (r *mutationResolver) CreateDeployKey(ctx context.Context, repo coremodel.R
 		return nil, err
 	}
 
-	sendDeployKeyEvent(ctx, repoName, "removed", fingerprint)
+	sendDeployKeyEvent(ctx, repoName, "added", fingerprint)
 
 	var c *string
 	if comment != "" {
