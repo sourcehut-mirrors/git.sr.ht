@@ -139,7 +139,7 @@ CREATE TABLE sshkey (
 	fingerprint_sha256 character varying(512) NOT NULL,
 	comment character varying(256),
 	access access_mode NOT NULL,
-	last_used timestamp without time zone,
+	last_used timestamp without time zone
 );
 
 ALTER TABLE sshkey
