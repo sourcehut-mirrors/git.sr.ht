@@ -108,6 +108,7 @@ class Repository(Base):
     clone_status = sa.Column(postgresql.ENUM(
         'NONE', 'IN_PROGRESS', 'COMPLETE', 'ERROR', name='clone_status'), nullable=False)
     clone_error = sa.Column(sa.Unicode)
+    indexed = sa.Column(sa.Boolean, nullable=False, server_default='t')
 
     @declared_attr
     def owner_id(cls):

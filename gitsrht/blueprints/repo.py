@@ -13,6 +13,7 @@ from gitsrht.editorconfig import EditorConfig
 from gitsrht.formatting import get_formatted_readme, get_highlighted_file
 from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
 from gitsrht.git import diffstat, get_log, diff_for_commit, strip_pgp_signature
+from gitsrht.graphql import Client
 from gitsrht.rss import generate_refs_feed, generate_commits_feed
 from gitsrht.spdx import SPDX_LICENSES
 from gitsrht.types import Artifact, User
@@ -99,10 +100,13 @@ def _highlight_file(repo, ref, entry, data, blob_id, commit_id):
     else:
         return get_highlighted_file(entry.name, blob_id, data)
 
-def linecounter(count):
+def linecounter(count, start=1, url="", selected=None):
     out = []
-    for i in range(1, count + 1):
-        out.append(f'<a href="#L{i}" id="L{i}">{i}\n</a>')
+    for i in range(start, count + start):
+        cls = ""
+        if selected == i:
+            cls = ' class="selected"'
+        out.append(f'<a{cls} href="{url}#L{i}" id="L{i}">{i}\n</a>')
     return "".join(out)
 
 def render_empty_repo(owner, repo, view):
@@ -706,6 +710,22 @@ def licenses(owner, repo):
                 owner=owner, repo=repo,
                 message=message, license_exists=license_exists,
                 licenses=licenses)
+
+@loginrequired
+@repo.route("/<owner>/<repo>/search")
+def search(owner, repo):
+    owner, repo = get_repo_or_redir(owner, repo)
+    q = request.args.get("q")
+    client = Client()
+    results = client.code_search(
+            owner_name=owner.username,
+            repo_name=repo.name,
+            query=q).user.repository.code_search
+
+    return render_template("search.html",
+            owner=owner, repo=repo,
+            search=results, q=q,
+            linecounter=linecounter)
 
 
 @repo.route("/<owner>/<repo>/refs/rss.xml")

@@ -93,6 +93,7 @@ CREATE TABLE repository (
 	readme character varying,
 	clone_status clone_status NOT NULL,
 	clone_error character varying,
+	indexed boolean NOT NULL DEFAULT 'f',
 	CONSTRAINT repository_check
 		CHECK (((clone_status = 'ERROR'::clone_status) <> (clone_error IS NULL))),
 	CONSTRAINT uq_repo_owner_id_name UNIQUE (owner_id, name)

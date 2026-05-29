@@ -5,6 +5,7 @@ from functools import lru_cache
 from gitsrht import urls
 from gitsrht.git import commit_time, commit_links, trim_commit, signature_time
 from gitsrht.types import User
+from gitsrht.formatting import highlight_file
 from srht.app import Flask, session
 from srht.config import cfg
 from srht.database import db, DbSession
@@ -58,7 +59,8 @@ class GitApp(Flask):
                 "path_join": os.path.join,
                 "stat": stat,
                 "trim_commit": trim_commit,
-                "lookup_user": self.lookup_user
+                "lookup_user": self.lookup_user,
+                "highlight": self.highlight,
             }
 
         choices = [self.jinja_loader, FileSystemLoader(os.path.join(
@@ -67,5 +69,8 @@ class GitApp(Flask):
 
     def lookup_user(self, email):
         return User.query.filter(User.email == email).one_or_none()
+
+    def highlight(self, name, content):
+        return highlight_file(name, content)
 
 app = GitApp()

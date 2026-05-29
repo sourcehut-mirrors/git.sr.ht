@@ -1,0 +1,25 @@
+query CodeSearch(
+  $ownerName: String!,
+  $repoName: String!,
+  $query: String!,
+) {
+  user(username: $ownerName) {
+    repository(name: $repoName) {
+      codeSearch(query: $query) {
+        totalFiles
+        totalMatches
+        results {
+          name
+          lang
+
+          lines {
+            line
+            lineNo
+            before
+            after
+          }
+        }
+      }
+    }
+  }
+}

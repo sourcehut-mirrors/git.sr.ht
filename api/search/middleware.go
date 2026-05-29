@@ -2,6 +2,7 @@ package search
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"io"
 	"log"
@@ -14,6 +15,7 @@ import (
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 
 	"git.sr.ht/~sircmpwn/core-go/config"
+	"git.sr.ht/~sircmpwn/core-go/database"
 	work "git.sr.ht/~sircmpwn/dowork"
 	"github.com/sourcegraph/zoekt"
 	"github.com/sourcegraph/zoekt/gitindex"
@@ -138,7 +140,18 @@ func Index(ctx context.Context, repo *model.Repository, ownerName string) {
 
 	task := work.NewTask(func(ctx context.Context) error {
 		_, err := gitindex.IndexGitRepo(gitopts)
-		return err
+		if err != nil {
+			return err
+		}
+
+		return database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+			_, err := tx.ExecContext(ctx, `
+				UPDATE repository
+				SET indexed = 't'
+				WHERE id = $1
+			`, repo.ID)
+			return err
+		})
 	})
 
 	sctx.queue.Enqueue(task)

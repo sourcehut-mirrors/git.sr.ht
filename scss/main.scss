@@ -511,3 +511,20 @@ dl {
   padding-left: 0;
   padding-right: 0;
 }
+
+input[type="text"].nav-search {
+  padding: 0.25rem 1rem;
+  border: none;
+}
+
+.code-search {
+  position: relative;
+
+  .event {
+    background: transparent;
+  }
+
+  .lines {
+    background: transparent;
+  }
+}

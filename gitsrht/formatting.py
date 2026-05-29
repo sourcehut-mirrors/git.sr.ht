@@ -70,6 +70,12 @@ def _get_lexer(name, data):
         except pygments.util.ClassNotFound:
             return TextLexer()
 
+def highlight_file(name, content):
+    lexer = _get_lexer(name, content)
+    formatter = HtmlFormatter()
+    html = highlight(content, lexer, formatter)
+    return Markup(html)
+
 def get_highlighted_file(name, content_hash, content, formatter=None):
     """
     Highlights a file for display in a repository's browsing UI.
