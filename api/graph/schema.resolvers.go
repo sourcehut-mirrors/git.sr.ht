@@ -38,6 +38,7 @@ import (
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/repos"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/search"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/webhooks"
 	"github.com/99designs/gqlgen/graphql"
 	sq "github.com/Masterminds/squirrel"
@@ -99,6 +100,11 @@ func (r *binaryBlobResolver) Base64(ctx context.Context, obj *model.BinaryBlob) 
 // Diff is the resolver for the diff field.
 func (r *commitResolver) Diff(ctx context.Context, obj *model.Commit) (string, error) {
 	return obj.DiffContext(ctx), nil
+}
+
+// Repo is the resolver for the repo field.
+func (r *fileMatchResolver) Repo(ctx context.Context, obj *model.FileMatch) (*model.Repository, error) {
+	return loaders.ForContext(ctx).RepositoriesByID.Load(obj.RepoID)
 }
 
 // Client is the resolver for the client field.
@@ -207,6 +213,11 @@ func (r *gitWebhookSubscriptionResolver) Sample(ctx context.Context, obj *model.
 		return "", err
 	}
 	return string(bytes), nil
+}
+
+// FileOffset is the resolver for the fileOffset field.
+func (r *lineFragmentResolver) FileOffset(ctx context.Context, obj *model.LineFragment) (int, error) {
+	panic(fmt.Errorf("not implemented: FileOffset - fileOffset"))
 }
 
 // CreateRepository is the resolver for the createRepository field.
@@ -415,9 +426,8 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 		}
 	}()
 
+	user := auth.ForContext(ctx)
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-		user := auth.ForContext(ctx)
-
 		query := sq.Update(repo.Table()).
 			PlaceholderFormat(sq.Dollar)
 
@@ -564,6 +574,8 @@ func (r *mutationResolver) UpdateRepository(ctx context.Context, id int, input m
 		return nil, err
 	}
 
+	search.Index(ctx, &repo, "~"+user.Username)
+
 	success = true
 	return &repo, nil
 }
@@ -623,6 +635,8 @@ func (r *mutationResolver) DeleteRepository(ctx context.Context, id int) (*model
 	}); err != nil {
 		return nil, err
 	}
+
+	search.Delete(ctx, &repo)
 
 	return &repo, nil
 }
@@ -1227,7 +1241,8 @@ func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 		DeprecationDate: nil,
 
 		Features: &model.Features{
-			Artifacts: artifacts,
+			Artifacts:  artifacts,
+			CodeSearch: search.Enabled(ctx),
 		},
 
 		Settings: &model.Settings{
@@ -1741,6 +1756,11 @@ func (r *repositoryResolver) DeployKeys(ctx context.Context, obj *model.Reposito
 	return &model.SSHKeyCursor{Results: keys, Cursor: cursor}, nil
 }
 
+// CodeSearch is the resolver for the codeSearch field.
+func (r *repositoryResolver) CodeSearch(ctx context.Context, obj *model.Repository, cursor *coremodel.Cursor, query string) (*model.CodeSearchCursor, error) {
+	return search.SearchRepo(ctx, obj, cursor, query)
+}
+
 // Objects is the resolver for the objects field.
 func (r *repositoryResolver) Objects(ctx context.Context, obj *model.Repository, ids []string) ([]model.Object, error) {
 	var objects []model.Object
@@ -2193,10 +2213,16 @@ func (r *Resolver) BinaryBlob() api.BinaryBlobResolver { return &binaryBlobResol
 // Commit returns api.CommitResolver implementation.
 func (r *Resolver) Commit() api.CommitResolver { return &commitResolver{r} }
 
+// FileMatch returns api.FileMatchResolver implementation.
+func (r *Resolver) FileMatch() api.FileMatchResolver { return &fileMatchResolver{r} }
+
 // GitWebhookSubscription returns api.GitWebhookSubscriptionResolver implementation.
 func (r *Resolver) GitWebhookSubscription() api.GitWebhookSubscriptionResolver {
 	return &gitWebhookSubscriptionResolver{r}
 }
+
+// LineFragment returns api.LineFragmentResolver implementation.
+func (r *Resolver) LineFragment() api.LineFragmentResolver { return &lineFragmentResolver{r} }
 
 // Mutation returns api.MutationResolver implementation.
 func (r *Resolver) Mutation() api.MutationResolver { return &mutationResolver{r} }
@@ -2237,7 +2263,9 @@ type aCLResolver struct{ *Resolver }
 type artifactResolver struct{ *Resolver }
 type binaryBlobResolver struct{ *Resolver }
 type commitResolver struct{ *Resolver }
+type fileMatchResolver struct{ *Resolver }
 type gitWebhookSubscriptionResolver struct{ *Resolver }
+type lineFragmentResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type redirectResolver struct{ *Resolver }

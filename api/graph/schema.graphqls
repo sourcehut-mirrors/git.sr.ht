@@ -79,6 +79,7 @@ type Version {
 "Describes the status of optional features"
 type Features {
   artifacts: Boolean!
+  codeSearch: Boolean!
 }
 
 "Instance specific settings"
@@ -161,6 +162,11 @@ type Repository {
   # Only available to the repository owner
   deployKeys(cursor: Cursor): SSHKeyCursor! @access(scope: ACLS, kind: RO)
 
+  """
+  Searches through the source code of this repository.
+  """
+  codeSearch(cursor: Cursor, query: String!): CodeSearchCursor!
+
   ## Plumbing API:
 
   """
@@ -209,6 +215,78 @@ type Repository {
 
   ## For internal use
   repoPath: String! @anoninternal
+}
+
+"""
+Results from a code search.
+
+If there are additional results available, the cursor object may be passed
+back into the same endpoint to retrieve another page. If the cursor is null,
+there are no remaining results to return.
+"""
+type CodeSearchCursor {
+  totalFiles: Int!
+  totalMatches: Int!
+  results: [FileMatch!]!
+  cursor: Cursor
+}
+
+"""
+A file that was matched during a code search.
+"""
+type FileMatch {
+  "Repository in which the file was found"
+  repo: Repository!
+  "Detected source language"
+  lang: String!
+  "Name of matched file"
+  name: String!
+
+  "Matching lines from this file"
+  lines: [LineMatch!]!
+
+  "Ranking score. Higher is better."
+  score: Float!
+}
+
+"""
+A line of source code matched during a code search.
+"""
+type LineMatch {
+  "The line of source code matched"
+  line: String!
+  lineNo: Int!
+
+  "Byte offset where the line appears"
+  startOffset: Int!
+  "Byte offset following the final byte of the matched line"
+  endOffset: Int!
+
+  "Lines of context before the matching line"
+  before: String!
+  "Lines of context after the matching line"
+  after: String!
+
+  fragments: [LineFragment!]!
+
+  "Match score, used to rank matches within a file. Higher is better."
+  score: Float!
+}
+
+"""
+A line fragment indicates which portion of a line of a LineMatch matched the
+search terms.
+"""
+type LineFragment {
+  lineOffset: Int!
+  fileOffset: Int!
+  length: Int!
+  symbol: Symbol
+}
+
+type Symbol {
+  name: String!
+  kind: String!
 }
 
 """

@@ -30,6 +30,7 @@ import (
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/repos"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/search"
 )
 
 func main() {
@@ -68,7 +69,19 @@ func main() {
 			repos.Middleware(reposQueue),
 			webhooks.Middleware(webhookQueue),
 			webhooks.LegacyMiddleware(legacyWebhooks),
-		).
+		)
+
+	indexDir, ok := appConfig.Get("git.sr.ht", "repos-index")
+	if ok && indexDir != "" {
+		queueSize := config.GetInt(appConfig, "git.sr.ht::api",
+			"search-index-queue-size", config.DefaultQueueSize)
+		queue := work.NewQueue("search", queueSize)
+		srv = srv.
+			WithMiddleware(search.Middleware(&appConfig, queue)).
+			WithQueues(queue)
+	}
+
+	srv = srv.
 		WithSchema(schema, scopes).
 		WithQueues(
 			accountQueue,

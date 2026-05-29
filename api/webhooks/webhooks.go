@@ -12,6 +12,7 @@ import (
 
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/git.sr.ht/api/loaders"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/search"
 )
 
 func deliverUserWebhook(ctx context.Context, event model.WebhookEvent,
@@ -48,6 +49,11 @@ func DeliverGitEvent(ctx context.Context, input model.GitEventInput) bool {
 	}
 
 	repo, err := loaders.ForContext(ctx).RepositoriesByID.Load(input.RepositoryID)
+	if err != nil {
+		panic(err)
+	}
+
+	owner, err := loaders.ForContext(ctx).UsersByID.Load(repo.OwnerID)
 	if err != nil {
 		panic(err)
 	}
@@ -94,6 +100,9 @@ func DeliverGitEvent(ctx context.Context, input model.GitEventInput) bool {
 		Where(`sub.repo_id = ?`, repo.ID)
 	q.Schedule(ctx, query, "git", input.Event.String(),
 		payloadUUID, payload)
+
+	// Update the code search index after git pushes
+	search.Index(ctx, repo, owner.CanonicalName())
 
 	// TODO: Synchronous delivery
 	return true
