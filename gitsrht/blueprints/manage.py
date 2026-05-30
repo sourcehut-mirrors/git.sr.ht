@@ -89,7 +89,9 @@ def settings_info_POST(owner_name, repo_name):
     head = valid.optional("HEAD")
     vis = valid.require("visibility", cls=Visibility)
     updates = RepoInput(visibility=vis)
-    if desc:
+    if not desc:
+        updates.description = None
+    else:
         updates.description = desc
     if head:
         updates.head = head
