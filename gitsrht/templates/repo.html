@@ -95,7 +95,7 @@
       </li>
       {% endif %}
       {% block tabs_extra %}{% endblock %}
-      {% if repo.indexed and current_user %}
+      {% if repo.indexed and cfg('git.sr.ht', 'repos-index') and current_user %}
       <li class="flex-grow-1"></li>
       <li class="nav-item">
         <form
