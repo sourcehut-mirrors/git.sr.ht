@@ -513,8 +513,38 @@ dl {
 }
 
 input[type="text"].nav-search {
-  padding: 0.25rem 1rem;
+  padding: 0.05rem 1rem;
   border: none;
+  background: transparent;
+  transition: padding .15s ease-in-out;
+
+  &:hover {
+    background: #ddd;
+    @media(prefers-color-scheme: dark) {
+      background: darken($gray-900, 6);
+    }
+  }
+  &:focus {
+    padding: 0.25rem 1rem;
+    background: #ddd;
+    box-shadow: none;
+
+    @media(prefers-color-scheme: dark) {
+      background: darken($gray-900, 6);
+    }
+
+    &::placeholder {
+      color: dimgray;
+      @media(prefers-color-scheme: dark) {
+        color: $gray-600;
+      }
+    }
+  }
+  &::placeholder {
+    @media(prefers-color-scheme: dark) {
+      color: $gray-400;
+    }
+  }
 }
 
 .code-search {
