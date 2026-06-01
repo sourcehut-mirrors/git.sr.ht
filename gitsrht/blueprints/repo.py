@@ -410,9 +410,9 @@ def weld_hunks(blame):
     if last is not None:
         yield last
 
-@loginrequired
 @repo.route("/<owner>/<repo>/blame/<path:ref>", defaults={"path": ""})
 @repo.route("/<owner>/<repo>/blame/<path:ref>/<path:path>")
+@loginrequired
 def blame(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
@@ -711,8 +711,8 @@ def licenses(owner, repo):
                 message=message, license_exists=license_exists,
                 licenses=licenses)
 
-@loginrequired
 @repo.route("/<owner>/<repo>/search")
+@loginrequired
 def search(owner, repo):
     owner, repo = get_repo_or_redir(owner, repo)
     q = request.args.get("q")
