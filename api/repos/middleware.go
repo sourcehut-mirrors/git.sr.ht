@@ -6,15 +6,16 @@ import (
 	"log"
 	"net/http"
 	"path"
+	"strings"
 	"time"
 
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/database"
 	"git.sr.ht/~sircmpwn/core-go/objects"
 	work "git.sr.ht/~sircmpwn/dowork"
+	"git.sr.ht/~sircmpwn/git.sr.ht/api/graph/model"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/go-git/go-git/v5"
 )
 
 type contextKey struct {
@@ -43,7 +44,7 @@ const (
 )
 
 // Schedules a clone.
-func Clone(ctx context.Context, repoID int, repo *git.Repository, cloneURL string) {
+func Clone(ctx context.Context, repo *model.Repository, cloneURL string) {
 	queue, ok := ctx.Value(ctxKey).(*work.Queue)
 	if !ok {
 		panic("No repos worker for this context")
@@ -52,10 +53,15 @@ func Clone(ctx context.Context, repoID int, repo *git.Repository, cloneURL strin
 		log.Printf("Processing clone of %s", cloneURL)
 		cloneCtx, cancel := context.WithTimeout(ctx, 30*time.Minute)
 		defer cancel()
-		err := repo.Clone(cloneCtx, &git.CloneOptions{
-			URL:               cloneURL,
-			RecurseSubmodules: git.NoRecurseSubmodules,
-		})
+		defaultBranch, err := remoteDefaultBranch(cloneCtx, repo, cloneURL)
+		if err == nil {
+			_, err = repo.GitCmd(cloneCtx, "fetch", "--end-of-options",
+				cloneURL, "+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*")
+		}
+		if err == nil && defaultBranch != "" {
+			_, err = repo.GitCmd(cloneCtx, "symbolic-ref", "HEAD",
+				"--end-of-options", defaultBranch)
+		}
 		cloneStatus := CloneComplete
 		var cloneError sql.NullString
 		if err != nil {
@@ -67,7 +73,7 @@ func Clone(ctx context.Context, repoID int, repo *git.Repository, cloneURL strin
 			_, err := tx.Exec(`
 				UPDATE repository
 				SET clone_status = $2, clone_error = $3
-				WHERE id = $1;`, repoID, cloneStatus, cloneError)
+				WHERE id = $1;`, repo.ID, cloneStatus, cloneError)
 			return err
 		}); err != nil {
 			panic(err)
@@ -77,6 +83,25 @@ func Clone(ctx context.Context, repoID int, repo *git.Repository, cloneURL strin
 	})
 	queue.Enqueue(task)
 	log.Printf("Enqueued clone of %s", cloneURL)
+}
+
+func remoteDefaultBranch(ctx context.Context, repo *model.Repository, cloneURL string) (string, error) {
+	output, err := repo.GitCmd(ctx, "ls-remote", "--symref",
+		"--end-of-options", cloneURL, "HEAD")
+	if err != nil {
+		return "", err
+	}
+	for line := range strings.SplitSeq(output, "\n") {
+		ref, ok := strings.CutPrefix(line, "ref: ")
+		if !ok {
+			continue
+		}
+		ref, head, ok := strings.Cut(ref, "\t")
+		if ok && head == "HEAD" && strings.HasPrefix(ref, "refs/heads/") {
+			return ref, nil
+		}
+	}
+	return "", nil
 }
 
 // Schedules deletion of artifacts.

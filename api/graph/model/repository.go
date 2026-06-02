@@ -3,7 +3,11 @@ package model
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
+	"os/exec"
 	"strconv"
+	"strings"
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
@@ -149,4 +153,22 @@ func (r *Repository) DefaultSearch(query sq.SelectBuilder,
 			sq.Expr(name+` ILIKE '%' || ? || '%'`, term),
 			sq.Expr(desc+` ILIKE '%' || ? || '%'`, term),
 		}), nil
+}
+
+func (r *Repository) GitCmd(ctx context.Context, args ...string) (string, error) {
+	cmd := exec.CommandContext(ctx, "git", append([]string{"-C", r.Path}, args...)...)
+	cmd.Env = append(cmd.Environ(), "GIT_TERMINAL_PROMPT=0")
+	output, err := cmd.Output()
+	if err != nil {
+		var exitErr *exec.ExitError
+		msg := ""
+		if errors.As(err, &exitErr) {
+			msg = strings.TrimSpace(string(exitErr.Stderr))
+		}
+		if msg != "" {
+			return "", fmt.Errorf("git %#v: %w: %s", args, err, msg)
+		}
+		return "", fmt.Errorf("git %#v: %w", args, err)
+	}
+	return string(output), nil
 }

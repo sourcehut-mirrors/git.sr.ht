@@ -386,7 +386,7 @@ func (r *mutationResolver) CreateRepository(ctx context.Context, name string, vi
 	// Schedule the clone after the transaction has committed to avoid race
 	// conditions for repository.clone_status.
 	if cloneURL != nil {
-		repos.Clone(ctx, repo.ID, gitrepo, *cloneURL)
+		repos.Clone(ctx, &repo, *cloneURL)
 	}
 
 	success = true
