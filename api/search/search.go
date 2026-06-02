@@ -11,6 +11,10 @@ import (
 	zquery "github.com/sourcegraph/zoekt/query"
 )
 
+var (
+	SyntaxError errors.ErrorCode = "ERR_SYNTAX"
+)
+
 func SearchRepo(
 	ctx context.Context,
 	repo *model.Repository,
@@ -25,6 +29,8 @@ func SearchRepo(
 
 	q, err := zquery.Parse(query)
 	if err != nil {
+		err := errors.New(SyntaxError, err.Error())
+		err = errors.Field(err, "query")
 		return nil, err
 	}
 	q = zquery.NewAnd(q, zquery.NewRepoIDs(uint32(repo.ID)))

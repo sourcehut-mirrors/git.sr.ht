@@ -13,7 +13,7 @@ from gitsrht.editorconfig import EditorConfig
 from gitsrht.formatting import get_formatted_readme, get_highlighted_file
 from gitsrht.git import Repository as GitRepository, commit_time, annotate_tree
 from gitsrht.git import diffstat, get_log, diff_for_commit, strip_pgp_signature
-from gitsrht.graphql import Client
+from gitsrht.graphql import Client, GraphQLClientGraphQLMultiError
 from gitsrht.rss import generate_refs_feed, generate_commits_feed
 from gitsrht.spdx import SPDX_LICENSES
 from gitsrht.types import Artifact, User
@@ -23,6 +23,7 @@ from markupsafe import Markup, escape
 from jinja2.utils import url_quote
 from gitsrht.access import get_repo, get_repo_or_redir
 from srht.config import cfg, get_origin
+from srht.graphql import has_error
 from srht.markdown import markdown, sanitize
 from srht.oauth import loginrequired
 from urllib.parse import urlparse
@@ -726,10 +727,19 @@ def search(owner, repo):
     owner, repo = get_repo_or_redir(owner, repo)
     q = request.args.get("q")
     client = Client()
-    results = client.code_search(
-            owner_name=owner.username,
-            repo_name=repo.name,
-            query=q).user.repository.code_search
+    try:
+        results = client.code_search(
+                owner_name=owner.username,
+                repo_name=repo.name,
+                query=q).user.repository.code_search
+    except GraphQLClientGraphQLMultiError as err:
+        if not has_error(err, "ERR_SYNTAX"):
+            raise
+        return render_template("search.html",
+                owner=owner, repo=repo,
+                search=None, q=q,
+                linecounter=linecounter,
+                error=err.errors[0].message), 400
 
     return render_template("search.html",
             owner=owner, repo=repo,

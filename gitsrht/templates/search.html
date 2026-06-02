@@ -9,16 +9,23 @@
   <div class="form-group">
     <input
       type="text"
-      class="form-control"
+      class="form-control {% if error %}is-invalid{% endif %}"
       name="q"
       value="{{q}}"
       placeholder="Search {{repo.name}}..." />
+    {% if error %}
+    <div class="invalid-feedback">
+      {{ error }}
+    </div>
+    {% endif %}
     <p class="text-muted">
       <span class="pull-right">
         {{icon('question-circle')}}
         <a href="https://man.sr.ht/git.sr.ht/code-search.md">Search syntax</a>
       </span>
+      {% if not error %}
       Search matched {{search.total_matches}} results in {{search.total_files}} files.
+      {% endif %}
     </p>
     <div class="event-list code-search" style="margin-top: 1rem">
       {% for file in search.results %}
