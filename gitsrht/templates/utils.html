@@ -101,7 +101,7 @@ endif %}{% endfor %}
   {% endif %}
   &mdash;
   {% set author_user = lookup(c.author.email) %}
-  {% if mailmap %}
+  {% if mailmap and c.author.name and c.author.email %}
   {% set author = mailmap.resolve_signature(c.author) %}
   {% else %}
   {% set author = c.author %}
