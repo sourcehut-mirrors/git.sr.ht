@@ -80,7 +80,7 @@ endif %}{% endfor %}
 {% macro commit_event(repo, c,
   full_body=False, refs={}, full_id=False, diff=None, href=None,
   parents=False, skip_body=False, target_blank=False, path=None,
-  lookup=lookup_user) %}
+  lookup=lookup_user, mailmap=None) %}
 <div>
   {% if full_id %}
   {{str(c.id)}}
@@ -101,11 +101,17 @@ endif %}{% endfor %}
   {% endif %}
   &mdash;
   {% set author_user = lookup(c.author.email) %}
+  {% if mailmap %}
+  {% set author = mailmap.resolve_signature(c.author) %}
+  {% else %}
+  {% set author = c.author %}
+  {% endif %}
+
   {% if author_user %}
   <a href="{{url_for("public.user_index",
-    username=author_user.username)}}">{{c.author.name}}</a>
+    username=author_user.username)}}">{{author.name}}</a>
   {% else %}
-  {{c.author.name}}
+  {{author.name}}
   {% endif %}
   <small class="pull-right">
     <a

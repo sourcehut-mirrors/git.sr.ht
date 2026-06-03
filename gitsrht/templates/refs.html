@@ -100,7 +100,7 @@
         {% set branch = branch[1] %}
         <div class="event">
           {{name}}
-          {{ utils.commit_event(repo, commit, skip_body=True) }}
+          {{ utils.commit_event(repo, commit, skip_body=True, mailmap=mailmap) }}
           <div class="row mt-2">
             <div class="col">
               <a

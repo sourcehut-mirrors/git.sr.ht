@@ -130,6 +130,7 @@ def summary(owner, repo):
     with GitRepository(repo.path) as git_repo:
         if git_repo.is_empty:
             return render_empty_repo(owner, repo, "summary")
+        mailmap = pygit2.Mailmap.from_repository(git_repo)
 
         default_branch = git_repo.default_branch()
         default_branch_name = default_branch.raw_name \
@@ -167,7 +168,7 @@ def summary(owner, repo):
                 latest_tag=latest_tag, default_branch=default_branch,
                 is_annotated=lambda t: isinstance(t, pygit2.Tag),
                 message=message, license_exists=license_exists,
-                licenses=licenses)
+                licenses=licenses, mailmap=mailmap)
 
 @repo.route("/<owner>/<repo>/<path:path>")
 def go_get(owner, repo, path):
@@ -518,6 +519,8 @@ def log(owner, repo, ref, path):
         if git_repo.is_empty:
             return render_empty_repo(owner, repo, "log")
 
+        mailmap = pygit2.Mailmap.from_repository(git_repo)
+
         commit, ref, path = lookup_ref(git_repo, ref, path)
         refname = ref.decode("utf-8", "replace")
         if not isinstance(commit, pygit2.Commit):
@@ -554,7 +557,8 @@ def log(owner, repo, ref, path):
                 owner=owner, repo=repo, ref=refname, path=path.split("/"),
                 commits=commits[:num_commits], refs=refs, entry=entry, pygit2=pygit2,
                 next_commit=next_commit, authors=authors,
-                license_exists=license_exists, licenses=licenses)
+                license_exists=license_exists, licenses=licenses,
+                mailmap=mailmap)
 
 
 @repo.route("/<owner>/<repo>/log/rss.xml", defaults={"ref": None})
@@ -582,6 +586,7 @@ def log_rss(owner, repo, ref):
 def commit(owner, repo, ref):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
+        mailmap = pygit2.Mailmap.from_repository(git_repo)
         commit, ref, _ = lookup_ref(git_repo, ref, None)
         if not isinstance(commit, pygit2.Commit):
             abort(404)
@@ -591,7 +596,8 @@ def commit(owner, repo, ref):
             owner=owner, repo=repo, ref=ref, refs=refs,
             commit=commit, parent=parent,
             diff=diff, diffstat=diffstat, pygit2=pygit2,
-            default_branch=git_repo.default_branch())
+            default_branch=git_repo.default_branch(),
+            mailmap=mailmap)
 
 @repo.route("/<owner>/<repo>/commit/<path:ref>.patch")
 def patch(owner, repo, ref):
@@ -629,6 +635,8 @@ def refs(owner, repo):
     with GitRepository(repo.path) as git_repo:
         if git_repo.is_empty:
             return render_empty_repo(owner, repo, "refs")
+
+        mailmap = pygit2.Mailmap.from_repository(git_repo)
 
         tags = [(
                 ref,
@@ -684,7 +692,8 @@ def refs(owner, repo):
                 page=page + 1, total_pages=total_pages,
                 default_branch=default_branch,
                 strip_pgp_signature=strip_pgp_signature,
-                license_exists=license_exists, licenses=licenses)
+                license_exists=license_exists, licenses=licenses,
+                mailmap=mailmap)
 
 @repo.route("/<owner>/<repo>/licenses")
 def licenses(owner, repo):
