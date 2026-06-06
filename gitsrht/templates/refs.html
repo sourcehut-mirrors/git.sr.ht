@@ -68,6 +68,14 @@
                 rel="nofollow"
                 title="This release is cryptographically signed, click here to download the signature"
               >.asc {{icon("caret-right")}}</a>
+              {% else %}
+              <a
+                class="ml-2"
+                href="{{url_for("repo.archive",
+                  owner=repo.owner.canonical_name,
+                  repo=repo.name, ref=refname, fmt="zip")}}"
+                rel="nofollow"
+              >.zip {{icon("caret-right")}}</a>
               {% endif %}
               <a
                 class="ml-2"

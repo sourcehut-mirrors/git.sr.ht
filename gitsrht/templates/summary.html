@@ -87,6 +87,11 @@
                       repo=repo.name, ref=tagname[len("refs/tags/"):], fmt=signature)}}"
                      rel="nofollow"
                   >.asc&nbsp;{{icon("caret-right")}}</a>
+                {% else %}
+                  <a href="{{url_for("repo.archive", owner=repo.owner.canonical_name,
+                      repo=repo.name, ref=tagname[len("refs/tags/"):], fmt="zip")}}"
+                     rel="nofollow"
+                  >.zip&nbsp;{{icon("caret-right")}}</a>
                 {% endif %}
               {% endif %}
             </dd>

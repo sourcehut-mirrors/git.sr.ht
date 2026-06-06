@@ -38,6 +38,14 @@
             ref=str(commit.id))}}"
           class="btn btn-default btn-block"
         >.tar.gz {{icon("caret-right")}}</a>
+        <a
+          href="{{url_for("repo.archive",
+            owner=repo.owner.canonical_name,
+            repo=repo.name,
+            ref=str(commit.id),
+            fmt="zip")}}"
+          class="btn btn-default btn-block"
+        >.zip {{icon("caret-right")}}</a>
       </div>
     </div>
   </div>

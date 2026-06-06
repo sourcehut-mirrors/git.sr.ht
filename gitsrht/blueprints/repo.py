@@ -446,7 +446,7 @@ def blame(owner, repo, ref, path):
                 lookup_user=lookup_user(), pygit2=pygit2)
 
 @repo.route("/<owner>/<repo>/archive/<path:ref>.tar.gz", defaults = {"fmt": "tar.gz"})
-@repo.route("/<owner>/<repo>/archive/<path:ref>.<any('tar.gz','tar'):fmt>")
+@repo.route("/<owner>/<repo>/archive/<path:ref>.<any('tar.gz','tar','zip'):fmt>")
 def archive(owner, repo, ref, fmt):
     owner, repo = get_repo_or_redir(owner, repo)
     with GitRepository(repo.path) as git_repo:
@@ -466,9 +466,22 @@ def archive(owner, repo, ref, fmt):
         ]
         subp = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=sys.stderr)
 
-        return send_file(subp.stdout, mimetype="application/tar+gzip",
+        mimetypes = {
+            "tar": "application/x-tar",
+            "tar.gz": "application/gzip",
+            "zip": "application/zip",
+        }
+        return send_file(subp.stdout, mimetype=mimetypes[fmt],
                 as_attachment=True, download_name=f"{repo.name}-{refname}.{fmt}")
 
+# Note: git-notes-based signature is not enabled for zip archives,
+#       since different host timezones results in different timestamps,
+#       which renders signatures unreliable.
+#
+#       Actually, git-archive does not guarantee stable output at all.
+#       Use this feature with caution.
+#
+# See: https://lists.reproducible-builds.org/pipermail/rb-general/2022-October/002711.html
 @repo.route("/<owner>/<repo>/archive/<path:ref>.<any('tar.gz','tar'):fmt>.asc")
 def archivesig(owner, repo, ref, fmt):
     owner, repo = get_repo_or_redir(owner, repo)

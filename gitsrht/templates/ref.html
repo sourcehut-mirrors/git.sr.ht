@@ -28,6 +28,13 @@
             owner=repo.owner.canonical_name,
             repo=repo.name, ref=tagname, fmt=signature)}}"
         >.{{ signature }}.asc {{icon("caret-right")}}</a>
+        {% else %}
+        <a
+          class="btn btn-default btn-block"
+          href="{{url_for("repo.archive",
+            owner=repo.owner.canonical_name,
+            repo=repo.name, ref=tagname, fmt="zip")}}"
+        >.zip {{icon("caret-right")}}</a>
         {% endif %}
         <a
           class="btn btn-default btn-block"
