@@ -155,7 +155,7 @@ func Index(ctx context.Context, repo *model.Repository, ownerName string) {
 	})
 
 	err = sctx.queue.TryEnqueue(task)
-	if err != nil {
+	if err == nil {
 		log.Printf("Enqueued search index refresh of repo %d", repo.ID)
 	} else {
 		log.Printf("Dropped search index refresh for repo %d: %s", repo.ID, err.Error())
