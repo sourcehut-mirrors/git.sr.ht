@@ -118,6 +118,18 @@ def to_item(repo, item):
 
     raise ValueError(f"Don't know how to convert {type(item)} to an RSS item.")
 
+def update_title_description(element, title, description):
+    t = element.find("title")
+    if t is not None:
+        t.text = title
+    else:
+        ET.SubElement(element, "title").text = title
+    d = element.find("description")
+    if d is not None:
+        d.text = description
+    else:
+        ET.SubElement(element, "description").text = description
+
 def generate_refs_feed(repo, items, title, link, description):
     root = ET.Element("rss", version="2.0")
     channel = ET.SubElement(root, "channel")
@@ -128,7 +140,17 @@ def generate_refs_feed(repo, items, title, link, description):
     ET.SubElement(channel, "language").text = "en"
 
     for item in items:
-        channel.append(to_item(repo, item[1]))
+        to_add = to_item(repo, item[1])
+        if isinstance(item[1], pygit2.Commit):
+            # This is a lightweight tag; use the tag name as title and no
+            # description.
+            tag_name = item[0].decode('utf-8').split("/")[-1]
+            update_title_description(to_add, tag_name, "")
+        elif isinstance(item[1], pygit2.Tag):
+            # This is an annotated tag; use the tag name as title and the tag
+            # message as description.
+            update_title_description(to_add, item[1].name, item[1].message)
+        channel.append(to_add)
 
     xml = ET.tostring(root, encoding="UTF-8")
     return Response(xml, mimetype='application/rss+xml')
