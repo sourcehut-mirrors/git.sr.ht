@@ -50,8 +50,21 @@ func BlobFromObject(repo *RepoWrapper, obj *object.Blob) Object {
 		panic(err)
 	}
 
-	text := string(data[:n])
-	if len(text) == 0 || utf8.ValidString(text) {
+	valid := true
+	for i := 0; i < n; {
+		r, l := utf8.DecodeRune(data[i:])
+		if r == utf8.RuneError {
+			// Suppose the file is valid UTF-8 if the end of our
+			// 512 byte buffer has a truncated sequence
+			valid =
+				utf8.RuneStart(data[i]) &&
+					i >= n-utf8.UTFMax
+			break
+		}
+		i += l
+	}
+
+	if n == 0 || valid {
 		return &TextBlob{
 			Type:    ObjectTypeBlob,
 			ID:      obj.ID().String(),
