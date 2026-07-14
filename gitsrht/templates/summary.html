@@ -9,6 +9,7 @@
 {{cfg("sr.ht", "site-name")}} git
 </title>
 {% endblock %}
+
 {% block content %}
 {% if repo.description or len(licenses) > 0 %}
 <div class="header-extension">
@@ -31,6 +32,7 @@
     </div>
   </div>
 </div>
+
 {% endif %}
 <div class="container">
   {% if message %}

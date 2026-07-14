@@ -22,6 +22,7 @@ from io import BytesIO
 from markupsafe import Markup, escape
 from jinja2.utils import url_quote
 from gitsrht.access import get_repo, get_repo_or_redir
+from srht.app import get_projects
 from srht.config import cfg, get_origin
 from srht.graphql import has_error
 from srht.markdown import markdown, sanitize
@@ -127,6 +128,7 @@ def get_last_3_commits(git_repo, commit):
 @repo.route("/<owner>/<repo>")
 def summary(owner, repo):
     owner, repo = get_repo_or_redir(owner, repo)
+    projects = get_projects(owner, repo.rid)
 
     with GitRepository(repo.path) as git_repo:
         if git_repo.is_empty:
@@ -169,7 +171,8 @@ def summary(owner, repo):
                 latest_tag=latest_tag, default_branch=default_branch,
                 is_annotated=lambda t: isinstance(t, pygit2.Tag),
                 message=message, license_exists=license_exists,
-                licenses=licenses, mailmap=mailmap)
+                licenses=licenses, mailmap=mailmap,
+                projects=projects)
 
 @repo.route("/<owner>/<repo>/<path:path>")
 def go_get(owner, repo, path):
@@ -242,6 +245,7 @@ def lookup_signature(git_repo, ref, fmt=['tar', 'tar.gz']):
 @repo.route("/<owner>/<repo>/tree/<path:ref>/item/<path:path>")
 def tree(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
+    projects = get_projects(owner, repo.rid)
 
     if ref and "/" in ref and not path:
         ref, _, path = ref.partition("/")
@@ -303,7 +307,8 @@ def tree(owner, repo, ref, path):
                         highlight_file=_highlight_file,
                         linecounter=linecounter,
                         editorconfig=editorconfig,
-                        markdown=md, force_source=force_source, pygit2=pygit2)
+                        markdown=md, force_source=force_source, pygit2=pygit2,
+                        projects=projects)
             tree = git_repo.get(entry.id)
 
         if not tree or tree.type != pygit2.GIT_OBJECT_TREE:
@@ -317,7 +322,8 @@ def tree(owner, repo, ref, path):
 
         return render_template("tree.html", view="tree", owner=owner, repo=repo,
                 ref=refname, commit=commit, entry=entry, tree=tree, path=path,
-                pygit2=pygit2, license_exists=license_exists, licenses=licenses)
+                pygit2=pygit2, license_exists=license_exists, licenses=licenses,
+                projects=projects)
 
 def resolve_blob(git_repo, ref, path):
     commit, ref, path = lookup_ref(git_repo, ref, path)
@@ -417,6 +423,7 @@ def weld_hunks(blame):
 @loginrequired
 def blame(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
+    projects = get_projects(owner, repo.rid)
     with GitRepository(repo.path) as git_repo:
         orig_commit, ref, path, blob, entry = resolve_blob(git_repo, ref, path)
         refname = ref.decode('utf-8', 'replace')
@@ -443,7 +450,8 @@ def blame(owner, repo, ref, path):
                 repo=repo, ref=refname, path=path, entry=entry, blob=blob, data=data,
                 blame=list(weld_hunks(blame)), commit=orig_commit, highlight_file=_highlight_file,
                 editorconfig=EditorConfig(git_repo, orig_commit.tree, path),
-                lookup_user=lookup_user(), pygit2=pygit2)
+                lookup_user=lookup_user(), pygit2=pygit2,
+                projects=projects)
 
 @repo.route("/<owner>/<repo>/archive/<path:ref>.tar.gz", defaults = {"fmt": "tar.gz"})
 @repo.route("/<owner>/<repo>/archive/<path:ref>.<any('tar.gz','tar','zip'):fmt>")
@@ -529,6 +537,8 @@ def collect_refs(git_repo):
 @repo.route("/<owner>/<repo>/log/<path:ref>/item/<path:path>")
 def log(owner, repo, ref, path):
     owner, repo = get_repo_or_redir(owner, repo)
+    projects = get_projects(owner, repo.rid)
+
     with GitRepository(repo.path) as git_repo:
         if git_repo.is_empty:
             return render_empty_repo(owner, repo, "log")
@@ -572,7 +582,7 @@ def log(owner, repo, ref, path):
                 commits=commits[:num_commits], refs=refs, entry=entry, pygit2=pygit2,
                 next_commit=next_commit, authors=authors,
                 license_exists=license_exists, licenses=licenses,
-                mailmap=mailmap)
+                mailmap=mailmap, projects=projects)
 
 
 @repo.route("/<owner>/<repo>/log/rss.xml", defaults={"ref": None})
@@ -646,6 +656,8 @@ def patch(owner, repo, ref):
 @repo.route("/<owner>/<repo>/refs")
 def refs(owner, repo):
     owner, repo = get_repo_or_redir(owner, repo)
+    projects = get_projects(owner, repo.rid)
+
     with GitRepository(repo.path) as git_repo:
         if git_repo.is_empty:
             return render_empty_repo(owner, repo, "refs")
@@ -707,7 +719,7 @@ def refs(owner, repo):
                 default_branch=default_branch,
                 strip_pgp_signature=strip_pgp_signature,
                 license_exists=license_exists, licenses=licenses,
-                mailmap=mailmap)
+                mailmap=mailmap, projects=projects)
 
 @repo.route("/<owner>/<repo>/licenses")
 def licenses(owner, repo):
@@ -791,6 +803,8 @@ def refs_rss(owner, repo):
 @repo.route("/<owner>/<repo>/refs/<path:ref>")
 def ref(owner, repo, ref):
     owner, repo = get_repo_or_redir(owner, repo)
+    projects = get_projects(owner, repo.rid)
+
     with GitRepository(repo.path) as git_repo:
         try:
             tag = git_repo.revparse_single(ref)
@@ -810,4 +824,5 @@ def ref(owner, repo, ref):
                 owner=owner, repo=repo, git_repo=git_repo, tag=tag,
                 signature=lookup_signature(git_repo, ref)[1],
                 artifacts=artifacts, default_branch=git_repo.default_branch(),
-                strip_pgp_signature=strip_pgp_signature)
+                strip_pgp_signature=strip_pgp_signature,
+                projects=projects)

@@ -12,7 +12,9 @@
 {% endblock %}
 
 {% block tabs_extra %}
+  {% if not repo.indexed or not cfg('git.sr.ht', 'repos-index') or not current_user %}
   <li class="flex-grow-1 d-none d-sm-block"></li>
+  {% endif %}
   <li class="nav-item d-none d-sm-block">
     <a class="nav-link active" href="{{ repo|refs_rss_url }}">
       {{ icon('rss', cls='sm') }} RSS

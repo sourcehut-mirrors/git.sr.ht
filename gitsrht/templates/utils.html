@@ -37,13 +37,13 @@ endif %}{% endfor %}
 {% endif %}
 
 {% set path = path_join(*path) %}
-<div class="blob-nav ml-3">
+<div class="subnav ml-3">
   <ul class="nav nav-tabs">
     <li class="nav-item">
       <a class="nav-link {% if view in ["blob", "tree"] %}active{% endif %}"
          href="{{url_for("repo.tree", owner=repo.owner.canonical_name,
               repo=repo.name, ref=ref, path=path)}}" rel="nofollow">
-        {%- if is_blob %}View{% else %}Tree{% endif %}</a>
+        {%- if is_blob %}View{% else %}Browse{% endif %}</a>
     </li>
 
     <li class="nav-item">
