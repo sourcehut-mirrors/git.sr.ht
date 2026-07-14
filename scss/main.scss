@@ -497,8 +497,6 @@ dl {
 
 @include media-breakpoint-up(md) {
   .blob {
-    padding-left: 2rem;
-
     .commit {
       float: right;
     }
@@ -556,5 +554,48 @@ input[type="text"].nav-search {
 
   .lines {
     background: transparent;
+  }
+}
+
+.project-nav {
+  margin-bottom: 0;
+}
+
+/* TODO: Move me to core.sr.ht, address light mode */
+$darker: darken($gray-900, 6);
+
+.project-nav + .resource-nav {
+  background: $darker;
+  border-bottom: none;
+
+  .nav-item .active {
+    background: $gray-900 !important;
+  }
+
+  .nav-item .nav-link:hover {
+    background: $gray-900 !important;
+  }
+
+  h3 {
+    border: none;
+    padding: 0;
+    margin: 0;
+    margin-right: 1rem;
+  }
+}
+
+.project-nav ~ .header-extension {
+  background: transparent;
+  border-bottom: 2px solid $darker;
+
+  .nav-item .nav-link {
+    border-top: 2px solid transparent;
+    margin-bottom: -2px;
+  }
+  
+  .nav-item .active, .nav-item .nav-link:hover {
+    color: $white;
+    border-bottom: 2px solid $gray-500;
+    margin-bottom: -2px;
   }
 }

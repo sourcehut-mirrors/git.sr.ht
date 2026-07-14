@@ -5,14 +5,6 @@
 >{{ title }}</a>
 {% endmacro %}
 
-<li class="nav-item">
-  <a
-    class="nav-link"
-    href="/{{ owner.canonical_name }}/{{ repo.name }}"
-  >
-    {{icon("caret-left")}} back
-  </a>
-</li>
 {% if request.path.endswith("/rename") %}
 <li class="nav-item">
   {{ link("/rename", "rename") }}

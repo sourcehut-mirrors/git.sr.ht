@@ -1,6 +1,6 @@
 from flask import Blueprint, current_app, request, render_template, abort
 from flask import redirect, url_for
-from srht.app import session
+from srht.app import session, get_projects
 from srht.database import db
 from srht.oauth import current_user, loginrequired, UserType
 from srht.rid import to_rid, from_rid
@@ -75,7 +75,10 @@ def settings_info(owner_name, repo_name):
     if isinstance(repo, Redirect):
         return redirect(url_for(".settings_info",
             owner_name=owner_name, repo_name=repo.new_repo.name))
-    return render_template("settings_info.html", owner=owner, repo=repo)
+    projects = get_projects(owner, repo.rid)
+    return render_template("settings_info.html",
+            owner=owner, repo=repo, projects=projects,
+            view="settings")
 
 @manage.route("/<owner_name>/<repo_name>/settings/info", methods=["POST"])
 @loginrequired
@@ -99,8 +102,10 @@ def settings_info_POST(owner_name, repo_name):
     with valid:
         Client().update_repository(repo.id, updates)
     if not valid.ok:
+        projects = get_projects(owner, repo.rid)
         return render_template("settings_info.html",
-                owner=owner, repo=repo, **valid.kwargs)
+                owner=owner, repo=repo, projects=projects, view="settings",
+                **valid.kwargs)
 
     return redirect(url_for("manage.settings_info",
         owner_name=owner_name, repo_name=repo_name))
@@ -112,7 +117,9 @@ def settings_rename(owner_name, repo_name):
     if isinstance(repo, Redirect):
         return redirect(url_for(".settings_rename",
             owner_name=owner_name, repo_name=repo.new_repo.name))
-    return render_template("settings_rename.html", owner=owner, repo=repo)
+    projects = get_projects(owner, repo.rid)
+    return render_template("settings_rename.html", owner=owner, repo=repo,
+            projects=projects, view="settings")
 
 @manage.route("/<owner_name>/<repo_name>/settings/rename", methods=["POST"])
 @loginrequired
@@ -124,7 +131,9 @@ def settings_rename_POST(owner_name, repo_name):
     valid = Validation(request)
     name = valid.require("name", friendly_name="Name")
     if not valid.ok:
+        projects = get_projects(owner, repo.rid)
         return render_template("settings_rename.html", owner=owner, repo=repo,
+                projects=projects, view="settings",
                 **valid.kwargs)
 
     with valid:
@@ -145,10 +154,13 @@ def settings_access(owner_name, repo_name):
         resp = Client().get_repo_access_settings(username, repo_name, aclcursor, keycursor)
     if resp.user is None or resp.user.repository is None:
         abort(404)
-    print(resp)
 
-    return render_template("settings_access.html",
-        owner=resp.user, repo=resp.user.repository)
+    owner = resp.user
+    repo = resp.user.repository
+    projects = get_projects(owner, repo.rid)
+
+    return render_template("settings_access.html", owner=owner, repo=repo,
+        view="settings", projects=projects)
 
 @manage.route("/<owner_name>/<repo_name>/settings/access", methods=["POST"])
 @loginrequired
@@ -168,8 +180,13 @@ def settings_access_POST(owner_name, repo_name):
             resp = Client().get_repo_access_settings(owner_name[1:], repo_name, None)
         if resp.user is None or resp.user.repository is None:
             abort(404)
+        owner = resp.user
+        repo = resp.user.repository
+        projects = get_projects(owner, repo.rid)
         return render_template("settings_access.html",
-                owner=resp.user, repo=resp.user.repository, **valid.kwargs)
+                owner=owner, repo=repo,
+                projects=projects, view="settings",
+                **valid.kwargs)
     # TODO: Group access
     if username[0] == "~":
         username = username[1:]
@@ -190,8 +207,13 @@ def settings_access_POST(owner_name, repo_name):
             resp = Client().get_repo_access_settings(owner_name[1:], repo_name, None)
         if resp.user is None or resp.user.repository is None:
             abort(404)
+        owner = resp.user
+        repo = resp.user.repository
+        projects = get_projects(owner, repo.rid)
         return render_template("settings_access.html",
-                owner=resp.user, repo=resp.user.repository, **valid.kwargs)
+                owner=owner, repo=repo,
+                projects=projects, view="settings",
+                **valid.kwargs)
     grant = (Access.query
         .filter(Access.repo_id == repo.id, Access.user_id == user.id)
     ).first()
@@ -234,13 +256,23 @@ def settings_access_deploy_key_POST(owner_name, repo_name):
     key = valid.require("key", friendly_name="SSH key")
     mode = valid.optional("keyaccess", cls=AccessMode, default=AccessMode.RO)
     if not valid.ok:
+        owner = resp.user
+        repo = resp.user.repository
+        projects = get_projects(owner, repo.rid)
         return render_template("settings_access.html",
-                owner=resp.user, repo=resp.user.repository, **valid.kwargs)
+                owner=owner, repo=repo,
+                projects=projects, view="settings",
+                **valid.kwargs)
     with valid:
         resp = Client().create_deploy_key(resp.user.repository.rid, mode, key)
     if not valid.ok:
+        owner = resp.user
+        repo = resp.user.repository
+        projects = get_projects(owner, repo.rid)
         return render_template("settings_access.html",
-                owner=resp.user, repo=resp.user.repository, **valid.kwargs)
+                owner=owner, repo=repo,
+                projects=projects, view="settings",
+                **valid.kwargs)
     return redirect(url_for("manage.settings_access",
             owner_name=owner_name, repo_name=repo_name))
 
@@ -259,7 +291,9 @@ def settings_delete(owner_name, repo_name):
     if isinstance(repo, Redirect):
         return redirect(url_for(".settings_delete",
             owner_name=owner_name, repo_name=repo.new_repo.name))
-    return render_template("settings_delete.html", owner=owner, repo=repo)
+    projects = get_projects(owner, repo.rid)
+    return render_template("settings_delete.html", owner=owner, repo=repo,
+            projects=projects, view="settings")
 
 @manage.route("/<owner_name>/<repo_name>/settings/delete", methods=["POST"])
 @loginrequired

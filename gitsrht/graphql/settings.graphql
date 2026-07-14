@@ -2,9 +2,16 @@ query GetRepoAccessSettings($user: String!, $repo: String!, $aclCursor: Cursor, 
   user(username: $user) {
     canonicalName
     username
+
     repository(name: $repo) {
       rid
       name
+      visibility
+
+      owner {
+        canonicalName
+      }
+
       acls(cursor: $aclCursor) {
         cursor
         results {
