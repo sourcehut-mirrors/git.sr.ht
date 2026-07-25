@@ -585,14 +585,17 @@ def log_rss(owner, repo, ref):
             abort(404)
         commits = get_log(git_repo, commit)
         default_branch = git_repo.default_branch_name()
+    refname = ref.decode('utf-8', 'replace')
+    default_branch_name = default_branch.raw_name \
+        .decode("utf-8", "replace")[len("refs/heads/"):]
 
     repo_name = f"{repo.owner.canonical_name}/{repo.name}"
     title = f"{repo_name} log"
-    description = f"Git log for {repo_name} {ref.decode('utf-8', 'replace')}"
+    description = f"Git log for {repo_name} {refname}"
     link = cfg("git.sr.ht", "origin") + url_for("repo.log",
         owner=repo.owner.canonical_name,
         repo=repo.name,
-        ref=ref if ref != default_branch else None)
+        ref=refname if refname != default_branch_name else None)
 
     return generate_commits_feed(repo, commits, title, link, description)
 
