@@ -609,6 +609,7 @@ def log_rss(owner, repo, ref):
 @repo.route("/<owner>/<repo>/commit/<path:ref>")
 def commit(owner, repo, ref):
     owner, repo = get_repo_or_redir(owner, repo)
+    projects = get_projects(owner, repo.rid)
     with GitRepository(repo.path) as git_repo:
         mailmap = pygit2.Mailmap.from_repository(git_repo)
         commit, ref, _ = lookup_ref(git_repo, ref, None)
@@ -621,7 +622,7 @@ def commit(owner, repo, ref):
             commit=commit, parent=parent,
             diff=diff, diffstat=diffstat, pygit2=pygit2,
             default_branch=git_repo.default_branch(),
-            mailmap=mailmap)
+            mailmap=mailmap, projects=projects)
 
 @repo.route("/<owner>/<repo>/commit/<path:ref>.patch")
 def patch(owner, repo, ref):
