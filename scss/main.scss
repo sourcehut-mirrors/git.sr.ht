@@ -444,8 +444,7 @@ img {
 
 dl {
   dd {
-    text-overflow: ellipsis;
-    overflow-x: hidden;
+    overflow-wrap: anywhere;
   }
 }
 
