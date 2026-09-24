@@ -100,13 +100,13 @@ endif %}{% endfor %}
   >{{str(c.id)[:8]}}</a>
   {% endif %}
   &mdash;
-  {% set author_user = lookup(c.author.email) %}
   {% if mailmap and c.author.name and c.author.email %}
   {% set author = mailmap.resolve_signature(c.author) %}
   {% else %}
   {% set author = c.author %}
   {% endif %}
 
+  {% set author_user = lookup(author.email) %}
   {% if author_user %}
   <a href="{{url_for("public.user_index",
     username=author_user.username)}}">{{author.name}}</a>
