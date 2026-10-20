@@ -1911,7 +1911,7 @@ func (r *repositoryResolver) Path(ctx context.Context, obj *model.Repository, re
 		return nil, err
 	}
 	if len(t) == 0 {
-		return nil, fmt.Errorf("no such object")
+		return nil, gerrors.Errorf(gerrors.NotFound, "no such object")
 	} else if len(t) > 1 {
 		panic("several entries for single path")
 	}
@@ -1929,6 +1929,9 @@ func (r *repositoryResolver) Paths(ctx context.Context, obj *model.Repository, r
 	hash, err := repo.ResolveRevision(rev)
 	repo.Unlock()
 	if err != nil {
+		if errors.Is(err, plumbing.ErrReferenceNotFound) {
+			return nil, gerrors.Errorf(gerrors.NotFound, "no such object")
+		}
 		return nil, err
 	}
 	if hash == nil {
