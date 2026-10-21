@@ -266,62 +266,65 @@ def tree(owner, repo, ref, path):
         tree = commit.tree
         if not tree:
             abort(404)
-        editorconfig = EditorConfig(git_repo, tree, path)
 
         entry = tree
-        path = path.split("/")
-        for part in path:
-            if part == "":
-                continue
-            if not tree or part not in tree:
-                abort(404)
-            entry = tree[part]
-            etype = (entry.type_str
-                    if hasattr(entry, "type_str") else entry.type)
-            if etype == "blob":
-                tree = annotate_tree(git_repo, tree, commit)
-                commit = next(
-                        (e.commit for e in tree if e.name == entry.name), None)
-                blob = git_repo.get(entry.id)
-                data = None
-                if not blob.is_binary:
-                    try:
-                        data = blob.data.decode()
-                    except ValueError:
-                        data = '[unable to decode]'
-                md = not blob.is_binary and entry.name.endswith(".md")
-                if md:
-                    link_prefix = url_for('repo.tree', owner=repo.owner,
-                            repo=repo.name, ref=refname,
-                            path=os.path.dirname("/".join(path)))
-                    blob_prefix = url_for(
-                        'repo.raw_blob', owner=repo.owner, repo=repo.name,
-                        ref=refname, path=os.path.dirname("/".join(path)))
-                    md = markdown(data,
-                            link_prefix=[link_prefix, blob_prefix])
-                force_source = "view-source" in request.args
+        try:
+            if len(path) > 0:
+                entry = tree[path]
+        except KeyError:
+            abort(404)
 
-                return render_template("blob.html", view="blob",
-                        owner=owner, repo=repo, ref=refname, path=path, entry=entry,
-                        blob=blob, data=data, commit=orig_commit,
-                        highlight_file=_highlight_file,
-                        linecounter=linecounter,
-                        editorconfig=editorconfig,
-                        markdown=md, force_source=force_source, pygit2=pygit2,
-                        projects=projects)
-            tree = git_repo.get(entry.id)
+        path = path.split("/")
+
+        if not entry:
+            abort(404)
+
+        etype = (entry.type_str
+                if hasattr(entry, "type_str") else entry.type)
+
+        if etype == "blob":
+            blob = git_repo.get(entry.id)
+            data = None
+            if not blob.is_binary:
+                try:
+                    data = blob.data.decode()
+                except ValueError:
+                    data = '[unable to decode]'
+            md = not blob.is_binary and entry.name.endswith(".md")
+            if md:
+                link_prefix = url_for('repo.tree', owner=repo.owner,
+                        repo=repo.name, ref=refname,
+                        path=os.path.dirname("/".join(path)))
+                blob_prefix = url_for(
+                    'repo.raw_blob', owner=repo.owner, repo=repo.name,
+                    ref=refname, path=os.path.dirname("/".join(path)))
+                md = markdown(data,
+                        link_prefix=[link_prefix, blob_prefix])
+            force_source = "view-source" in request.args
+
+            annotated_tree = annotate_tree(git_repo, tree, commit)
+            editorconfig = EditorConfig(git_repo, annotated_tree, path)
+            return render_template("blob.html", view="blob",
+                    owner=owner, repo=repo, ref=refname, path=path, entry=entry,
+                    blob=blob, data=data, commit=orig_commit,
+                    highlight_file=_highlight_file,
+                    linecounter=linecounter,
+                    editorconfig=editorconfig,
+                    markdown=md, force_source=force_source, pygit2=pygit2,
+                    projects=projects)
 
         if not tree or tree.type != pygit2.GIT_OBJECT_TREE:
             abort(404)
-        tree = annotate_tree(git_repo, tree, commit)
-        tree = sorted(tree, key=lambda e: e.name)
+        tree = git_repo.get(entry.id)
+        annotated_tree = annotate_tree(git_repo, tree, commit)
+        annotated_tree = sorted(annotated_tree, key=lambda e: e.name)
 
         default_branch = git_repo.default_branch()
         tip = git_repo.get(default_branch.raw_target)
         license_exists, licenses = get_license_info_for_tip(tip)
 
         return render_template("tree.html", view="tree", owner=owner, repo=repo,
-                ref=refname, commit=commit, entry=entry, tree=tree, path=path,
+                ref=refname, commit=commit, entry=entry, tree=annotated_tree, path=path,
                 pygit2=pygit2, license_exists=license_exists, licenses=licenses,
                 projects=projects)
 
