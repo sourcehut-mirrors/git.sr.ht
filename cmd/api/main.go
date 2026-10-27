@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"time"
 
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/database"
@@ -61,10 +62,24 @@ func main() {
 	webhookQueue := webhooks.NewQueue(schema, appConfig)
 	legacyWebhooks := webhooks.NewLegacyQueue(appConfig)
 
+	var (
+		loaderTimeout time.Duration
+		err           error
+	)
+
+	if to, ok := appConfig.Get("git.sr.ht::api", "max-duration"); ok {
+		loaderTimeout, err = time.ParseDuration(to)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		loaderTimeout = 3 * time.Second
+	}
+
 	srv := server.New("git.sr.ht", ":5101", appConfig, os.Args).
 		WithDefaultMiddleware().
 		WithMiddleware(
-			loaders.Middleware,
+			loaders.Middleware(loaderTimeout),
 			account.Middleware(accountQueue),
 			repos.Middleware(reposQueue),
 			webhooks.Middleware(webhookQueue),

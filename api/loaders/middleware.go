@@ -31,8 +31,11 @@ type Loaders struct {
 	RepositoriesByOwnerIDRepoName RepositoriesByOwnerIDRepoNameLoader
 }
 
-func fetchUsersByID(ctx context.Context) func(ids []int) ([]*model.User, []error) {
+func fetchUsersByID(ctx context.Context, timeout time.Duration) func(ids []int) ([]*model.User, []error) {
 	return func(ids []int) ([]*model.User, []error) {
+		ctx, done := context.WithTimeout(ctx, timeout)
+		defer done()
+
 		users := make([]*model.User, len(ids))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
@@ -74,8 +77,11 @@ func fetchUsersByID(ctx context.Context) func(ids []int) ([]*model.User, []error
 	}
 }
 
-func fetchUsersByName(ctx context.Context) func(names []string) ([]*model.User, []error) {
+func fetchUsersByName(ctx context.Context, timeout time.Duration) func(names []string) ([]*model.User, []error) {
 	return func(names []string) ([]*model.User, []error) {
+		ctx, done := context.WithTimeout(ctx, timeout)
+		defer done()
+
 		users := make([]*model.User, len(names))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
@@ -117,8 +123,11 @@ func fetchUsersByName(ctx context.Context) func(names []string) ([]*model.User, 
 	}
 }
 
-func fetchRepositoriesByID(ctx context.Context) func(ids []int) ([]*model.Repository, []error) {
+func fetchRepositoriesByID(ctx context.Context, timeout time.Duration) func(ids []int) ([]*model.Repository, []error) {
 	return func(ids []int) ([]*model.Repository, []error) {
+		ctx, done := context.WithTimeout(ctx, timeout)
+		defer done()
+
 		repos := make([]*model.Repository, len(ids))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
@@ -178,8 +187,11 @@ func (or OwnerRepoName) Value() (driver.Value, error) {
 	return fmt.Sprintf("(%q,%q)", or.Owner, or.RepoName), nil
 }
 
-func fetchRepositoriesByOwnerRepoName(ctx context.Context) func([]OwnerRepoName) ([]*model.Repository, []error) {
+func fetchRepositoriesByOwnerRepoName(ctx context.Context, timeout time.Duration) func([]OwnerRepoName) ([]*model.Repository, []error) {
 	return func(ownerRepoNames []OwnerRepoName) ([]*model.Repository, []error) {
+		ctx, done := context.WithTimeout(ctx, timeout)
+		defer done()
+
 		repos := make([]*model.Repository, len(ownerRepoNames))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
@@ -246,8 +258,11 @@ func (or OwnerIDRepoName) Value() (driver.Value, error) {
 	return fmt.Sprintf("(%d,%q)", or.OwnerID, or.RepoName), nil
 }
 
-func fetchRepositoriesByOwnerIDRepoName(ctx context.Context) func([]OwnerIDRepoName) ([]*model.Repository, []error) {
+func fetchRepositoriesByOwnerIDRepoName(ctx context.Context, timeout time.Duration) func([]OwnerIDRepoName) ([]*model.Repository, []error) {
 	return func(ownerIDRepoNames []OwnerIDRepoName) ([]*model.Repository, []error) {
+		ctx, done := context.WithTimeout(ctx, timeout)
+		defer done()
+
 		repos := make([]*model.Repository, len(ownerIDRepoNames))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
@@ -304,38 +319,41 @@ func fetchRepositoriesByOwnerIDRepoName(ctx context.Context) func([]OwnerIDRepoN
 	}
 }
 
-func Middleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), loadersCtxKey, &Loaders{
-			UsersByID: UsersByIDLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchUsersByID(r.Context()),
-			},
-			UsersByName: UsersByNameLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchUsersByName(r.Context()),
-			},
-			RepositoriesByID: RepositoriesByIDLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchRepositoriesByID(r.Context()),
-			},
-			RepositoriesByOwnerRepoName: RepositoriesByOwnerRepoNameLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchRepositoriesByOwnerRepoName(r.Context()),
-			},
-			RepositoriesByOwnerIDRepoName: RepositoriesByOwnerIDRepoNameLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchRepositoriesByOwnerIDRepoName(r.Context()),
-			},
+func Middleware(timeout time.Duration) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			loaderCtx := context.WithoutCancel(r.Context())
+			ctx := context.WithValue(r.Context(), loadersCtxKey, &Loaders{
+				UsersByID: UsersByIDLoader{
+					maxBatch: 100,
+					wait:     1 * time.Millisecond,
+					fetch:    fetchUsersByID(loaderCtx, timeout),
+				},
+				UsersByName: UsersByNameLoader{
+					maxBatch: 100,
+					wait:     1 * time.Millisecond,
+					fetch:    fetchUsersByName(loaderCtx, timeout),
+				},
+				RepositoriesByID: RepositoriesByIDLoader{
+					maxBatch: 100,
+					wait:     1 * time.Millisecond,
+					fetch:    fetchRepositoriesByID(loaderCtx, timeout),
+				},
+				RepositoriesByOwnerRepoName: RepositoriesByOwnerRepoNameLoader{
+					maxBatch: 100,
+					wait:     1 * time.Millisecond,
+					fetch:    fetchRepositoriesByOwnerRepoName(loaderCtx, timeout),
+				},
+				RepositoriesByOwnerIDRepoName: RepositoriesByOwnerIDRepoNameLoader{
+					maxBatch: 100,
+					wait:     1 * time.Millisecond,
+					fetch:    fetchRepositoriesByOwnerIDRepoName(loaderCtx, timeout),
+				},
+			})
+			r = r.WithContext(ctx)
+			next.ServeHTTP(w, r)
 		})
-		r = r.WithContext(ctx)
-		next.ServeHTTP(w, r)
-	})
+	}
 }
 
 func ForContext(ctx context.Context) *Loaders {
