@@ -100,7 +100,7 @@
       </li>
       {% endif %}
       {% if repo.indexed
-        and cfg('git.sr.ht', 'repos-index')
+        and cfg('git.sr.ht', 'repos-index', default=None)
         and current_user
         and view != "settings" %}
       <li class="flex-grow-1"></li>
