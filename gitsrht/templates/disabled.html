@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <section class="col-md-8 offset-md-2">
+      <h3>Page disabled due to load</h3>
+      <p>
+        Due to extreme load (generally attributable to aggressive LLM crawlers)
+        this page has been disabled for logged-out users. We apologize for the
+        inconvenience. Please <a href="{{login_url}}">log in</a> to continue.
+      </p>
+    </section>
+  </div>
+</div>
+{% endblock %}

@@ -26,7 +26,7 @@ from srht.app import get_projects
 from srht.config import cfg, get_origin
 from srht.graphql import has_error
 from srht.markdown import markdown, sanitize
-from srht.oauth import loginrequired
+from srht.oauth import loginrequired, current_user
 from urllib.parse import urlparse
 
 repo = Blueprint('repo', __name__)
@@ -244,6 +244,11 @@ def lookup_signature(git_repo, ref, fmt=['tar', 'tar.gz']):
 @repo.route("/<owner>/<repo>/tree/<path:ref>", defaults={"path": ""})
 @repo.route("/<owner>/<repo>/tree/<path:ref>/item/<path:path>")
 def tree(owner, repo, ref, path):
+    if (cfg("git.sr.ht", "damage-control") == "yes"
+            and not current_user
+            and ref is not None):
+        return render_template("disabled.html")
+
     owner, repo = get_repo_or_redir(owner, repo)
     projects = get_projects(owner, repo.rid)
 
@@ -539,6 +544,9 @@ def collect_refs(git_repo):
 @repo.route("/<owner>/<repo>/log/<path:ref>", defaults={"path": ""})
 @repo.route("/<owner>/<repo>/log/<path:ref>/item/<path:path>")
 def log(owner, repo, ref, path):
+    if cfg("git.sr.ht", "damage-control") == "yes" and not current_user:
+        return render_template("disabled.html")
+
     owner, repo = get_repo_or_redir(owner, repo)
     projects = get_projects(owner, repo.rid)
 
