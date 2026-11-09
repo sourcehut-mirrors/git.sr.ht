@@ -244,7 +244,7 @@ def lookup_signature(git_repo, ref, fmt=['tar', 'tar.gz']):
 @repo.route("/<owner>/<repo>/tree/<path:ref>", defaults={"path": ""})
 @repo.route("/<owner>/<repo>/tree/<path:ref>/item/<path:path>")
 def tree(owner, repo, ref, path):
-    if (cfg("git.sr.ht", "damage-control") == "yes"
+    if (cfg("git.sr.ht", "damage-control", "no") == "yes"
             and not current_user
             and ref is not None):
         return render_template("disabled.html")
@@ -544,7 +544,7 @@ def collect_refs(git_repo):
 @repo.route("/<owner>/<repo>/log/<path:ref>", defaults={"path": ""})
 @repo.route("/<owner>/<repo>/log/<path:ref>/item/<path:path>")
 def log(owner, repo, ref, path):
-    if cfg("git.sr.ht", "damage-control") == "yes" and not current_user:
+    if cfg("git.sr.ht", "damage-control", "no") == "yes" and not current_user:
         return render_template("disabled.html")
 
     owner, repo = get_repo_or_redir(owner, repo)
