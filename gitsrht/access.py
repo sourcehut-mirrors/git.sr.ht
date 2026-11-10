@@ -8,7 +8,7 @@ from gitsrht.graphql import AccessMode, Visibility
 from gitsrht.types import Access, Repository, Redirect, User
 from sqlalchemy.ext.declarative import declared_attr
 from srht.database import db
-from srht.oauth import current_user
+from srht.oauth import current_user, UserType
 
 class UserAccess(IntFlag):
     none = 0
@@ -18,7 +18,9 @@ class UserAccess(IntFlag):
 
 def get_repo(owner_name, repo_name):
     if owner_name[0] == "~":
-        user = User.query.filter(User.username == owner_name[1:]).first()
+        user = (User.query
+                .filter(User.username == owner_name[1:])
+                .filter(User.user_type != UserType.suspended)).first()
         if user:
             repo = Repository.query.filter(Repository.owner_id == user.id)\
                 .filter(Repository.name == repo_name).first()

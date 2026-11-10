@@ -5,7 +5,7 @@ from gitsrht.types import Access, Repository, User
 from sqlalchemy import and_, or_
 from srht.app import paginate_query, get_profile
 from srht.config import cfg
-from srht.oauth import current_user
+from srht.oauth import current_user, UserType
 from srht.search import search_by
 
 public = Blueprint('public', __name__)
@@ -23,7 +23,9 @@ def index():
 @public.route("/~<username>")
 @public.route("/~<username>/")
 def user_index(username):
-    user = User.query.filter(User.username == username).first()
+    user = (User.query
+            .filter(User.username == username)
+            .filter(User.user_type != UserType.suspended)).first()
     if not user:
         abort(404)
     terms = request.args.get("search")
