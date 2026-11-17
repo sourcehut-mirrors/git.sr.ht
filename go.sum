@@ -1,8 +1,8 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 dario.cat/mergo v1.0.1 h1:Ra4+bf83h2ztPIQYNP99R6m+Y7KfnARDfID+a+vLl4s=
 dario.cat/mergo v1.0.1/go.mod h1:uNxQE+84aUszobStD9th8a29P2fMDhsBdgRYvZOxGmk=
-git.sr.ht/~sircmpwn/core-go v0.0.0-20260520082310-fdb3662452dc h1:txQeGOaDKWVsAbnMd8CziM9GxbFn+6ztolA+sNE22T4=
-git.sr.ht/~sircmpwn/core-go v0.0.0-20260520082310-fdb3662452dc/go.mod h1:JmathMemB+hBk1IgrMn6RuBGusd+fTg1s/X6rNVKXXU=
+git.sr.ht/~sircmpwn/core-go v0.0.0-20261117100704-5adc5cee355c h1:BIldEwBuwno60Ye7uIrmlrugrd+u7nTQvA1FSiM/6Wo=
+git.sr.ht/~sircmpwn/core-go v0.0.0-20261117100704-5adc5cee355c/go.mod h1:GauPhPNATz0glusk1p2bkUkfq1svZZIXdiIkJ5FHa4g=
 git.sr.ht/~sircmpwn/dowork v0.0.0-20260608121917-b429c14b2130 h1:fyqfEmYpiOiPvf2ZnUV+2DN6eCOrCsrE2VEfjSEr2Dk=
 git.sr.ht/~sircmpwn/dowork v0.0.0-20260608121917-b429c14b2130/go.mod h1:8neHEO3503w/rNtttnR0JFpQgM/GFhaafVwvkPsFIDw=
 git.sr.ht/~sircmpwn/getopt v0.0.0-20191230200459-23622cc906b3/go.mod h1:wMEGFFFNuPos7vHmWXfszqImLppbc0wEhh6JBfJIUgw=
