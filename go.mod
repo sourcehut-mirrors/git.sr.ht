@@ -3,8 +3,8 @@ module git.sr.ht/~sircmpwn/git.sr.ht
 go 1.24.0
 
 require (
-	git.sr.ht/~sircmpwn/core-go v0.0.0-20261118094431-b0b33063a1d6
-	git.sr.ht/~sircmpwn/dowork v0.0.0-20260608121917-b429c14b2130
+	git.sr.ht/~sircmpwn/core-go v0.0.0-20261118141154-738af6b0bbe3
+	git.sr.ht/~sircmpwn/dowork v0.0.0-20261118140754-67c284e823eb
 	git.sr.ht/~sircmpwn/sourcehut-ssh v0.0.0-20260512093337-b0f47f7dced0
 	git.sr.ht/~turminal/go-fnmatch v0.0.0-20211021204744-1a55764af6de
 	github.com/99designs/gqlgen v0.17.64
